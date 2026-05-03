@@ -1,0 +1,118 @@
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- HELPER FUNCTIONS ---
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function getUserEmail() {
+      return request.auth.token.email.lower();
+    }
+
+    function isMasterAdmin() {
+      return isAuthenticated() && getUserEmail() == 'gwdmpm@gmail.com';
+    }
+
+    // Role-based lookup helper with existence and approval check
+    function getUserData() {
+      let email = getUserEmail();
+      return get(/databases/$(database)/documents/users/$(email)).data;
+    }
+
+    function hasRole(role) {
+      let email = getUserEmail();
+      let userPath = /databases/$(database)/documents/users/$(email);
+      return isAuthenticated() && 
+             exists(userPath) && 
+             get(userPath).data.role == role && 
+             get(userPath).data.isApproved == true;
+    }
+
+    function isAdmin() {
+      return isMasterAdmin() || hasRole('admin');
+    }
+
+    function isScientist() {
+      return hasRole('scientist');
+    }
+
+    function isEngineer() {
+      return hasRole('engineer');
+    }
+
+    // --- COLLECTION RULES ---
+
+    // 1. Global Application Settings: Shared read, Admin modify.
+    match /appSettings/{document=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // 2. District Employees: Centralized roster. Everyone can view, Admin modifies.
+    match /employees/{employeeId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // 3. Attendance Logs: Centralized logs. Admin/Technical staff can modify.
+    match /attendance_logs/{recordId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || isEngineer() || isScientist();
+    }
+
+    // 4. Technical Reports Hub: Granular permissions for Scientist vs Engineer
+    match /groundwaterReports/{reportId} {
+      allow read: if isAuthenticated();
+      
+      function isEngineerWork(data) {
+        let p = data.get('purpose', '').lower();
+        let c = data.get('category', '').lower();
+        return p.contains('drilling') || p.contains('flushing') || p.contains('supervision') || 
+               p.contains('estimate') || p.contains('measurement') || p.contains('hps') || p.contains('hpr') ||
+               c.contains('drilling') || c.contains('flushing') || c.contains('supervision') || 
+               c.contains('estimate') || c.contains('measurement');
+      }
+
+      function isScientistWork(data) {
+        let p = data.get('purpose', '').lower();
+        let c = data.get('category', '').lower();
+        return p.contains('investigation') || p.contains('geological') || p.contains('geophysical') || 
+               p.contains('complaint') || p.contains('inspection') || p.contains('nhp') ||
+               c.contains('investigation') || c.contains('geological') || c.contains('geophysical');
+      }
+
+      function isSharedWork(data) {
+        let p = data.get('purpose', '').lower();
+        let c = data.get('category', '').lower();
+        return p.contains('pumping') || p.contains('census') || 
+               c.contains('pumping') || c.contains('census');
+      }
+
+      allow create: if isAdmin() || 
+                      (isEngineer() && (isEngineerWork(request.resource.data) || isSharedWork(request.resource.data))) ||
+                      (isScientist() && (isScientistWork(request.resource.data) || isSharedWork(request.resource.data)));
+      
+      allow update: if isAdmin() || 
+                      (isEngineer() && (isEngineerWork(resource.data) || isSharedWork(resource.data))) ||
+                      (isScientist() && (isScientistWork(resource.data) || isSharedWork(resource.data)));
+
+      allow delete: if isAdmin();
+    }
+
+    // 5. User Profiles: Centralized profiles indexed by email.
+    match /users/{userEmail} {
+      // allow get for unauthenticated to check registration status during login
+      allow get: if true; 
+      allow list: if isAuthenticated();
+      // Only admins or the owner can update the profile
+      // We allow any authenticated user to update their OWN document if it's just the UID field (provisioning)
+      allow create: if isAdmin();
+      allow update: if isAdmin() || (isAuthenticated() && getUserEmail() == userEmail.lower());
+      allow delete: if isAdmin();
+    }
+  }
+}

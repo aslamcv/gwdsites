@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: sans-serif;
+}
+
+@layer base {
+  :root {
+    /* Light Golden Yellow Shade Background */
+    /* Changed from 199 50% 95% (light blue) to 45 100% 98% (ivory gold) */
+    --background: 45 100% 98%;
+    --foreground: 222 60% 15%;
+    
+    --card: 45 100% 98%;
+    --card-foreground: 222 60% 15%;
+    
+    --popover: 45 100% 98%;
+    --popover-foreground: 222 60% 15%;
+    
+    /* Dark Blue Lettering/Accents retained for technical contrast */
+    --primary: 222 60% 30%;
+    --primary-foreground: 45 100% 98%;
+    
+    --secondary: 45 80% 94%;
+    --secondary-foreground: 222 60% 15%;
+    
+    --muted: 45 30% 90%;
+    /* Darkened muted foreground from 40% lightness to 25% for better contrast */
+    --muted-foreground: 222 30% 25%;
+    
+    --accent: 48 100% 90%;
+    --accent-foreground: 222 60% 15%;
+    
+    --border: 45 30% 85%;
+    --input: 45 30% 85%;
+    --ring: 222 60% 30%;
+    --radius: 0.5rem;
+
+    --sidebar-background: 45 100% 98%;
+    --sidebar-foreground: 222 60% 15%;
+    --sidebar-primary: 222 60% 30%;
+    --sidebar-primary-foreground: 45 100% 98%;
+    --sidebar-accent: 45 80% 94%;
+    --sidebar-accent-foreground: 222 60% 15%;
+    --sidebar-border: 45 30% 85%;
+    --sidebar-ring: 222 60% 30%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Custom fonts for technical feel */
+@layer utilities {
+  .font-ocr {
+    font-family: "OCR A Extended", "Share Tech Mono", monospace;
+  }
+}
+
+/* Custom styles for the Menubar */
+[data-slot="menubar-sub"] {
+  @apply rounded-md shadow-2xl border-primary/20 bg-card;
+}
+
+.rdp-dropdown {
+  @apply bg-background border rounded px-1 text-xs focus:ring-1 focus:ring-primary outline-none;
+}

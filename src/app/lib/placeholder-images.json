@@ -1,0 +1,101 @@
+
+{
+  "placeholderImages": [
+    {
+      "id": "gwd-logo",
+      "description": "Kerala Ground Water Department Logo - Hands holding a water drop",
+      "imageUrl": "https://picsum.photos/seed/gwd-kerala-logo/400/400",
+      "imageHint": "water logo"
+    },
+    {
+      "id": "header-background",
+      "description": "Water source and landscape for departmental banner",
+      "imageUrl": "https://picsum.photos/seed/water-source-banner/1600/400",
+      "imageHint": "water surface"
+    },
+    {
+      "id": "login-background",
+      "description": "Serene pond water for login background",
+      "imageUrl": "https://picsum.photos/seed/pond-login/1920/1080",
+      "imageHint": "water pond"
+    },
+    {
+      "id": "dashboard-hero",
+      "description": "Thematic visualization representing the vital importance of clean drinking water resources",
+      "imageUrl": "https://picsum.photos/seed/drinking-water-importance/1200/500",
+      "imageHint": "drinking water"
+    },
+    {
+      "id": "service-investigation",
+      "description": "Groundwater investigation site selection infographic",
+      "imageUrl": "https://picsum.photos/seed/gwd-inv/1200/800",
+      "imageHint": "geology survey"
+    },
+    {
+      "id": "service-drilling",
+      "description": "Borewell drilling operations and technical specs",
+      "imageUrl": "https://picsum.photos/seed/gwd-drill/1200/800",
+      "imageHint": "drilling machine"
+    },
+    {
+      "id": "service-pumping",
+      "description": "Pumping test yield analysis technical chart",
+      "imageUrl": "https://picsum.photos/seed/gwd-pump/1200/800",
+      "imageHint": "water pump"
+    },
+    {
+      "id": "service-quality",
+      "description": "Water quality lab testing parameters",
+      "imageUrl": "https://picsum.photos/seed/gwd-quality/1200/800",
+      "imageHint": "laboratory testing"
+    },
+    {
+      "id": "service-conservation",
+      "description": "ARS water conservation mapping",
+      "imageUrl": "https://picsum.photos/seed/gwd-cons/1200/800",
+      "imageHint": "water conservation"
+    },
+    {
+      "id": "service-permit",
+      "description": "Borewell permit and NOC processing flowchart",
+      "imageUrl": "https://picsum.photos/seed/gwd-permit/1200/800",
+      "imageHint": "official document"
+    },
+    {
+      "id": "service-depth",
+      "description": "Well development flushing technical guide",
+      "imageUrl": "https://picsum.photos/seed/gwd-dev/1200/800",
+      "imageHint": "well cleaning"
+    },
+    {
+      "id": "service-equipment",
+      "description": "Drilling equipment hire and rig catalog",
+      "imageUrl": "https://picsum.photos/seed/gwd-equip/1200/800",
+      "imageHint": "industrial machinery"
+    },
+    {
+      "id": "service-research",
+      "description": "Groundwater data research and GIS maps",
+      "imageUrl": "https://picsum.photos/seed/gwd-res/1200/800",
+      "imageHint": "data analysis"
+    },
+    {
+      "id": "service-awareness",
+      "description": "Community awareness and water security program",
+      "imageUrl": "https://picsum.photos/seed/gwd-aware/1200/800",
+      "imageHint": "training program"
+    },
+    {
+      "id": "service-monitoring",
+      "description": "Station data monitoring network",
+      "imageUrl": "https://picsum.photos/seed/gwd-mon/1200/800",
+      "imageHint": "monitoring station"
+    },
+    {
+      "id": "service-drinking",
+      "description": "Drinking water schemes and scheme layouts",
+      "imageUrl": "https://picsum.photos/seed/gwd-drink/1200/800",
+      "imageHint": "water supply"
+    }
+  ]
+}

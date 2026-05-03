@@ -1,0 +1,133 @@
+
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Represents an authenticated staff member or administrator.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "scientist", "engineer", "viewer"] },
+        "isApproved": { "type": "boolean" },
+        "staffRecordId": { "type": "string" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Employee": {
+      "title": "Employee",
+      "description": "A staff member record within the district establishment.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "name_ml": { "type": "string" },
+        "designation": { "type": "string" },
+        "designation_ml": { "type": "string" },
+        "pen": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "hasSystemAccess": { "type": "boolean" },
+        "roles": { "type": "array", "items": { "type": "string" } },
+        "phone": { "type": "string" },
+        "dob": { "type": "string", "format": "date" },
+        "photoUrl": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "designation", "pen"]
+    },
+    "AttendanceRecord": {
+      "title": "AttendanceRecord",
+      "description": "Monthly attendance map for an employee.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "employeeId": { "type": "string" },
+        "employeeName": { "type": "string" },
+        "year": { "type": "number" },
+        "month": { "type": "number" },
+        "type": { "type": "string", "enum": ["SLR", "CLR"] },
+        "days": { "type": "object", "additionalProperties": { "type": "string" } },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "GroundwaterReport": {
+      "title": "GroundwaterReport",
+      "description": "A technical groundwater investigation report.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "fileNo": { "type": "string" },
+        "applicantName": { "type": "string" },
+        "applicantName_ml": { "type": "string" },
+        "reportTitle": { "type": "string" },
+        "reportDate": { "type": "string", "format": "date" },
+        "village": { "type": "string" },
+        "category": { "type": "string" },
+        "nameOfSite_ml": { "type": "string" },
+        "address_ml": { "type": "string" },
+        "applicantAddress_ml": { "type": "string" }
+      },
+      "required": ["id", "fileNo", "applicantName", "reportTitle", "village"]
+    },
+    "AppSettings": {
+      "title": "AppSettings",
+      "description": "Global application settings including office info and dropdown lists.",
+      "type": "object",
+      "properties": {
+        "officeInfo": {
+          "type": "object",
+          "properties": {
+            "nameEn": { "type": "string" },
+            "addressEn": { "type": "string" },
+            "nameMl": { "type": "string" },
+            "addressMl": { "type": "string" },
+            "phone": { "type": "string" },
+            "email": { "type": "string" },
+            "officerName": { "type": "string" },
+            "pan": { "type": "string" },
+            "gst": { "type": "string" },
+            "gstinTds": { "type": "string" }
+          }
+        },
+        "lsgs": { "type": "array", "items": { "type": "string" } },
+        "constituencies": { "type": "array", "items": { "type": "string" } },
+        "manuals": {
+          "type": "object",
+          "properties": {
+            "malayalam": { "type": "string" },
+            "english": { "type": "string" }
+          }
+        }
+      }
+    }
+  },
+  "auth": {
+    "providers": [
+      "password"
+    ]
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User profile data indexed by email address for reliable role lookup."
+    },
+    "/employees/{employeeId}": {
+      "schema": { "$ref": "#/entities/Employee" },
+      "description": "Central registry of all district employees, accessible to all technical roles."
+    },
+    "/attendance_logs/{recordId}": {
+      "schema": { "$ref": "#/entities/AttendanceRecord" },
+      "description": "Centralized monthly attendance logs for the entire district."
+    },
+    "/groundwaterReports/{reportId}": {
+      "schema": { "$ref": "#/entities/GroundwaterReport" },
+      "description": "Central collection of technical investigation and drilling reports."
+    },
+    "/appSettings/{settingId}": {
+      "schema": { "$ref": "#/entities/AppSettings" },
+      "description": "Global settings documents for the district portal."
+    }
+  }
+}
