@@ -63,9 +63,10 @@ const categoryMappings: Record<string, string[]> = {
 
 const conveyanceOptions = [
   "TATA SUMO GOLD (KL01CE7618)",
-  "RENTED VEHICLE",
+  "SKE DTH RIG UNIT",
+  "DEPARTMENT TRUCK",
+  "RENTED SUPPORT VEHICLE",
   "PERSONAL VEHICLE",
-  "GENERAL TRANSPORT",
   "PRIVATE RIG VEHICLE"
 ];
 
@@ -141,17 +142,18 @@ function UnifiedFlushingEntryContent() {
   useEffect(() => {
     if (cloudReport) {
       const dateParts = cloudReport.dateOfInvestigation?.split(' - ') || [];
+      const sa = cloudReport.staffAssignment || {};
       setFormData((prev: any) => ({
         ...prev,
         ...cloudReport,
         startDate: dateParts[0] || prev.startDate,
         endDate: dateParts[1] || prev.endDate,
         staffAssignment: {
-          unitInCharge: Array.isArray(cloudReport.staffAssignment?.unitInCharge) ? cloudReport.staffAssignment.unitInCharge : (cloudReport.staffAssignment?.unitInCharge ? (cloudReport.staffAssignment.unitInCharge as string).split(', ') : []),
-          drillers: Array.isArray(cloudReport.staffAssignment?.drillers) ? cloudReport.staffAssignment.drillers : (cloudReport.staffAssignment?.drillers ? (cloudReport.staffAssignment.drillers as string).split(', ') : []),
-          drillingAssistants: Array.isArray(cloudReport.staffAssignment?.drillingAssistants) ? cloudReport.staffAssignment.drillingAssistants : (cloudReport.staffAssignment?.drillingAssistants ? (cloudReport.staffAssignment.drillingAssistants as string).split(', ') : []),
-          drivers: Array.isArray(cloudReport.staffAssignment?.drivers) ? cloudReport.staffAssignment.drivers : (cloudReport.staffAssignment?.drivers ? (cloudReport.staffAssignment.drivers as string).split(', ') : []),
-          otherStaff: Array.isArray(cloudReport.staffAssignment?.otherStaff) ? cloudReport.staffAssignment.otherStaff : (cloudReport.staffAssignment?.otherStaff ? (cloudReport.staffAssignment.otherStaff as string).split(', ') : [])
+          unitInCharge: Array.isArray(sa.unitInCharge) ? sa.unitInCharge : (sa.unitInCharge ? (sa.unitInCharge as string).split(', ') : []),
+          drillers: Array.isArray(sa.drillers) ? sa.drillers : (sa.drillers ? (sa.drillers as string).split(', ') : []),
+          drillingAssistants: Array.isArray(sa.drillingAssistants) ? sa.drillingAssistants : (sa.drillingAssistants ? (sa.drillingAssistants as string).split(', ') : []),
+          drivers: Array.isArray(sa.drivers) ? sa.drivers : (sa.drivers ? (sa.drivers as string).split(', ') : []),
+          otherStaff: Array.isArray(sa.otherStaff) ? sa.otherStaff : (sa.otherStaff ? (sa.otherStaff as string).split(', ') : [])
         }
       }));
     }
@@ -182,9 +184,8 @@ function UnifiedFlushingEntryContent() {
     return { uic: uicList, driller: drillerList, asst: asstList, driver: driverList, other: otherList };
   }, [employees]);
 
-  // AUTO-POPULATE LAC logic with robust matching
   const detectedLac = useMemo(() => {
-    const mapping = lsgMappings.find(m => m.lsg === formData.lsgd);
+    const mapping = lsgMappings?.find(m => m.lsg === formData.lsgd);
     return mapping?.constituency || '';
   }, [formData.lsgd, lsgMappings]);
 
@@ -267,10 +268,21 @@ function UnifiedFlushingEntryContent() {
               <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
                 <Truck className="size-3" /> Conveyance
               </Label>
-              <Select disabled={!isAllowed} onValueChange={(v) => updateField('conveyance', v)} value={formData.conveyance || ''}>
-                <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl"><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent className="rounded-xl border-slate-200">{conveyanceOptions.map(o => <SelectItem key={o} value={o} className="text-xs font-bold">{o}</SelectItem>)}</SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select disabled={!isAllowed} onValueChange={(v) => updateField('conveyance', v)} value={formData.conveyance || ''}>
+                  <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl flex-1"><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectContent className="rounded-xl border-slate-200">{conveyanceOptions.map(o => <SelectItem key={o} value={o} className="text-xs font-bold">{o}</SelectItem>)}</SelectContent>
+                </Select>
+                <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => updateField('conveyance', 'SKE DTH RIG UNIT')}
+                    className="h-10 rounded-xl text-[8px] font-black uppercase px-2 bg-primary/5 text-primary border-primary/10 hover:bg-primary/10"
+                  >
+                    SKE DTH RIG UNIT
+                  </Button>
+              </div>
             </div>
             <div className="space-y-1">
               <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><Building className="size-3" /> Sector</Label>
@@ -420,19 +432,22 @@ function UnifiedFlushingEntryContent() {
         </CardContent>
       </Card>
 
-      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] w-full max-w-6xl px-4">
-        <div className="bg-white/80 backdrop-blur-xl p-4 rounded-3xl border border-slate-200 shadow-2xl flex items-center justify-between gap-6 ring-1 ring-black/5">
-          <div className="flex items-center gap-6 pl-4">
-            <Logo />
-            <div className="flex flex-col">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">TECHNICAL SUPERVISION</span>
-              <span className="text-xs font-black text-slate-900 leading-none">{formData.fileNo || 'NEW RECORD'}</span>
+      <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] w-fit px-4">
+        <div className="bg-white/80 backdrop-blur-xl p-4 rounded-full border border-slate-200 shadow-2xl flex items-center justify-between gap-10 ring-1 ring-black/5">
+          <div className="flex items-center gap-4 pl-4">
+            <div className="flex items-center gap-3">
+              <Logo />
+              <div className="flex flex-col">
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">TECHNICAL SUPERVISION</span>
+                <span className="text-xs font-black text-slate-900 leading-none">{formData.fileNo || 'NEW RECORD'}</span>
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-3 pr-2">
-            <Button onClick={handleSave} disabled={isPending || !isAllowed} className="h-14 px-12 rounded-2xl bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] gap-2">
-              {isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />} 
-              {isAllowed ? (id ? 'UPDATE' : 'SAVE') + ' TECHNICAL RECORD' : 'Access Restricted'}
+
+          <div className="flex items-center gap-4 pr-2">
+            <Button onClick={handleSave} disabled={isPending || !isAllowed} className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/30 gap-3 hover:bg-blue-900 transition-all hover:scale-[1.02] active:scale-95">
+              {isPending ? <Loader2 className="size-5 animate-spin" /> : <Save className="size-5" />} 
+              {isAllowed ? (id ? 'UPDATE TECHNICAL RECORD' : 'SAVE TECHNICAL RECORD') : 'ACCESS RESTRICTED'}
             </Button>
           </div>
         </div>

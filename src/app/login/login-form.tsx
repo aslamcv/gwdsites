@@ -47,8 +47,8 @@ export function LoginForm() {
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginFormSchema),
     defaultValues: {
-      email: MASTER_ADMIN_EMAIL,
-      password: '123456',
+      email: '',
+      password: '',
     },
   });
 
@@ -157,7 +157,13 @@ export function LoginForm() {
             <FormItem>
               <FormLabel className="text-[10px] font-black uppercase text-slate-500 ml-1">Registered Official Email</FormLabel>
               <FormControl>
-                <Input type="email" placeholder="name@gwd.kerala.gov.in" {...field} className="h-12 bg-white/50 border-slate-200 rounded-xl font-bold" />
+                <Input 
+                  type="email" 
+                  placeholder="name@gwd.kerala.gov.in" 
+                  autoComplete="off"
+                  {...field} 
+                  className="h-12 bg-white/50 border-slate-200 rounded-xl font-bold" 
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -170,7 +176,13 @@ export function LoginForm() {
             <FormItem>
               <FormLabel className="text-[10px] font-black uppercase text-slate-500 ml-1">Portal Password</FormLabel>
               <FormControl>
-                <Input type="password" placeholder="••••••••" {...field} className="h-12 bg-white/50 border-slate-200 rounded-xl" />
+                <Input 
+                  type="password" 
+                  placeholder="Enter password" 
+                  autoComplete="off"
+                  {...field} 
+                  className="h-12 bg-white/50 border-slate-200 rounded-xl" 
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

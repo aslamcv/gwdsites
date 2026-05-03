@@ -24,7 +24,8 @@ import {
   ReceiptIndianRupee,
   Pickaxe,
   Lock,
-  SearchCode
+  SearchCode,
+  ArrowRight
 } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -61,6 +62,7 @@ const categoryMappings: Record<string, string[]> = {
 
 const conveyanceOptions = [
   "SKE DTH RIG VEHICLE (KL01CE7618)",
+  "SKE DTH RIG UNIT",
   "DEPARTMENT TRUCK",
   "RENTED SUPPORT VEHICLE",
   "PERSONAL VEHICLE"
@@ -140,17 +142,18 @@ function UnifiedDrillingSupervisionContent() {
   useEffect(() => {
     if (cloudReport) {
       const dateParts = cloudReport.dateOfInvestigation?.split(' - ') || [];
+      const sa = cloudReport.staffAssignment || {};
       setFormData((prev: any) => ({
         ...prev,
         ...cloudReport,
         startDate: dateParts[0] || prev.startDate,
         endDate: dateParts[1] || prev.endDate,
         staffAssignment: {
-          unitInCharge: Array.isArray(cloudReport.staffAssignment?.unitInCharge) ? cloudReport.staffAssignment.unitInCharge : (cloudReport.staffAssignment?.unitInCharge ? (cloudReport.staffAssignment.unitInCharge as string).split(', ') : []),
-          drillers: Array.isArray(cloudReport.staffAssignment?.drillers) ? cloudReport.staffAssignment.drillers : (cloudReport.staffAssignment?.drillers ? (cloudReport.staffAssignment.drillers as string).split(', ') : []),
-          drillingAssistants: Array.isArray(cloudReport.staffAssignment?.drillingAssistants) ? cloudReport.staffAssignment.drillingAssistants : (cloudReport.staffAssignment?.drillingAssistants ? (cloudReport.staffAssignment.drillingAssistants as string).split(', ') : []),
-          drivers: Array.isArray(cloudReport.staffAssignment?.drivers) ? cloudReport.staffAssignment.drivers : (cloudReport.staffAssignment?.drivers ? (cloudReport.staffAssignment.drivers as string).split(', ') : []),
-          otherStaff: Array.isArray(cloudReport.staffAssignment?.otherStaff) ? cloudReport.staffAssignment.otherStaff : (cloudReport.staffAssignment?.otherStaff ? (cloudReport.staffAssignment.otherStaff as string).split(', ') : [])
+          unitInCharge: Array.isArray(sa.unitInCharge) ? sa.unitInCharge : (sa.unitInCharge ? (sa.unitInCharge as string).split(', ') : []),
+          drillers: Array.isArray(sa.drillers) ? sa.drillers : (sa.drillers ? (sa.drillers as string).split(', ') : []),
+          drillingAssistants: Array.isArray(sa.drillingAssistants) ? sa.drillingAssistants : (sa.drillingAssistants ? (sa.drillingAssistants as string).split(', ') : []),
+          drivers: Array.isArray(sa.drivers) ? sa.drivers : (sa.drivers ? (sa.drivers as string).split(', ') : []),
+          otherStaff: Array.isArray(sa.otherStaff) ? sa.otherStaff : (sa.otherStaff ? (sa.otherStaff as string).split(', ') : [])
         }
       }));
     }
@@ -182,7 +185,7 @@ function UnifiedDrillingSupervisionContent() {
   }, [employees]);
 
   const detectedLac = useMemo(() => {
-    const mapping = lsgMappings.find(m => m.lsg === formData.lsgd);
+    const mapping = lsgMappings?.find(m => m.lsg === formData.lsgd);
     return mapping?.constituency || '';
   }, [formData.lsgd, lsgMappings]);
 
@@ -235,10 +238,8 @@ function UnifiedDrillingSupervisionContent() {
   return (
     <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black">
       
-      {/* 1. HEADER SECTION */}
       <div className="bg-white border border-slate-200 p-8 rounded-[32px] shadow-sm ring-1 ring-slate-200/50">
         <div className="flex flex-col space-y-8">
-          {/* Top Center Heading */}
           <div className="text-center">
             <h1 className="text-[26px] font-black text-slate-900 uppercase tracking-tighter leading-none">Borewell Drilling Entry</h1>
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">Technical Operations | District Office, Malappuram</p>
@@ -264,10 +265,21 @@ function UnifiedDrillingSupervisionContent() {
               </div>
               <div className="space-y-1">
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><Truck className="size-3" /> Conveyance</Label>
-                <Select disabled={!isAllowed} onValueChange={(v) => updateField('conveyance', v)} value={formData.conveyance || ''}>
-                  <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl"><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent className="rounded-xl border-slate-200">{conveyanceOptions.map(o => <SelectItem key={o} value={o} className="text-xs font-bold">{o}</SelectItem>)}</SelectContent>
-                </Select>
+                <div className="flex gap-2">
+                  <Select disabled={!isAllowed} onValueChange={(v) => updateField('conveyance', v)} value={formData.conveyance || ''}>
+                    <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl flex-1"><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent className="rounded-xl border-slate-200">{conveyanceOptions.map(o => <SelectItem key={o} value={o} className="text-xs font-bold">{o}</SelectItem>)}</SelectContent>
+                  </Select>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => updateField('conveyance', 'SKE DTH RIG UNIT')}
+                    className="h-10 rounded-xl text-[8px] font-black uppercase px-2 bg-primary/5 text-primary border-primary/10 hover:bg-primary/10"
+                  >
+                    SKE DTH RIG UNIT
+                  </Button>
+                </div>
               </div>
               <div className="space-y-1">
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><Building className="size-3" /> Sector</Label>
@@ -292,7 +304,6 @@ function UnifiedDrillingSupervisionContent() {
         </div>
       </div>
 
-      {/* 2. BASIC SITE & ADMIN DETAILS */}
       <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
           <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-600 flex items-center gap-3">
@@ -438,7 +449,7 @@ function UnifiedDrillingSupervisionContent() {
           <div className="flex items-center gap-4 pr-2">
             <Button onClick={handleSave} disabled={isPending || !isAllowed} className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/30 gap-3 hover:bg-blue-900 transition-all hover:scale-[1.02] active:scale-95">
               {isPending ? <Loader2 className="size-5 animate-spin" /> : <Save className="size-5" />} 
-              {isAllowed ? (id ? 'UPDATE TEST RECORD' : 'SAVE TEST RECORD') : 'ACCESS RESTRICTED'}
+              {isAllowed ? (id ? 'UPDATE TECHNICAL RECORD' : 'SAVE TECHNICAL RECORD') : 'ACCESS RESTRICTED'}
             </Button>
           </div>
         </div>

@@ -175,7 +175,7 @@ export default function DashboardPage() {
   const dailyWorkData = useMemo(() => {
     if (!reports) return [];
     return reports.filter(report => {
-      const reportDate = safeParseDate(report.reportDate || report.dateOfInvestigation?.split(' - ')[0]);
+      const reportDate = safeParseDate(report.reportDate || report.dateOfInvestigation?.split(/\s*[–-]\s*/)[0]);
       return reportDate && isSameDay(reportDate, selectedDate);
     });
   }, [reports, selectedDate]);
@@ -189,8 +189,9 @@ export default function DashboardPage() {
       if (report.staffAssignment) {
         Object.entries(report.staffAssignment).forEach(([role, names]) => {
           if (role === 'conveyance') return; // Skip conveyance
-          if (names && typeof names === 'string') {
-            names.split(',').forEach(name => {
+          if (names) {
+            const nameList = Array.isArray(names) ? names : (typeof names === 'string' ? names.split(',') : []);
+            nameList.forEach(name => {
               const trimmedName = name.trim();
               if (trimmedName) {
                 const emp = employeeMap.get(trimmedName.toLowerCase());
@@ -360,13 +361,12 @@ export default function DashboardPage() {
                           <TableCell className="pl-8 font-bold text-xs uppercase text-slate-700">{work.purpose || work.workType || 'N/A'}</TableCell>
                           <TableCell><Badge variant="secondary" className="text-[8px] font-black bg-white/50 border-white/40">{work.category}</Badge></TableCell>
                           <TableCell>
-                            <Button 
-                              variant="link" 
-                              className="p-0 h-auto text-xs font-black text-[#1e3a8a] hover:text-blue-800 uppercase tracking-tight text-left"
+                            <button 
+                              className="p-0 h-auto text-xs font-black text-[#1e3a8a] hover:text-blue-800 uppercase tracking-tight text-left border-none bg-transparent cursor-pointer"
                               onClick={() => setSelectedWork(work)}
                             >
                               {work.nameOfSite}
-                            </Button>
+                            </button>
                           </TableCell>
                         </TableRow>
                       ))
