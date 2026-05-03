@@ -268,21 +268,10 @@ function UnifiedFlushingEntryContent() {
               <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
                 <Truck className="size-3" /> Conveyance
               </Label>
-              <div className="flex gap-2">
-                <Select disabled={!isAllowed} onValueChange={(v) => updateField('conveyance', v)} value={formData.conveyance || ''}>
-                  <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl flex-1"><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent className="rounded-xl border-slate-200">{conveyanceOptions.map(o => <SelectItem key={o} value={o} className="text-xs font-bold">{o}</SelectItem>)}</SelectContent>
-                </Select>
-                <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => updateField('conveyance', 'SKE DTH RIG UNIT')}
-                    className="h-10 rounded-xl text-[8px] font-black uppercase px-2 bg-primary/5 text-primary border-primary/10 hover:bg-primary/10"
-                  >
-                    SKE DTH RIG UNIT
-                  </Button>
-              </div>
+              <Select disabled={!isAllowed} onValueChange={(v) => updateField('conveyance', v)} value={formData.conveyance || ''}>
+                <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl"><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectContent className="rounded-xl border-slate-200">{conveyanceOptions.map(o => <SelectItem key={o} value={o} className="text-xs font-bold">{o}</SelectItem>)}</SelectContent>
+              </Select>
             </div>
             <div className="space-y-1">
               <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><Building className="size-3" /> Sector</Label>
@@ -320,28 +309,6 @@ function UnifiedFlushingEntryContent() {
               <Input disabled={!isAllowed} value={formData.fileNo || ''} onChange={(e) => updateField('fileNo', e.target.value)} className="h-11 border-slate-200 font-black text-primary focus:bg-white" placeholder="MPM/GWD/..." />
             </div>
             <div className="space-y-2 lg:col-span-1">
-              <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Name of Site</Label>
-              <Input disabled={!isAllowed} value={formData.nameOfSite || ''} onChange={(e) => updateField('nameOfSite', e.target.value)} className="h-11 border-slate-200 uppercase font-bold text-primary" placeholder="LOCATION NAME" />
-            </div>
-            <div className="space-y-2 lg:col-span-1">
-              <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Address</Label>
-              <Input disabled={!isAllowed} value={formData.address || ''} onChange={(e) => updateField('address', e.target.value)} className="h-11 border-slate-200" placeholder="Street/Area" />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Grama Panchayath / LSGD</Label>
-              <Select disabled={!isAllowed} onValueChange={(v) => updateField('lsgd', v)} value={formData.lsgd || ''}>
-                <SelectTrigger className="h-11 border-slate-200 font-bold"><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent className="max-h-[400px] rounded-2xl">{lsgs.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Constituency (LAC)</Label>
-              <Input disabled value={detectedLac} className="h-11 border-slate-200 bg-slate-50 font-black text-blue-600 uppercase" placeholder="Auto-detected" />
-            </div>
-            <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Well Number</Label>
               <Input 
                 disabled={!isAllowed} 
@@ -350,6 +317,28 @@ function UnifiedFlushingEntryContent() {
                 className="h-11 border-slate-200 font-black text-primary focus:bg-white" 
                 placeholder="ENTER WELL NUMBER" 
               />
+            </div>
+            <div className="space-y-2 lg:col-span-1">
+              <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Name of Site</Label>
+              <Input disabled={!isAllowed} value={formData.nameOfSite || ''} onChange={(e) => updateField('nameOfSite', e.target.value)} className="h-11 border-slate-200 uppercase font-bold text-primary" placeholder="LOCATION NAME" />
+            </div>
+            <div className="space-y-2 lg:col-span-1">
+              <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Address</Label>
+              <Input disabled={!isAllowed} value={formData.address || ''} onChange={(e) => updateField('address', e.target.value)} className="h-11 border-slate-200" placeholder="Street/Area" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Grama Panchayath / LSGD</Label>
+              <Select disabled={!isAllowed} onValueChange={(v) => updateField('lsgd', v)} value={formData.lsgd || ''}>
+                <SelectTrigger className="h-11 border-slate-200 font-bold"><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectContent className="max-h-[400px] rounded-2xl">{lsgs.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Constituency (LAC)</Label>
+              <Input disabled value={detectedLac} className="h-11 border-slate-200 bg-slate-50 font-black text-blue-600 uppercase" placeholder="Auto-detected" />
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Total Remittance (₹)</Label>

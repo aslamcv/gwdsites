@@ -265,21 +265,10 @@ function UnifiedDrillingSupervisionContent() {
               </div>
               <div className="space-y-1">
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><Truck className="size-3" /> Conveyance</Label>
-                <div className="flex gap-2">
-                  <Select disabled={!isAllowed} onValueChange={(v) => updateField('conveyance', v)} value={formData.conveyance || ''}>
-                    <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl flex-1"><SelectValue placeholder="Select" /></SelectTrigger>
-                    <SelectContent className="rounded-xl border-slate-200">{conveyanceOptions.map(o => <SelectItem key={o} value={o} className="text-xs font-bold">{o}</SelectItem>)}</SelectContent>
-                  </Select>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => updateField('conveyance', 'SKE DTH RIG UNIT')}
-                    className="h-10 rounded-xl text-[8px] font-black uppercase px-2 bg-primary/5 text-primary border-primary/10 hover:bg-primary/10"
-                  >
-                    SKE DTH RIG UNIT
-                  </Button>
-                </div>
+                <Select disabled={!isAllowed} onValueChange={(v) => updateField('conveyance', v)} value={formData.conveyance || ''}>
+                  <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl"><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectContent className="rounded-xl border-slate-200">{conveyanceOptions.map(o => <SelectItem key={o} value={o} className="text-xs font-bold">{o}</SelectItem>)}</SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><Building className="size-3" /> Sector</Label>
