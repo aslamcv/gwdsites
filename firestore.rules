@@ -97,8 +97,8 @@ service cloud.firestore {
                       (isScientist() && (isScientistWork(request.resource.data) || isSharedWork(request.resource.data)));
       
       allow update: if isAdmin() || 
-                      (isEngineer() && (isEngineerWork(resource.data) || isSharedWork(resource.data))) ||
-                      (isScientist() && (isScientistWork(resource.data) || isSharedWork(resource.data)));
+                      (isEngineer() && (isEngineerWork(resource.data) || isEngineerWork(request.resource.data) || isSharedWork(resource.data) || isSharedWork(request.resource.data))) ||
+                      (isScientist() && (isScientistWork(resource.data) || isScientistWork(request.resource.data) || isSharedWork(resource.data) || isSharedWork(request.resource.data)));
 
       allow delete: if isAdmin();
     }
