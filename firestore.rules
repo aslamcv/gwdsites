@@ -20,7 +20,8 @@ service cloud.firestore {
     // Role-based lookup helper with existence and approval check
     function getUserData() {
       let email = getUserEmail();
-      return get(/databases/$(database)/documents/users/$(email)).data;
+      let userPath = /databases/$(database)/documents/users/$(email);
+      return get(userPath).data;
     }
 
     function hasRole(role) {
@@ -30,6 +31,15 @@ service cloud.firestore {
              exists(userPath) && 
              get(userPath).data.role == role && 
              get(userPath).data.isApproved == true;
+    }
+
+    function isApprovedTechnicalStaff() {
+      let email = getUserEmail();
+      let userPath = /databases/$(database)/documents/users/$(email);
+      return isAuthenticated() && 
+             exists(userPath) && 
+             get(userPath).data.isApproved == true &&
+             (get(userPath).data.role == 'admin' || get(userPath).data.role == 'engineer' || get(userPath).data.role == 'scientist');
     }
 
     function isAdmin() {
@@ -61,45 +71,19 @@ service cloud.firestore {
     // 3. Attendance Logs: Centralized logs. Admin/Technical staff can modify.
     match /attendance_logs/{recordId} {
       allow read: if isAuthenticated();
-      allow write: if isAdmin() || isEngineer() || isScientist();
+      allow write: if isApprovedTechnicalStaff();
     }
 
-    // 4. Technical Reports Hub: Granular permissions for Scientist vs Engineer
+    // 4. Technical Reports Hub: Unified permissions for all approved technical roles
     match /groundwaterReports/{reportId} {
       allow read: if isAuthenticated();
       
-      function isEngineerWork(data) {
-        let p = data.get('purpose', '').lower();
-        let c = data.get('category', '').lower();
-        return p.contains('drilling') || p.contains('flushing') || p.contains('supervision') || 
-               p.contains('estimate') || p.contains('measurement') || p.contains('hps') || p.contains('hpr') ||
-               c.contains('drilling') || c.contains('flushing') || c.contains('supervision') || 
-               c.contains('estimate') || c.contains('measurement');
-      }
-
-      function isScientistWork(data) {
-        let p = data.get('purpose', '').lower();
-        let c = data.get('category', '').lower();
-        return p.contains('investigation') || p.contains('geological') || p.contains('geophysical') || 
-               p.contains('complaint') || p.contains('inspection') || p.contains('nhp') ||
-               c.contains('investigation') || c.contains('geological') || c.contains('geophysical');
-      }
-
-      function isSharedWork(data) {
-        let p = data.get('purpose', '').lower();
-        let c = data.get('category', '').lower();
-        return p.contains('pumping') || p.contains('census') || 
-               c.contains('pumping') || c.contains('census');
-      }
-
-      allow create: if isAdmin() || 
-                      (isEngineer() && (isEngineerWork(request.resource.data) || isSharedWork(request.resource.data))) ||
-                      (isScientist() && (isScientistWork(request.resource.data) || isSharedWork(request.resource.data)));
+      // Allow any approved technical staff (Admin, Engineer, Scientist) to manage records
+      // This supports overlapping duties in the district office
+      allow create: if isApprovedTechnicalStaff() || isAdmin();
+      allow update: if isApprovedTechnicalStaff() || isAdmin();
       
-      allow update: if isAdmin() || 
-                      (isEngineer() && (isEngineerWork(resource.data) || isEngineerWork(request.resource.data) || isSharedWork(resource.data) || isSharedWork(request.resource.data))) ||
-                      (isScientist() && (isScientistWork(resource.data) || isScientistWork(request.resource.data) || isSharedWork(resource.data) || isSharedWork(request.resource.data)));
-
+      // Strict deletion remains with Admin only
       allow delete: if isAdmin();
     }
 
@@ -109,8 +93,7 @@ service cloud.firestore {
       allow get: if true; 
       allow list: if isAuthenticated();
       // Only admins or the owner can update the profile
-      // We allow any authenticated user to update their OWN document if it's just the UID field (provisioning)
-      allow create: if isAdmin();
+      allow create: if isAdmin() || (isAuthenticated() && getUserEmail() == userEmail.lower());
       allow update: if isAdmin() || (isAuthenticated() && getUserEmail() == userEmail.lower());
       allow delete: if isAdmin();
     }
