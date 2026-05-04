@@ -17,35 +17,19 @@ service cloud.firestore {
       return isAuthenticated() && getUserEmail() == 'gwdmpm@gmail.com';
     }
 
-    // Role-based lookup helper with existence and approval check
-    function getUserData() {
+    // Check if the user document exists and is approved by the Master Admin
+    function isApproved() {
       let email = getUserEmail();
       let userPath = /databases/$(database)/documents/users/$(email);
-      return get(userPath).data;
-    }
-
-    function hasRole(role) {
-      let email = getUserEmail();
-      let userPath = /databases/$(database)/documents/users/$(email);
-      return isAuthenticated() && 
-             exists(userPath) && 
-             get(userPath).data.role == role && 
-             get(userPath).data.isApproved == true;
-    }
-
-    function isApprovedTechnicalStaff() {
-      let email = getUserEmail();
-      let userPath = /databases/$(database)/documents/users/$(email);
-      // Allow any staff member who is officially Approved by the Master Admin
-      // to record technical data. This ensures staff with 'viewer' or 'scientist'
-      // roles can still perform their duties in the drilling/flushing modules.
       return isAuthenticated() && 
              exists(userPath) && 
              get(userPath).data.isApproved == true;
     }
 
     function isAdmin() {
-      return isMasterAdmin() || hasRole('admin');
+      let email = getUserEmail();
+      let userPath = /databases/$(database)/documents/users/$(email);
+      return isMasterAdmin() || (exists(userPath) && get(userPath).data.role == 'admin');
     }
 
     // --- COLLECTION RULES ---
@@ -65,18 +49,25 @@ service cloud.firestore {
     // 3. Attendance Logs: Centralized logs. Admin/Technical staff can modify.
     match /attendance_logs/{recordId} {
       allow read: if isAuthenticated();
-      allow write: if isApprovedTechnicalStaff();
+      allow write: if isApproved() || isAdmin();
     }
 
     // 4. Technical Reports Hub: Unified permissions for all approved technical roles
     match /groundwaterReports/{reportId} {
       allow read: if isAuthenticated();
       
-      // Allow any approved staff member to manage records
-      // This supports the dynamic nature of field work where various staff
-      // roles participate in the technical data logging process.
-      allow create: if isApprovedTechnicalStaff() || isAdmin();
-      allow update: if isApprovedTechnicalStaff() || isAdmin();
+      // Allow any approved staff member to create records
+      allow create: if isApproved() || isAdmin();
+      
+      // Allow updates if:
+      // 1. The user is the original uploader (Owner)
+      // 2. The user is an approved technical staff member
+      // 3. The user is a System Administrator
+      allow update: if isAuthenticated() && (
+        request.auth.uid == resource.data.uploadedBy || 
+        isApproved() || 
+        isAdmin()
+      );
       
       // Strict deletion remains with Admin only
       allow delete: if isAdmin();
