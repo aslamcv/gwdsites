@@ -36,22 +36,16 @@ service cloud.firestore {
     function isApprovedTechnicalStaff() {
       let email = getUserEmail();
       let userPath = /databases/$(database)/documents/users/$(email);
+      // Allow any staff member who is officially Approved by the Master Admin
+      // to record technical data. This ensures staff with 'viewer' or 'scientist'
+      // roles can still perform their duties in the drilling/flushing modules.
       return isAuthenticated() && 
              exists(userPath) && 
-             get(userPath).data.isApproved == true &&
-             (get(userPath).data.role == 'admin' || get(userPath).data.role == 'engineer' || get(userPath).data.role == 'scientist');
+             get(userPath).data.isApproved == true;
     }
 
     function isAdmin() {
       return isMasterAdmin() || hasRole('admin');
-    }
-
-    function isScientist() {
-      return hasRole('scientist');
-    }
-
-    function isEngineer() {
-      return hasRole('engineer');
     }
 
     // --- COLLECTION RULES ---
@@ -78,8 +72,9 @@ service cloud.firestore {
     match /groundwaterReports/{reportId} {
       allow read: if isAuthenticated();
       
-      // Allow any approved technical staff (Admin, Engineer, Scientist) to manage records
-      // This supports overlapping duties in the district office
+      // Allow any approved staff member to manage records
+      // This supports the dynamic nature of field work where various staff
+      // roles participate in the technical data logging process.
       allow create: if isApprovedTechnicalStaff() || isAdmin();
       allow update: if isApprovedTechnicalStaff() || isAdmin();
       
