@@ -289,7 +289,7 @@ export default function GroundWaterInvestigationPage() {
                                 <Link href={`/report/${r.id}/${hasOpenwellFeasibility ? 'feasibility-open-well' : 'feasibility-bore-well'}`} target="_blank">
                                   <Badge className="bg-emerald-100 text-emerald-800 border-none hover:bg-emerald-200 cursor-pointer text-[9px] font-black uppercase h-7 px-3 flex items-center gap-1.5 transition-all">
                                     <FileCheck className="size-3" />
-                                    FEASIBILITY REPORT - {hasOpenwellFeasibility ? 'OPEN WELL' : 'BORE WELL'}
+                                    {hasOpenwellFeasibility ? 'FEASIBILITY REPORT - OPEN WELL' : 'FEASIBILITY REPORT - BORE WELL'}
                                   </Badge>
                                 </Link>
                               )}
