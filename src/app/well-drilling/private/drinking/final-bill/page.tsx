@@ -36,11 +36,16 @@ function BillContent() {
                        report.purpose?.toLowerCase().includes('flushing') || 
                        report.category?.toLowerCase().includes('flushing');
 
-    const isDryWell = report.remarks?.toLowerCase().trim() === 'dry well';
+    const yieldStatus = report.remarks?.toLowerCase().trim();
+    const isDryWell = yieldStatus === 'dry well';
     const isPrivate = report.sector?.toLowerCase() === 'private';
-    
-    // The 25% rule applies to construction (drilling) dry wells in any private category
+    const isAgri = (report.subCategory || report.category)?.toLowerCase() === 'agriculture';
+
+    // Rule 1: Private unsuccessful construction well -> 25% drilling charge, no material charge
     const isDryWellPrivate = isPrivate && isDryWell && !isFlushing;
+    
+    // Rule 2: Private successful agriculture well -> 50% drilling charge, full material charge
+    const isAgriSubsidy = isPrivate && isAgri && !isFlushing && ['low yield', 'medium yield', 'high yield'].includes(yieldStatus);
 
     const rates = {
       drilling: 390,
@@ -51,6 +56,8 @@ function BillContent() {
     };
 
     let rows: any[] = [];
+    let baseDrillingAmt = 0;
+    let finalDrillingAmt = 0;
     
     if (isFlushing) {
       const workingHoursStr = report.compressorWorkingHour || '2.5';
@@ -68,16 +75,25 @@ function BillContent() {
         amount: flushingCharge,
         total: flushingCharge
       });
+      finalDrillingAmt = flushingCharge;
     } else {
       const drillingQty = parseFloat(report.totalDepth || '0');
-      const drillingAmt = drillingQty * rates.drilling;
+      baseDrillingAmt = drillingQty * rates.drilling;
+      finalDrillingAmt = baseDrillingAmt;
+      
+      if (isDryWellPrivate) {
+          finalDrillingAmt = Math.ceil(baseDrillingAmt * 0.25);
+      } else if (isAgriSubsidy) {
+          finalDrillingAmt = Math.ceil(baseDrillingAmt * 0.5);
+      }
+
       rows.push({ 
         label: 'ഡ്രില്ലിംഗ് നടത്തിയ ആകെ ആഴം', 
         qty: `${drillingQty} m`, 
         rate: rates.drilling, 
         unit: 'm',
-        amount: drillingAmt,
-        total: drillingAmt
+        amount: baseDrillingAmt,
+        total: finalDrillingAmt 
       });
     }
 
@@ -99,21 +115,27 @@ function BillContent() {
         const amt = rates.endCap;
         rows.push({ label: 'End Cap', qty: '1 No.', rate: rates.endCap, unit: 'No.', amount: amt, total: amt });
       }
-    }
-
-    let grandTotal = 0;
-    if (isDryWellPrivate) {
-      // Rule: Receive only 25% of drilling cost for unsuccessful private wells
-      const baseDrillingAmt = rows[0].amount;
-      grandTotal = Math.ceil(baseDrillingAmt * 0.25);
     } else {
-      grandTotal = rows.reduce((sum, r) => sum + r.total, 0);
+        // Just for display in the table (empty values as per image 3)
+        rows.push({ label: '140 മി.മീ PVC Pipe (6kg/cm²)', qty: '', rate: '', unit: 'm', amount: 0, total: 0, isPlaceholder: true });
+        rows.push({ label: 'End Cap', qty: '', rate: '', unit: 'No.', amount: 0, total: 0, isPlaceholder: true });
     }
 
+    const grandTotal = rows.reduce((sum, r) => sum + (r.isPlaceholder ? 0 : r.total), 0);
     const remitted = parseFloat(report.remittance || '0');
     const balance = remitted - grandTotal;
 
-    return { rows, grandTotal, remitted, balance, isFlushing, isDryWellPrivate };
+    return { 
+        rows, 
+        grandTotal, 
+        remitted, 
+        balance, 
+        isFlushing, 
+        isDryWellPrivate, 
+        isAgriSubsidy,
+        baseDrillingAmt,
+        finalDrillingAmt
+    };
   }, [report]);
 
   useEffect(() => {
@@ -218,9 +240,9 @@ function BillContent() {
                     {row.label}
                     {row.extraInfo && <span className="block text-[10px] font-normal italic mt-1">{row.extraInfo}</span>}
                   </td>
-                  <td className="border border-black p-2 font-bold">{row.qty}</td>
-                  <td className="border border-black p-2">{row.rate.toFixed(2)}</td>
-                  <td className="border border-black p-2 font-bold">{row.total.toFixed(2)}</td>
+                  <td className="border border-black p-2 font-bold">{row.isPlaceholder ? '' : row.qty}</td>
+                  <td className="border border-black p-2">{row.isPlaceholder ? '' : (typeof row.rate === 'number' ? row.rate.toFixed(2) : row.rate)}</td>
+                  <td className="border border-black p-2 font-bold">{row.isPlaceholder ? '' : row.total.toFixed(2)}</td>
                 </tr>
               ))}
               {Array.from({ length: Math.max(0, 5 - calc.rows.length) }).map((_, idx) => (
@@ -236,13 +258,18 @@ function BillContent() {
           </table>
         </div>
 
-        {calc.isDryWellPrivate && (
+        {(calc.isDryWellPrivate || calc.isAgriSubsidy) && (
           <div className="mb-4 p-4 border-x border-b border-black text-left font-bold text-[11.5px] leading-tight">
              <div className="flex justify-between items-start">
-                <span className="max-w-[400px]">കുഴൽ കിണർ നിർമ്മാണം പ്രവൃത്തിക്ക് വകുപ്പിന് ലഭിക്കേണ്ട തുക (ഡ്രില്ലിംഗ് ചാർജിന്റെ 25%):</span>
+                <span className="max-w-[400px]">
+                    {calc.isDryWellPrivate 
+                        ? "കുഴൽ കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് വകുപ്പിന് ലഭിക്കേണ്ട തുക (ഡ്രില്ലിംഗ് ചാർജിന്റെ 25%):"
+                        : "ഡ്രില്ലിംഗ് ചാർജ് പകുതി ഈടു:"
+                    }
+                </span>
                 <div className="text-right font-mono text-[13px]">
-                  <p>= {calc.rows[0].amount.toFixed(2)} * 25%</p>
-                  <p className="border-t border-black mt-1 font-black">= {calc.grandTotal}/-</p>
+                  <p>= {calc.baseDrillingAmt.toFixed(2)} {calc.isDryWellPrivate ? '* 25%' : '/ 2'}</p>
+                  <p className="border-t border-black mt-1 font-black">= {calc.finalDrillingAmt}/-</p>
                 </div>
              </div>
           </div>
@@ -254,7 +281,7 @@ function BillContent() {
               <div className="border-r border-black p-2 px-4 text-right">മൊത്തം തുക :</div>
               <div className="p-2 text-center">
                 ₹ {calc.grandTotal.toFixed(2)}
-                {calc.isDryWellPrivate && <span className="block text-[8px] font-normal leading-none">(rounded to next higher value)</span>}
+                {(calc.isDryWellPrivate || calc.isAgriSubsidy) && <span className="block text-[8px] font-normal leading-none">(rounded to higher value if needed)</span>}
               </div>
             </div>
             <div className="grid grid-cols-[1fr_140px] border-b border-black">
