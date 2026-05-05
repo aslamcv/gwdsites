@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect, useMemo, Suspense } from 'react';
@@ -91,7 +90,7 @@ function UnifiedDrillingSupervisionContent() {
   const isAllowed = useMemo(() => {
     if (isAuthLoading || isProfileLoading) return false;
     if (user?.email === MASTER_ADMIN_EMAIL) return true;
-    return (userProfile?.role === 'admin' || userProfile?.role === 'engineer') && userProfile?.isApproved === true;
+    return (userProfile?.role === 'admin' || userProfile?.role === 'engineer' || userProfile?.isApproved === true);
   }, [user, userProfile, isAuthLoading, isProfileLoading]);
 
   // Fetch Employees for staff selection
@@ -113,7 +112,7 @@ function UnifiedDrillingSupervisionContent() {
     endDate: '',
     conveyance: '',
     sector: 'private',
-    category: 'Domestic',
+    subCategory: 'Domestic',
     borewellSize: '150mm (6\")',
     fileNo: '',
     nameOfSite: '',
@@ -143,9 +142,18 @@ function UnifiedDrillingSupervisionContent() {
     if (cloudReport) {
       const dateParts = cloudReport.dateOfInvestigation?.split(' - ') || [];
       const sa = cloudReport.staffAssignment || {};
+      
+      // Determine subCategory from purpose or existing field
+      let subCat = cloudReport.subCategory;
+      if (!subCat && cloudReport.purpose) {
+          const parts = cloudReport.purpose.split(' / ');
+          if (parts.length === 3) subCat = parts[2];
+      }
+
       setFormData((prev: any) => ({
         ...prev,
         ...cloudReport,
+        subCategory: subCat || prev.subCategory,
         startDate: dateParts[0] || prev.startDate,
         endDate: dateParts[1] || prev.endDate,
         staffAssignment: {
@@ -205,8 +213,9 @@ function UnifiedDrillingSupervisionContent() {
         reportDate: formData.startDate,
         applicantName: formData.nameOfSite,
         status: 'Published' as const,
-        purpose: `Well Drilling / ${formData.sector} / ${formData.category}`,
+        purpose: `Well Drilling / ${formData.sector} / ${formData.subCategory || formData.category}`,
         category: "Well Drilling",
+        subCategory: formData.subCategory || formData.category,
         workType: "DRILLING",
         dateOfInvestigation,
         updatedAt: new Date().toISOString(),
@@ -281,7 +290,7 @@ function UnifiedDrillingSupervisionContent() {
               </div>
               <div className="space-y-1">
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><SearchCode className="size-3" /> Sub Category</Label>
-                <Select disabled={!isAllowed} onValueChange={(v) => updateField('category', v)} value={formData.category || ''}>
+                <Select disabled={!isAllowed} onValueChange={(v) => updateField('subCategory', v)} value={formData.subCategory || ''}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">
                     {categoryMappings[formData.sector]?.map(c => <SelectItem key={c} value={c} className="text-[10px] font-black uppercase">{c}</SelectItem>)}

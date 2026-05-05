@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect, useMemo, Suspense } from 'react';
@@ -93,7 +92,7 @@ function UnifiedFlushingEntryContent() {
   const isAllowed = useMemo(() => {
     if (isAuthLoading || isProfileLoading) return false;
     if (user?.email === MASTER_ADMIN_EMAIL) return true;
-    return (userProfile?.role === 'admin' || userProfile?.role === 'engineer') && userProfile?.isApproved === true;
+    return (userProfile?.role === 'admin' || userProfile?.role === 'engineer' || userProfile?.isApproved === true);
   }, [user, userProfile, isAuthLoading, isProfileLoading]);
 
   // Fetch Employees for staff selection
@@ -115,7 +114,7 @@ function UnifiedFlushingEntryContent() {
     endDate: '',
     conveyance: '',
     sector: 'private',
-    category: 'Drinking Water',
+    subCategory: 'Drinking Water',
     borewellSize: '150mm (6\")',
     fileNo: '',
     nameOfSite: '',
@@ -143,9 +142,17 @@ function UnifiedFlushingEntryContent() {
     if (cloudReport) {
       const dateParts = cloudReport.dateOfInvestigation?.split(' - ') || [];
       const sa = cloudReport.staffAssignment || {};
+      
+      let subCat = cloudReport.subCategory;
+      if (!subCat && cloudReport.purpose) {
+          const parts = cloudReport.purpose.split(' / ');
+          if (parts.length === 3) subCat = parts[2];
+      }
+
       setFormData((prev: any) => ({
         ...prev,
         ...cloudReport,
+        subCategory: subCat || prev.subCategory,
         startDate: dateParts[0] || prev.startDate,
         endDate: dateParts[1] || prev.endDate,
         staffAssignment: {
@@ -205,8 +212,9 @@ function UnifiedFlushingEntryContent() {
         reportDate: formData.startDate,
         applicantName: formData.nameOfSite,
         status: 'Published' as const,
-        purpose: `Well Flushing / ${formData.sector} / ${formData.category}`,
+        purpose: `Well Flushing / ${formData.sector} / ${formData.subCategory || formData.category}`,
         category: "Well Flushing",
+        subCategory: formData.subCategory || formData.category,
         workType: "FLUSHING",
         dateOfInvestigation,
         updatedAt: new Date().toISOString(),
@@ -283,8 +291,8 @@ function UnifiedFlushingEntryContent() {
               </Select>
             </div>
             <div className="space-y-1">
-              <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><SearchCode className="size-3" /> Category</Label>
-              <Select disabled={!isAllowed} onValueChange={(v) => updateField('category', v)} value={formData.category || ''}>
+              <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><SearchCode className="size-3" /> Sub Category</Label>
+              <Select disabled={!isAllowed} onValueChange={(v) => updateField('subCategory', v)} value={formData.subCategory || ''}>
                 <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue placeholder="Select" /></SelectTrigger>
                 <SelectContent className="rounded-xl border-slate-200">
                   {categoryMappings[formData.sector]?.map(c => <SelectItem key={c} value={c} className="text-[10px] font-black uppercase">{c}</SelectItem>)}
@@ -436,7 +444,7 @@ function UnifiedFlushingEntryContent() {
           <div className="flex items-center gap-4 pr-2">
             <Button onClick={handleSave} disabled={isPending || !isAllowed} className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/30 gap-3 hover:bg-blue-900 transition-all hover:scale-[1.02] active:scale-95">
               {isPending ? <Loader2 className="size-5 animate-spin" /> : <Save className="size-5" />} 
-              {isAllowed ? (id ? 'UPDATE TECHNICAL RECORD' : 'SAVE TECHNICAL RECORD') : 'ACCESS RESTRICTED'}
+              {isAllowed ? (id ? 'UPDATE' : 'SAVE') + ' TECHNICAL RECORD' : 'ACCESS RESTRICTED'}
             </Button>
           </div>
         </div>

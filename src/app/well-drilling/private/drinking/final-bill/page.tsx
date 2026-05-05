@@ -32,13 +32,16 @@ function BillContent() {
   const calc = useMemo(() => {
     if (!report) return null;
 
-    const isFlushing = report.purpose?.toLowerCase().includes('flushing') || 
+    const isFlushing = report.workType === 'FLUSHING' || 
+                       report.purpose?.toLowerCase().includes('flushing') || 
                        report.category?.toLowerCase().includes('flushing');
 
-    // DRY WELL PRIVATE LOGIC CHECK: Applies to Private sector when assessment is 'Dry well'
-    const isDryWellPrivate = report.sector === 'private' && 
-                             report.remarks === 'Dry well' && 
-                             ['Domestic', 'Industrial', 'Infrastructure', 'Agriculture', 'Others'].includes(report.category || '');
+    // DRY WELL PRIVATE LOGIC CHECK: Simplified check based on sector and yield assessment
+    const isDryWell = report.remarks?.toLowerCase().trim() === 'dry well';
+    const isPrivate = report.sector?.toLowerCase() === 'private';
+    
+    // The 25% rule applies to construction (drilling) dry wells in any private category
+    const isDryWellPrivate = isPrivate && isDryWell && !isFlushing;
 
     const rates = {
       drilling: 390,
@@ -79,7 +82,7 @@ function BillContent() {
       });
     }
 
-    // If Dry Well Private, we don't charge for PVC or End Cap as per department norms
+    // In a Dry Well (Private) construction, PVC and End Cap are not charged
     if (!isDryWellPrivate) {
       const pvc6Qty = parseFloat(report.pvc6kg || '0');
       if (pvc6Qty > 0) {
@@ -100,8 +103,8 @@ function BillContent() {
     }
 
     let grandTotal = 0;
-    if (isDryWellPrivate && !isFlushing) {
-      // In private dry well case, the department receives only 25% of drilling cost
+    if (isDryWellPrivate) {
+      // Rule: Receive only 25% of drilling cost for unsuccessful private wells
       const baseDrillingAmt = rows[0].amount;
       grandTotal = Math.ceil(baseDrillingAmt * 0.25);
     } else {
@@ -148,9 +151,15 @@ function BillContent() {
 
       <div className="bg-white mx-auto w-[210mm] min-h-[297mm] shadow-xl print:shadow-none p-[15mm] flex flex-col text-[13px] leading-tight text-black border border-slate-200 print:border-none overflow-hidden relative">
         
+        <div className="absolute top-10 left-10 text-left uppercase">
+          <p className="text-[12px] font-black text-black leading-none">
+            ({report.wellNumber || 'WELL NUMBER'})
+          </p>
+        </div>
+
         <div className="absolute top-10 right-10 text-right uppercase">
           <p className="text-[12px] font-bold text-black leading-none">
-            {(report.sector || 'PRIVATE').toUpperCase()}/{(report.category || (calc.isFlushing ? 'FLUSHING' : 'DRILLING')).toUpperCase()}
+            {(report.sector || 'PRIVATE').toUpperCase()}/{(report.subCategory || report.category || (calc.isFlushing ? 'FLUSHING' : 'DRILLING')).toUpperCase()}
           </p>
         </div>
 
@@ -228,7 +237,7 @@ function BillContent() {
           </table>
         </div>
 
-        {calc.isDryWellPrivate && !calc.isFlushing && (
+        {calc.isDryWellPrivate && (
           <div className="mb-4 p-4 border-x border-b border-black text-left font-bold text-[11.5px] leading-tight">
              <div className="flex justify-between items-start">
                 <span className="max-w-[400px]">കുഴൽ കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് വകുപ്പിന് ലഭിക്കേണ്ട തുക (ഡ്രില്ലിംഗ് ചാർജിന്റെ 25%):</span>
