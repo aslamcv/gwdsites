@@ -35,10 +35,10 @@ function BillContent() {
     const isFlushing = report.purpose?.toLowerCase().includes('flushing') || 
                        report.category?.toLowerCase().includes('flushing');
 
-    // DRY WELL PRIVATE LOGIC CHECK: Only for specific categories in private sector
+    // DRY WELL PRIVATE LOGIC CHECK: Applies to Private sector when assessment is 'Dry well'
     const isDryWellPrivate = report.sector === 'private' && 
                              report.remarks === 'Dry well' && 
-                             ['Domestic', 'Industrial', 'Infrastructure', 'Others'].includes(report.category || '');
+                             ['Domestic', 'Industrial', 'Infrastructure', 'Agriculture', 'Others'].includes(report.category || '');
 
     const rates = {
       drilling: 390,
@@ -79,7 +79,7 @@ function BillContent() {
       });
     }
 
-    // If Dry Well Private, we don't charge for PVC or End Cap
+    // If Dry Well Private, we don't charge for PVC or End Cap as per department norms
     if (!isDryWellPrivate) {
       const pvc6Qty = parseFloat(report.pvc6kg || '0');
       if (pvc6Qty > 0) {
