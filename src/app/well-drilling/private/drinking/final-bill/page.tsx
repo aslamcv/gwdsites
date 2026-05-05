@@ -17,6 +17,16 @@ function numberToMalayalamWords(num: number): string {
   return `${rounded.toLocaleString('en-IN')} രൂപ (അക്ഷരത്തിൽ)`;
 }
 
+/**
+ * Robust numeric parser that handles nulls and non-numeric characters.
+ */
+function parseSafeFloat(val: any): number {
+  if (val === undefined || val === null || val === '') return 0;
+  const numStr = String(val).replace(/[^0-9.]/g, '');
+  const parsed = parseFloat(numStr);
+  return isNaN(parsed) ? 0 : parsed;
+}
+
 function BillContent() {
   const searchParams = useSearchParams();
   const firestore = useFirestore();
@@ -37,7 +47,7 @@ function BillContent() {
                        report.category?.toLowerCase().includes('flushing');
 
     const yieldStatus = (report.remarks || '').toLowerCase().trim();
-    const isDryWell = yieldStatus === 'dry well';
+    const isDryWell = yieldStatus === 'dry well' || yieldStatus === 'dry';
     const isPrivate = report.sector?.toLowerCase() === 'private';
     const isAgri = (report.subCategory || report.category)?.toLowerCase() === 'agriculture';
 
@@ -61,9 +71,10 @@ function BillContent() {
     
     if (isFlushing) {
       const workingHoursStr = report.compressorWorkingHour || '2.5';
-      const hours = parseFloat(workingHoursStr.replace(/[^0-9.]/g, '')) || 2.5;
+      const hours = parseSafeFloat(workingHoursStr);
+      const effectiveHours = hours > 0 ? hours : 2.5;
       const hourlyRate = rates.flushingMin / 2.5;
-      const flushingCharge = hours > 2.5 ? (hourlyRate * hours) : rates.flushingMin;
+      const flushingCharge = effectiveHours > 2.5 ? (hourlyRate * effectiveHours) : rates.flushingMin;
 
       rows.push({ 
         label: 'ഫ്ലഷിംഗ് നടത്തിയ ആകെ ആഴം', 
@@ -77,7 +88,7 @@ function BillContent() {
       });
       finalDrillingAmt = flushingCharge;
     } else {
-      const drillingQty = parseFloat(String(report.totalDepth || '0').replace(/[^0-9.]/g, '')) || 0;
+      const drillingQty = parseSafeFloat(report.totalDepth);
       baseDrillingAmt = drillingQty * rates.drilling;
       finalDrillingAmt = baseDrillingAmt;
       
@@ -99,13 +110,13 @@ function BillContent() {
 
     // In a Dry Well (Private) construction, PVC and End Cap are not charged
     if (!isDryWellPrivate) {
-      const pvc6Qty = parseFloat(String(report.pvc6kg || '0').replace(/[^0-9.]/g, '')) || 0;
+      const pvc6Qty = parseSafeFloat(report.pvc6kg);
       if (pvc6Qty > 0) {
         const amt = pvc6Qty * rates.pvc6;
         rows.push({ label: '140 മി.മീ PVC Pipe (6kg/cm²)', qty: `${pvc6Qty} m`, rate: rates.pvc6, unit: 'm', amount: amt, total: amt });
       }
 
-      const pvc10Qty = parseFloat(String(report.pvc10kg || '0').replace(/[^0-9.]/g, '')) || 0;
+      const pvc10Qty = parseSafeFloat(report.pvc10kg);
       if (pvc10Qty > 0) {
         const amt = pvc10Qty * rates.pvc10;
         rows.push({ label: '140 മി.മീ PVC Pipe (10kg/cm²)', qty: `${pvc10Qty} m`, rate: rates.pvc10, unit: 'm', amount: amt, total: amt });
@@ -116,13 +127,13 @@ function BillContent() {
         rows.push({ label: 'End Cap', qty: '1 No.', rate: rates.endCap, unit: 'No.', amount: amt, total: amt });
       }
     } else {
-        // Just for display in the table for Dry Well format
+        // Display as empty rows for Dry Well format
         rows.push({ label: '140 മി.മീ PVC Pipe (6kg/cm²)', qty: '', rate: '', unit: 'm', amount: 0, total: 0, isPlaceholder: true });
         rows.push({ label: 'End Cap', qty: '', rate: '', unit: 'No.', amount: 0, total: 0, isPlaceholder: true });
     }
 
     const grandTotal = rows.reduce((sum, r) => sum + (r.isPlaceholder ? 0 : r.total), 0);
-    const remitted = parseFloat(String(report.remittance || '0').replace(/[^0-9.]/g, '')) || 0;
+    const remitted = parseSafeFloat(report.remittance);
     const balance = remitted - grandTotal;
 
     return { 
@@ -267,7 +278,7 @@ function BillContent() {
                         : "ഡ്രില്ലിംഗ് ചാർജ്ജ് സബ് സിഡി തുക( 50%):"
                     }
                 </span>
-                <div className="text-right font-mono text-[13px]">
+                <div className={cn("text-right font-mono text-[13px]", calc.isAgriSubsidy && "text-red-600")}>
                   {calc.isAgriSubsidy && <p>= {calc.baseDrillingAmt.toFixed(2)} / 2</p>}
                   <p className={cn(calc.isAgriSubsidy && "border-t border-black mt-1 font-black")}>= {calc.finalDrillingAmt}/-</p>
                 </div>
