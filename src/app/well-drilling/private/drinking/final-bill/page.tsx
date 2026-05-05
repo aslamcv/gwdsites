@@ -12,7 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 function numberToMalayalamWords(num: number): string {
-  if (num <= 0) return 'പൂജ്യം രൂപ മാത്രം';
+  if (isNaN(num) || num <= 0) return 'പൂജ്യം രൂപ മാത്രം';
   const rounded = Math.round(num);
   return `${rounded.toLocaleString('en-IN')} രൂപ (അക്ഷരത്തിൽ)`;
 }
@@ -77,7 +77,7 @@ function BillContent() {
       });
       finalDrillingAmt = flushingCharge;
     } else {
-      const drillingQty = parseFloat(report.totalDepth || '0');
+      const drillingQty = parseFloat(String(report.totalDepth || '0').replace(/[^0-9.]/g, '')) || 0;
       baseDrillingAmt = drillingQty * rates.drilling;
       finalDrillingAmt = baseDrillingAmt;
       
@@ -99,13 +99,13 @@ function BillContent() {
 
     // In a Dry Well (Private) construction, PVC and End Cap are not charged
     if (!isDryWellPrivate) {
-      const pvc6Qty = parseFloat(report.pvc6kg || '0');
+      const pvc6Qty = parseFloat(String(report.pvc6kg || '0').replace(/[^0-9.]/g, '')) || 0;
       if (pvc6Qty > 0) {
         const amt = pvc6Qty * rates.pvc6;
         rows.push({ label: '140 മി.മീ PVC Pipe (6kg/cm²)', qty: `${pvc6Qty} m`, rate: rates.pvc6, unit: 'm', amount: amt, total: amt });
       }
 
-      const pvc10Qty = parseFloat(report.pvc10kg || '0');
+      const pvc10Qty = parseFloat(String(report.pvc10kg || '0').replace(/[^0-9.]/g, '')) || 0;
       if (pvc10Qty > 0) {
         const amt = pvc10Qty * rates.pvc10;
         rows.push({ label: '140 മി.മീ PVC Pipe (10kg/cm²)', qty: `${pvc10Qty} m`, rate: rates.pvc10, unit: 'm', amount: amt, total: amt });
@@ -122,7 +122,7 @@ function BillContent() {
     }
 
     const grandTotal = rows.reduce((sum, r) => sum + (r.isPlaceholder ? 0 : r.total), 0);
-    const remitted = parseFloat(report.remittance || '0');
+    const remitted = parseFloat(String(report.remittance || '0').replace(/[^0-9.]/g, '')) || 0;
     const balance = remitted - grandTotal;
 
     return { 
@@ -264,7 +264,7 @@ function BillContent() {
                 <span className={cn("max-w-[400px]", calc.isAgriSubsidy && "text-red-600")}>
                     {calc.isDryWellPrivate 
                         ? "കുഴൽ കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് വകുപ്പിന് ലഭിക്കേണ്ട തുക (ഡ്രില്ലിംഗ് ചാർജിന്റെ 25%):"
-                        : "ഡ്രില്ലിംഗ് ചാർജ്ജ് സബ് സിഡി തുക( 50%)"
+                        : "ഡ്രില്ലിംഗ് ചാർജ്ജ് സബ് സിഡി തുക( 50%):"
                     }
                 </span>
                 <div className="text-right font-mono text-[13px]">

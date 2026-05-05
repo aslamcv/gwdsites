@@ -7,6 +7,15 @@ import { getFirestore } from 'firebase/firestore'
 
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
 export function initializeFirebase() {
+  // Ensure Firebase is only initialized on the client side to prevent SSR/Build crashes
+  if (typeof window === 'undefined') {
+    return {
+      firebaseApp: null as any,
+      auth: null as any,
+      firestore: null as any
+    };
+  }
+
   if (!getApps().length) {
     // Important! initializeApp() is called without any arguments because Firebase App Hosting
     // integrates with the initializeApp() function to provide the environment variables needed to
@@ -33,6 +42,13 @@ export function initializeFirebase() {
 }
 
 export function getSdks(firebaseApp: FirebaseApp) {
+  if (!firebaseApp) {
+    return {
+      firebaseApp: null as any,
+      auth: null as any,
+      firestore: null as any
+    };
+  }
   return {
     firebaseApp,
     auth: getAuth(firebaseApp),
