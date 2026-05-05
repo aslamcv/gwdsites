@@ -36,7 +36,6 @@ function BillContent() {
                        report.purpose?.toLowerCase().includes('flushing') || 
                        report.category?.toLowerCase().includes('flushing');
 
-    // DRY WELL PRIVATE LOGIC CHECK: Simplified check based on sector and yield assessment
     const isDryWell = report.remarks?.toLowerCase().trim() === 'dry well';
     const isPrivate = report.sector?.toLowerCase() === 'private';
     
@@ -240,10 +239,9 @@ function BillContent() {
         {calc.isDryWellPrivate && (
           <div className="mb-4 p-4 border-x border-b border-black text-left font-bold text-[11.5px] leading-tight">
              <div className="flex justify-between items-start">
-                <span className="max-w-[400px]">കുഴൽ കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് വകുപ്പിന് ലഭിക്കേണ്ട തുക (ഡ്രില്ലിംഗ് ചാർജിന്റെ 25%):</span>
+                <span className="max-w-[400px]">കുഴൽ കിണർ നിർമ്മാണം പ്രവൃത്തിക്ക് വകുപ്പിന് ലഭിക്കേണ്ട തുക (ഡ്രില്ലിംഗ് ചാർജിന്റെ 25%):</span>
                 <div className="text-right font-mono text-[13px]">
                   <p>= {calc.rows[0].amount.toFixed(2)} * 25%</p>
-                  <p>= {calc.rows[0].amount.toFixed(2)} * 0.25</p>
                   <p className="border-t border-black mt-1 font-black">= {calc.grandTotal}/-</p>
                 </div>
              </div>
