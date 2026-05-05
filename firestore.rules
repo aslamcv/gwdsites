@@ -69,8 +69,8 @@ service cloud.firestore {
         isAdmin()
       );
       
-      // Strict deletion remains with Admin only
-      allow delete: if isAdmin();
+      // Allow deletion if the user is the owner or an admin
+      allow delete: if isAdmin() || (isAuthenticated() && request.auth.uid == resource.data.uploadedBy);
     }
 
     // 5. User Profiles: Centralized profiles indexed by email.
