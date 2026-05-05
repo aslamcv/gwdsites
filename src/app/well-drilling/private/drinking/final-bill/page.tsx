@@ -261,15 +261,15 @@ function BillContent() {
         {(calc.isDryWellPrivate || calc.isAgriSubsidy) && (
           <div className="mb-4 p-4 border-x border-b border-black text-left font-bold text-[11.5px] leading-tight">
              <div className="flex justify-between items-start">
-                <span className="max-w-[400px]">
+                <span className={cn("max-w-[400px]", calc.isAgriSubsidy && "text-red-600")}>
                     {calc.isDryWellPrivate 
                         ? "കുഴൽ കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് വകുപ്പിന് ലഭിക്കേണ്ട തുക (ഡ്രില്ലിംഗ് ചാർജിന്റെ 25%):"
-                        : "ഡ്രില്ലിംഗ് ചാർജ് പകുതി ഈടു:"
+                        : "ഡ്രില്ലിംഗ് ചാർജ്ജ് സബ് സിഡി തുക( 50%)"
                     }
                 </span>
                 <div className="text-right font-mono text-[13px]">
-                  <p>= {calc.baseDrillingAmt.toFixed(2)} {calc.isDryWellPrivate ? '/ 4' : '/ 2'}</p>
-                  <p className="border-t border-black mt-1 font-black">= {calc.finalDrillingAmt}/-</p>
+                  {calc.isAgriSubsidy && <p>= {calc.baseDrillingAmt.toFixed(2)} / 2</p>}
+                  <p className={cn(calc.isAgriSubsidy && "border-t border-black mt-1 font-black")}>= {calc.finalDrillingAmt}/-</p>
                 </div>
              </div>
           </div>
