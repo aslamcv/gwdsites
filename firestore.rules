@@ -60,11 +60,12 @@ service cloud.firestore {
       allow create: if isApproved() || isAdmin();
       
       // Allow updates if:
-      // 1. The user is the original uploader (Owner)
+      // 1. The user is the original uploader (Owner) - Check UID and Email fallbacks
       // 2. The user is an approved technical staff member
       // 3. The user is a System Administrator
       allow update: if isAuthenticated() && (
         request.auth.uid == resource.data.uploadedBy || 
+        getUserEmail() == resource.data.uploadedBy ||
         isApproved() || 
         isAdmin()
       );
@@ -72,8 +73,8 @@ service cloud.firestore {
       // Allow deletion if the user is:
       // 1. A System Administrator
       // 2. An approved technical staff member
-      // 3. The original owner of the record
-      allow delete: if isAdmin() || isApproved() || (isAuthenticated() && request.auth.uid == resource.data.uploadedBy);
+      // 3. The original owner of the record (checking both UID and Email for robustness)
+      allow delete: if isAdmin() || isApproved() || (isAuthenticated() && (request.auth.uid == resource.data.uploadedBy || getUserEmail() == resource.data.uploadedBy));
     }
 
     // 5. User Profiles: Centralized profiles indexed by email.
