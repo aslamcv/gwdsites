@@ -31,25 +31,27 @@ function ReportContent() {
   const reportData = useMemo(() => {
       if (!report) return [];
       return [
-        { label: 'അപേക്ഷകന്റെ വിലാസം', value: report.address },
-        { label: 'കിണറിന്റെ സ്ഥാനം', value: report.nameOfSite },
-        { label: 'അക്ഷാംശം', value: report.latitude, half: true, side: 'left' },
-        { label: 'രേഖാംശം', value: report.longitude, half: true, side: 'right' },
-        { label: 'കിണറിന്റെ ആകെ താഴ്ച, മീറ്റർ', value: report.depthOfWell },
-        { label: 'കിണറിന്റെ വ്യാസം, മീറ്റർ', value: report.diameterOfWell },
-        { label: 'ടെസ്റ്റ് നടത്തിയ തീയ്യതി', value: report.reportDate },
-        { label: 'സ്റ്റാറ്റിക് വാട്ടർ ലെവൽ, മീറ്റർ', value: report.staticWaterLevel },
-        { label: 'ആകെ ഡ്രോഡൗൺ, മീറ്റർ', value: report.maxDrawdown },
-        { label: 'ശരാശരി ഡിസ്ചാർജ് റേറ്റ്, ലിറ്റർ / മണിക്കൂർ', value: report.averageDischarge },
-        { label: 'ആകെ പമ്പ് ചെയ്ത വെള്ളത്തിന്റെ അളവ്, ലിറ്റർ', value: '' }, 
-        { label: 'ആകെ വെള്ളം പമ്പ് ചെയ്ത സമയം, മിനുട്ട്', value: report.periodPumped },
-        { label: 'റിക്കവറി തുടർച്ചയായി നീരീക്ഷിച്ച സമയം, മിനുട്ട്', value: report.periodOfRecovery },
-        { label: 'ആകെ റിക്കവറി, മീറ്റർ', value: '' }, 
-        { label: '24 മണിക്കൂറിൽ സംഭവിച്ച റിക്കവറി', value: '' }, 
-        { label: 'ടെസ്റ്റ് പ്രകാരം കിണറിന്റെ പരമാവധി യീൽഡ്, ലിറ്റർ / മണിക്കൂർ', value: '' }, 
-        { label: 'ശുപാർശ ചെയ്യുന്ന ഡിസ്ചാർജ് റേറ്റ്, ലിറ്റർ / മണിക്കൂർ', value: '' },
-        { label: 'പമ്പ് സെറ്റ് സ്ഥാപിക്കാവുന്ന താഴ്ച', value: report.depthOfPump },
-        { label: 'പരാമർശം', value: report.remarks },
+        { label: '1. അപേക്ഷകന്റെ പേരും വിലാസവും', value: report.applicantNameAddress || report.applicantAddress || report.address },
+        { label: '2. കിണറിന്റെ സ്ഥാനം', value: report.nameOfSite },
+        { label: '3. അക്ഷാംശം (Latitude)', value: report.latitude },
+        { label: '4. രേഖാംശം (Longitude)', value: report.longitude },
+        { label: '5. കിണറിന്റെ ആകെ താഴ്ച (മീറ്റർ)', value: report.depthOfWell },
+        { label: '6. കിണറിന്റെ വ്യാസം (മീറ്റർ)', value: report.diameterOfWell },
+        { label: '7. ടെസ്റ്റ് നടത്തിയ തീയ്യതി', value: report.reportDate },
+        { label: '8. സ്റ്റാറ്റിക് വാട്ടർ ലെവൽ (മീറ്റർ)', value: report.staticWaterLevel },
+        { label: '9. പമ്പിംഗ് വാട്ടർ ലെവൽ (മീറ്റർ)', value: '' }, 
+        { label: '10. ആകെ ഡ്രോഡൗൺ (മീറ്റർ)', value: report.maxDrawdown },
+        { label: '11. ശരാശരി ഡിസ്ചാർജ് റേറ്റ് (ലിറ്റർ / മണിക്കൂർ)', value: report.averageDischarge },
+        { label: '12. ആകെ പമ്പ് ചെയ്ത വെള്ളത്തിന്റെ അളവ് (ലിറ്റർ)', value: '' }, 
+        { label: '13. ആകെ വെള്ളം പമ്പ് ചെയ്ത സമയം (മിനിറ്റ്)', value: report.periodPumped },
+        { label: '14. റിക്കവറി തുടർച്ചയായി നിരീക്ഷിച്ച സമയം (മിനിറ്റ്)', value: report.periodOfRecovery },
+        { label: '15. ആകെ റിക്കവറി (മീറ്റർ)', value: '' }, 
+        { label: '16. 24 മണിക്കൂറിൽ സംഭവിച്ച റിക്കവറി (%)', value: '' }, 
+        { label: '17. ടെസ്റ്റ് പ്രകാരം കിണറിന്റെ പരമാവധി യീൽഡ് (ലിറ്റർ / മണിക്കൂർ)', value: '' }, 
+        { label: '18. ശുപാർശ ചെയ്യുന്ന ഡിസ്ചാർജ് റേറ്റ് (ലിറ്റർ / മണിക്കൂർ)', value: '' },
+        { label: '19. ദിവസവും പമ്പ് ചെയ്യാവുന്ന സമയം (മണിക്കൂർ)', value: '' },
+        { label: '20. പമ്പ് സെറ്റ് സ്ഥാപിക്കാവുന്ന താഴ്ച (മീറ്റർ)', value: report.depthOfPump },
+        { label: '21. പരാമർശം', value: report.remarks },
       ];
   },[report]);
 
@@ -87,7 +89,7 @@ function ReportContent() {
         </Button>
       </div>
 
-      <div className="bg-white mx-auto w-full max-w-[210mm] min-h-[297mm] shadow-xl print:shadow-none p-[15mm] flex flex-col text-[12px] leading-tight border border-slate-200 print:border-none relative overflow-hidden">
+      <div className="bg-white mx-auto w-full max-w-[210mm] min-h-[297mm] shadow-xl print:shadow-none p-[12mm] flex flex-col text-[12px] leading-tight border border-slate-200 print:border-none relative overflow-hidden">
         
         <div className="absolute top-10 right-10 text-right uppercase">
           <p className="text-[12px] font-bold text-black leading-none">
@@ -104,41 +106,39 @@ function ReportContent() {
           <h2 className="text-[16px] font-bold underline underline-offset-4 decoration-1 uppercase">യീൽഡ് ടെസ്റ്റ് റിപ്പോർട്ട്</h2>
         </div>
 
-        <table className="w-full border-collapse border border-black text-[12px] leading-normal text-left">
-          <tbody>
-            <tr className="border-b border-black">
-              <td className="p-2 font-medium w-1/3">Name of Site</td>
-              <td className="p-2 font-bold uppercase">{report?.nameOfSite}</td>
-            </tr>
-            <tr className="border-b border-black">
-              <td className="p-2 font-medium">Address</td>
-              <td className="p-2 font-bold uppercase">{report?.address}</td>
-            </tr>
-            {reportData.map((row, i) => (
-              <tr key={i} className="border-b border-black last:border-none">
-                <td className="p-2 font-medium">{row.label}</td>
-                <td className="p-2 font-bold">{row.value || ''}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="border border-black flex-grow overflow-hidden">
+          <table className="w-full text-left border-collapse table-fixed">
+            <tbody>
+              {reportData.map((row, i) => (
+                <tr key={i} className="border-b border-black last:border-b-0 h-[22px]">
+                  <td className="border-r border-black p-1 pl-3 font-medium text-[11px] w-1/2 leading-none">{row.label}</td>
+                  <td className="p-1 pl-4 font-bold text-[11px] uppercase truncate leading-none">{row.value || ''}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
         
-        <div className="space-y-4 mt-6 text-left">
-            <p><span className="font-bold">ശുപാർശ:</span> <span className="font-medium italic">{report?.recommendation || 'No specific recommendations provided.'}</span></p>
+        <div className="mt-4 text-left">
+            <p className="text-[12px]"><span className="font-bold underline">ശുപാർശ:</span> <span className="font-bold uppercase ml-2 italic">{report?.recommendation || '---'}</span></p>
         </div>
 
-        <div className="flex-grow"></div>
-
-        <div className="grid grid-cols-2 gap-8 text-[12px] pt-16">
-          <div className="text-left">
+        <div className="grid grid-cols-2 gap-8 text-[12px] pt-8">
+          <div className="text-left space-y-0.5">
             <p>സ്ഥലം : മലപ്പുറം</p>
             <p>തീയ്യതി : {report?.reportDate}</p>
           </div>
           <div className="text-center">
-             <div className="h-12"></div>
-             <p className="font-bold">ജൂനിയർഹൈഡ്രോജിയോളജിസ്റ്റ് / ജില്ലാ ഓഫീസർ</p>
+             <div className="h-10"></div>
+             <p className="font-bold underline underline-offset-4 decoration-1 uppercase leading-tight">ജൂനിയർ ഹൈഡ്രോജിയോളജിസ്റ്റ് / ജില്ലാ ഓഫീസർ</p>
           </div>
         </div>
+
+        <div className="mt-6 pt-1.5 border-t border-slate-200 text-[7px] text-slate-400 flex justify-between uppercase tracking-widest font-sans font-bold">
+          <span>GROUND WATER DEPARTMENT DISTRICT OFFICE, MALAPPURAM</span>
+          <span>OFFICIAL TECHNICAL RECORD - MODEL YT-REP-A</span>
+        </div>
+
       </div>
     </div>
   );
