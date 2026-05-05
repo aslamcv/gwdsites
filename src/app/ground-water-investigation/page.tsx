@@ -255,6 +255,11 @@ export default function GroundWaterInvestigationPage() {
                     const isVes = !!r.vesData || (r.category || '').toLowerCase().includes('geophysical');
                     const isGeological = !isVes && ((r.purpose || '').toLowerCase().includes('geological') || (r.category || '').toLowerCase().includes('geological') || (r.purpose || '').toLowerCase().includes('investigation') || !!r.hydrogeology);
                     
+                    const recType = r.recommendationType?.toLowerCase();
+                    const hasBorewellFeasibility = recType === 'borewell' || recType === 'tubewell' || recType === 'filterpoint';
+                    const hasOpenwellFeasibility = recType === 'openwell';
+                    const hasFeasibility = hasBorewellFeasibility || hasOpenwellFeasibility;
+
                     return (
                       <TableRow key={r.id} className="h-20 border-slate-50 hover:bg-slate-50/80 transition-colors group">
                         <TableCell className="pl-8">
@@ -272,21 +277,23 @@ export default function GroundWaterInvestigationPage() {
                         <TableCell>
                            <div className="flex justify-center gap-2">
                               {isGeological && (
-                                <>
-                                  <Link href={`/report/${r.id}`} target="_blank">
-                                    <Badge className="bg-blue-100 text-blue-700 border-none hover:bg-blue-200 cursor-pointer text-[9px] font-black uppercase h-7 px-3 flex items-center gap-1.5 transition-all">
-                                      <FileSearch className="size-3" />
-                                      INVESTIGATION
-                                    </Badge>
-                                  </Link>
-                                  <Link href={`/report/${r.id}/${r.recommendationType === 'openwell' ? 'feasibility-open-well' : 'feasibility-bore-well'}`} target="_blank">
-                                    <Badge className="bg-emerald-100 text-emerald-800 border-none hover:bg-emerald-200 cursor-pointer text-[9px] font-black uppercase h-7 px-3 flex items-center gap-1.5 transition-all">
-                                      <FileCheck className="size-3" />
-                                      FEASIBILITY
-                                    </Badge>
-                                  </Link>
-                                </>
+                                <Link href={`/report/${r.id}`} target="_blank">
+                                  <Badge className="bg-blue-100 text-blue-700 border-none hover:bg-blue-200 cursor-pointer text-[9px] font-black uppercase h-7 px-3 flex items-center gap-1.5 transition-all">
+                                    <FileSearch className="size-3" />
+                                    INVESTIGATION
+                                  </Badge>
+                                </Link>
                               )}
+
+                              {hasFeasibility && (
+                                <Link href={`/report/${r.id}/${hasOpenwellFeasibility ? 'feasibility-open-well' : 'feasibility-bore-well'}`} target="_blank">
+                                  <Badge className="bg-emerald-100 text-emerald-800 border-none hover:bg-emerald-200 cursor-pointer text-[9px] font-black uppercase h-7 px-3 flex items-center gap-1.5 transition-all">
+                                    <FileCheck className="size-3" />
+                                    FEASIBILITY REPORT - {hasOpenwellFeasibility ? 'OPEN WELL' : 'BORE WELL'}
+                                  </Badge>
+                                </Link>
+                              )}
+
                               {isVes && (
                                 <Link href={`/report/${r.id}/ves`} target="_blank">
                                   <Badge className="bg-purple-100 text-purple-700 border-none hover:bg-purple-200 cursor-pointer text-[9px] font-black uppercase h-7 px-3 flex items-center gap-1.5 transition-all">
@@ -295,7 +302,8 @@ export default function GroundWaterInvestigationPage() {
                                   </Badge>
                                 </Link>
                               )}
-                              {!isGeological && !isVes && (
+
+                              {!isGeological && !isVes && !hasFeasibility && (
                                 <Link href={`/report/${r.id}`} target="_blank">
                                   <Badge className="bg-slate-100 text-slate-700 border-none hover:bg-slate-200 cursor-pointer text-[9px] font-black uppercase h-7 px-3 flex items-center gap-1.5 transition-all">
                                     <FileSearch className="size-3" />
