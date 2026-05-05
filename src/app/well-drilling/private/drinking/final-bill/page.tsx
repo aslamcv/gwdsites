@@ -35,6 +35,11 @@ function BillContent() {
     const isFlushing = report.purpose?.toLowerCase().includes('flushing') || 
                        report.category?.toLowerCase().includes('flushing');
 
+    // DRY WELL PRIVATE LOGIC CHECK: Only for specific categories in private sector
+    const isDryWellPrivate = report.sector === 'private' && 
+                             report.remarks === 'Dry well' && 
+                             ['Domestic', 'Industrial', 'Infrastructure', 'Others'].includes(report.category || '');
+
     const rates = {
       drilling: 390,
       pvc6: 566.56,
@@ -74,28 +79,39 @@ function BillContent() {
       });
     }
 
-    const pvc6Qty = parseFloat(report.pvc6kg || '0');
-    if (pvc6Qty > 0) {
-      const amt = pvc6Qty * rates.pvc6;
-      rows.push({ label: '140 മി.മീ PVC Pipe (6kg/cm²)', qty: `${pvc6Qty} m`, rate: rates.pvc6, unit: 'm', amount: amt, total: amt });
+    // If Dry Well Private, we don't charge for PVC or End Cap
+    if (!isDryWellPrivate) {
+      const pvc6Qty = parseFloat(report.pvc6kg || '0');
+      if (pvc6Qty > 0) {
+        const amt = pvc6Qty * rates.pvc6;
+        rows.push({ label: '140 മി.മീ PVC Pipe (6kg/cm²)', qty: `${pvc6Qty} m`, rate: rates.pvc6, unit: 'm', amount: amt, total: amt });
+      }
+
+      const pvc10Qty = parseFloat(report.pvc10kg || '0');
+      if (pvc10Qty > 0) {
+        const amt = pvc10Qty * rates.pvc10;
+        rows.push({ label: '140 മി.മീ PVC Pipe (10kg/cm²)', qty: `${pvc10Qty} m`, rate: rates.pvc10, unit: 'm', amount: amt, total: amt });
+      }
+
+      if (pvc6Qty > 0 || pvc10Qty > 0) {
+        const amt = rates.endCap;
+        rows.push({ label: 'End Cap', qty: '1 No.', rate: rates.endCap, unit: 'No.', amount: amt, total: amt });
+      }
     }
 
-    const pvc10Qty = parseFloat(report.pvc10kg || '0');
-    if (pvc10Qty > 0) {
-      const amt = pvc10Qty * rates.pvc10;
-      rows.push({ label: '140 മി.മീ PVC Pipe (10kg/cm²)', qty: `${pvc10Qty} m`, rate: rates.pvc10, unit: 'm', amount: amt, total: amt });
+    let grandTotal = 0;
+    if (isDryWellPrivate && !isFlushing) {
+      // In private dry well case, the department receives only 25% of drilling cost
+      const baseDrillingAmt = rows[0].amount;
+      grandTotal = Math.ceil(baseDrillingAmt * 0.25);
+    } else {
+      grandTotal = rows.reduce((sum, r) => sum + r.total, 0);
     }
 
-    if (pvc6Qty > 0 || pvc10Qty > 0) {
-      const amt = rates.endCap;
-      rows.push({ label: 'End Cap', qty: '1 No.', rate: rates.endCap, unit: 'No.', amount: amt, total: amt });
-    }
-
-    const grandTotal = rows.reduce((sum, r) => sum + r.total, 0);
     const remitted = parseFloat(report.remittance || '0');
     const balance = remitted - grandTotal;
 
-    return { rows, grandTotal, remitted, balance, isFlushing };
+    return { rows, grandTotal, remitted, balance, isFlushing, isDryWellPrivate };
   }, [report]);
 
   useEffect(() => {
@@ -212,11 +228,27 @@ function BillContent() {
           </table>
         </div>
 
+        {calc.isDryWellPrivate && !calc.isFlushing && (
+          <div className="mb-4 p-4 border-x border-b border-black text-left font-bold text-[11.5px] leading-tight">
+             <div className="flex justify-between items-start">
+                <span className="max-w-[400px]">കുഴൽ കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് വകുപ്പിന് ലഭിക്കേണ്ട തുക (ഡ്രില്ലിംഗ് ചാർജിന്റെ 25%):</span>
+                <div className="text-right font-mono text-[13px]">
+                  <p>= {calc.rows[0].amount.toFixed(2)} * 25%</p>
+                  <p>= {calc.rows[0].amount.toFixed(2)} * 0.25</p>
+                  <p className="border-t border-black mt-1 font-black">= {calc.grandTotal}/-</p>
+                </div>
+             </div>
+          </div>
+        )}
+
         <div className="flex justify-end mb-6 text-left">
           <div className="w-[400px] border border-black font-bold text-[14px]">
             <div className="grid grid-cols-[1fr_140px] border-b border-black">
               <div className="border-r border-black p-2 px-4 text-right">മൊത്തം തുക :</div>
-              <div className="p-2 text-center">₹ {calc.grandTotal.toFixed(2)}</div>
+              <div className="p-2 text-center">
+                ₹ {calc.grandTotal.toFixed(2)}
+                {calc.isDryWellPrivate && <span className="block text-[8px] font-normal leading-none">(rounded to next higher value)</span>}
+              </div>
             </div>
             <div className="grid grid-cols-[1fr_140px] border-b border-black">
               <div className="border-r border-black p-2 px-4 text-right uppercase">Total Amount Remitted :</div>
