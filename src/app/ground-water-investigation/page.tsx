@@ -195,7 +195,7 @@ export default function GroundWaterInvestigationPage() {
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleNewTechnicalEntry("geophysical")} className="rounded-xl cursor-pointer p-3 focus:bg-emerald-50 group">
               <div className="flex items-center gap-3 w-full">
-                <div className="p-2 bg-emerald-50 rounded-lg group-hover:scale-110 transition-transform"><Calculator className="size-4 text-emerald-600" /></div>
+                <div className="p-2 bg-emerald-100 rounded-lg group-hover:scale-110 transition-transform"><Calculator className="size-4 text-emerald-600" /></div>
                 <span className="font-bold text-xs uppercase text-slate-700">Geophysical Survey</span>
               </div>
             </DropdownMenuItem>
@@ -280,7 +280,7 @@ export default function GroundWaterInvestigationPage() {
                                 <Link href={`/report/${r.id}`} target="_blank">
                                   <Badge className="bg-blue-100 text-blue-700 border-none hover:bg-blue-200 cursor-pointer text-[9px] font-black uppercase h-7 px-3 flex items-center gap-1.5 transition-all">
                                     <FileSearch className="size-3" />
-                                    INVESTIGATION
+                                    INVESTIGATION REPORT
                                   </Badge>
                                 </Link>
                               )}
@@ -298,7 +298,7 @@ export default function GroundWaterInvestigationPage() {
                                 <Link href={`/report/${r.id}/ves`} target="_blank">
                                   <Badge className="bg-purple-100 text-purple-700 border-none hover:bg-purple-200 cursor-pointer text-[9px] font-black uppercase h-7 px-3 flex items-center gap-1.5 transition-all">
                                     <Activity className="size-3" />
-                                    GEOPHYSICAL
+                                    GEOPHYSICAL REPORT
                                   </Badge>
                                 </Link>
                               )}
@@ -307,7 +307,7 @@ export default function GroundWaterInvestigationPage() {
                                 <Link href={`/report/${r.id}`} target="_blank">
                                   <Badge className="bg-slate-100 text-slate-700 border-none hover:bg-slate-200 cursor-pointer text-[9px] font-black uppercase h-7 px-3 flex items-center gap-1.5 transition-all">
                                     <FileSearch className="size-3" />
-                                    REPORT
+                                    TECHNICAL REPORT
                                   </Badge>
                                 </Link>
                               )}
