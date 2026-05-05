@@ -69,8 +69,11 @@ service cloud.firestore {
         isAdmin()
       );
       
-      // Allow deletion if the user is the owner or an admin
-      allow delete: if isAdmin() || (isAuthenticated() && request.auth.uid == resource.data.uploadedBy);
+      // Allow deletion if the user is:
+      // 1. A System Administrator
+      // 2. An approved technical staff member
+      // 3. The original owner of the record
+      allow delete: if isAdmin() || isApproved() || (isAuthenticated() && request.auth.uid == resource.data.uploadedBy);
     }
 
     // 5. User Profiles: Centralized profiles indexed by email.
