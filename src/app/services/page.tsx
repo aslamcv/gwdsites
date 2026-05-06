@@ -11,20 +11,18 @@ import {
   Lock, 
   Loader2, 
   Trash2, 
-  Edit3, 
   Save, 
-  X, 
   Plus,
-  ArrowRight,
   ShieldCheck,
-  CheckCircle2,
   Settings,
-  Calendar
+  Calendar,
+  History,
+  CheckCircle2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useUser, useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
 import { doc } from 'firebase/firestore';
@@ -77,34 +75,6 @@ const INITIAL_SERVICES_DATA = [
       "Mandatory for large-scale infrastructure and public water schemes.",
     ],
   },
-  {
-    id: "wq",
-    title: "Water Quality Analysis",
-    items: [
-      { id: "wq-1", name: "Physical & Chemical Testing", rate: 1200, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
-      { id: "wq-2", name: "Bacteriological (Microbial) Testing", rate: 900, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
-      { id: "wq-3", name: "Heavy Metal Analysis", rate: 2500, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
-    ],
-    description: [
-      "Comprehensive testing in regional departmental laboratories.",
-      "Technical certification of potability and chemical compliance.",
-      "Provides recommendations for water treatment if required.",
-    ],
-  },
-  {
-    id: "pr",
-    title: "Permit & Regulation",
-    items: [
-      { id: "pr-1", name: "New Borewell Permit Application", rate: 500, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
-      { id: "pr-2", name: "Well Conversion / Deepening Permit", rate: 750, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
-      { id: "pr-3", name: "Industrial No-Objection Certificate (NOC)", rate: 5000, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
-    ],
-    description: [
-      "Regulatory oversight to ensure sustainable groundwater usage.",
-      "Mandatory processing for notified blocks and industrial zones.",
-      "Verification of distance rules and local water security.",
-    ],
-  },
 ];
 
 export default function ServicesRatesCatalog() {
@@ -118,7 +88,6 @@ export default function ServicesRatesCatalog() {
   const { user, isUserLoading: isAuthLoading } = useUser();
   const firestore = useFirestore();
 
-  // 1. Persistent Cloud Settings
   const settingsRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return doc(firestore, 'appSettings', 'service_rates');
@@ -129,12 +98,11 @@ export default function ServicesRatesCatalog() {
   useEffect(() => {
     if (cloudSettings?.services) {
       setLocalServices(cloudSettings.services);
-    } else {
+    } else if (!isCloudLoading) {
       setLocalServices(INITIAL_SERVICES_DATA);
     }
-  }, [cloudSettings]);
+  }, [cloudSettings, isCloudLoading]);
 
-  // 2. Role detection
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user?.email) return null;
     return doc(firestore, 'users', user.email.toLowerCase().trim());
@@ -147,15 +115,32 @@ export default function ServicesRatesCatalog() {
     return userProfile?.role === 'admin';
   }, [user, userProfile, isAuthLoading, isProfileLoading]);
 
-  // 3. Handlers
   const toggle = (index: number) => {
     setOpenIndex(openIndex === index ? null : index);
   };
 
-  const filteredServices = localServices.filter((s) =>
-    s.title.toLowerCase().includes(search.toLowerCase()) ||
-    s.items.some((item: any) => item.name.toLowerCase().includes(search.toLowerCase()))
-  );
+  const isItemActive = (item: any) => {
+    const today = new Date().toISOString().split('T')[0];
+    if (!item.dateTo) return true;
+    return item.dateTo >= today;
+  };
+
+  const filteredServices = useMemo(() => {
+    return localServices.filter((s) =>
+      s.title.toLowerCase().includes(search.toLowerCase()) ||
+      s.items.some((item: any) => item.name.toLowerCase().includes(search.toLowerCase()))
+    ).map(service => ({
+      ...service,
+      items: [...service.items].sort((a, b) => {
+        // Sort active first, then by date desc
+        const aActive = isItemActive(a);
+        const bActive = isItemActive(b);
+        if (aActive && !bActive) return -1;
+        if (!aActive && bActive) return 1;
+        return (b.dateFrom || '').localeCompare(a.dateFrom || '');
+      })
+    }));
+  }, [localServices, search]);
 
   const handleSaveChanges = () => {
     if (!settingsRef || !isAdmin) return;
@@ -176,6 +161,7 @@ export default function ServicesRatesCatalog() {
   };
 
   const updateItem = (serviceIdx: number, itemIdx: number, field: string, value: any) => {
+    if (!isAdmin) return;
     const updated = [...localServices];
     updated[serviceIdx].items[itemIdx][field] = value;
     setLocalServices(updated);
@@ -183,6 +169,7 @@ export default function ServicesRatesCatalog() {
   };
 
   const deleteItem = (serviceIdx: number, itemIdx: number) => {
+    if (!isAdmin) return;
     const updated = [...localServices];
     updated[serviceIdx].items.splice(itemIdx, 1);
     setLocalServices(updated);
@@ -190,6 +177,7 @@ export default function ServicesRatesCatalog() {
   };
 
   const addItem = (serviceIdx: number) => {
+    if (!isAdmin) return;
     const updated = [...localServices];
     const newId = `item-${Date.now()}`;
     updated[serviceIdx].items.push({ 
@@ -201,10 +189,10 @@ export default function ServicesRatesCatalog() {
     });
     setLocalServices(updated);
     setIsDirty(true);
-    toast({ title: "New Item Provisioned", description: "Technical row added. Please specify name and rate." });
   };
 
   const updateScope = (serviceIdx: number, scopeIdx: number, value: string) => {
+    if (!isAdmin) return;
     const updated = [...localServices];
     updated[serviceIdx].description[scopeIdx] = value;
     setLocalServices(updated);
@@ -212,6 +200,7 @@ export default function ServicesRatesCatalog() {
   };
 
   const addScope = (serviceIdx: number) => {
+    if (!isAdmin) return;
     const updated = [...localServices];
     updated[serviceIdx].description.push("New technical objective...");
     setLocalServices(updated);
@@ -219,11 +208,16 @@ export default function ServicesRatesCatalog() {
   };
 
   const deleteScope = (serviceIdx: number, scopeIdx: number) => {
+    if (!isAdmin) return;
     const updated = [...localServices];
     updated[serviceIdx].description.splice(scopeIdx, 1);
     setLocalServices(updated);
     setIsDirty(true);
   };
+
+  if (isCloudLoading) {
+    return <div className="flex items-center justify-center min-h-screen"><Loader2 className="animate-spin h-10 w-10 text-primary" /></div>;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50/50 p-4 sm:p-8 animate-in fade-in duration-700 pb-32">
@@ -257,16 +251,16 @@ export default function ServicesRatesCatalog() {
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                 <Input
                   type="text"
-                  placeholder="Search services, items or technical parameters..."
+                  placeholder="Search current and historical technical rates..."
                   className="h-14 pl-12 bg-slate-50 border-slate-200 rounded-2xl text-sm font-medium focus:ring-primary/20 shadow-inner"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
               {!isAdmin && !isAuthLoading && !isProfileLoading && (
-                <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-200 h-10 px-4 gap-2 font-black uppercase text-[9px] tracking-widest">
-                  <Lock className="size-3.5" />
-                  READ ONLY
+                <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-200 h-10 px-4 gap-2 font-black uppercase text-[9px] tracking-widest shadow-sm">
+                  <CheckCircle2 className="size-3.5" />
+                  TECHNICAL VIEW ACTIVE
                 </Badge>
               )}
             </div>
@@ -329,7 +323,7 @@ export default function ServicesRatesCatalog() {
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2">
                           <Info className="h-4 w-4 text-primary" />
-                          <span className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Scope of Work</span>
+                          <span className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Technical Scope</span>
                         </div>
                         {isAdmin && (
                           <Button 
@@ -375,7 +369,7 @@ export default function ServicesRatesCatalog() {
                     {/* RATES TABLE */}
                     <div className="space-y-4">
                        <div className="flex items-center justify-between px-2">
-                          <span className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Technical Rate Grid</span>
+                          <span className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Official Rate Matrix</span>
                           {isAdmin && (
                             <Button 
                               onClick={() => addItem(sIdx)} 
@@ -391,91 +385,105 @@ export default function ServicesRatesCatalog() {
                           <thead className="bg-slate-50 border-b border-slate-200">
                             <tr className="h-12 text-[9px] font-black uppercase text-slate-500 tracking-widest">
                               <th className="w-16 text-center border-r">Sl No</th>
+                              <th className="w-32 text-center border-r">Status</th>
                               <th className="px-6 text-left border-r">Technical Item / Category</th>
-                              <th className="w-48 text-right pr-8 border-r">Rate (₹)</th>
-                              <th className="w-44 text-center border-r">Effect From</th>
-                              <th className="w-44 text-center border-r">Effect To</th>
+                              <th className="w-40 text-right pr-8 border-r">Rate (₹)</th>
+                              <th className="w-40 text-center border-r">Effect From</th>
+                              <th className="w-40 text-center border-r">Effect To</th>
                               {isAdmin && <th className="w-16"></th>}
                             </tr>
                           </thead>
                           <tbody>
-                            {service.items.map((item: any, iIdx: number) => (
-                              <tr key={item.id} className="h-14 border-b border-slate-100 last:border-b-0 hover:bg-slate-50/50 transition-colors group/row">
-                                <td className="text-center font-black text-slate-300 text-xs border-r">{iIdx + 1}</td>
-                                <td className="px-6 border-r">
-                                  {isAdmin ? (
-                                    <Input 
-                                      value={item.name} 
-                                      onChange={(e) => updateItem(sIdx, iIdx, 'name', e.target.value)}
-                                      className="h-9 text-xs font-bold uppercase border-slate-200 bg-white"
-                                    />
-                                  ) : (
-                                    <span className="text-slate-700 font-black text-xs uppercase tracking-tight">
-                                      {item.name}
-                                    </span>
-                                  )}
-                                </td>
-                                <td className="text-right pr-8 border-r">
-                                  {isAdmin ? (
-                                    <div className="flex items-center justify-end gap-2">
-                                      <span className="text-[10px] font-black text-slate-400">₹</span>
-                                      <Input 
-                                        type="number" 
-                                        value={item.rate} 
-                                        onChange={(e) => updateItem(sIdx, iIdx, 'rate', parseFloat(e.target.value) || 0)}
-                                        className="h-9 w-28 text-right text-xs font-black text-blue-700 bg-white"
-                                      />
-                                    </div>
-                                  ) : (
-                                    <span className="font-black text-[#1e3a8a] text-sm tabular-nums">
-                                      ₹ {item.rate.toLocaleString('en-IN')}
-                                    </span>
-                                  )}
-                                </td>
-                                <td className="border-r px-4">
-                                   {isAdmin ? (
-                                     <Input 
-                                      type="date"
-                                      value={item.dateFrom || ''}
-                                      onChange={(e) => updateItem(sIdx, iIdx, 'dateFrom', e.target.value)}
-                                      className="h-9 text-[10px] font-bold border-slate-200 bg-white"
-                                     />
-                                   ) : (
-                                     <div className="flex items-center justify-center gap-2 text-[10px] font-bold text-slate-500">
-                                       <Calendar className="size-3" />
-                                       {item.dateFrom || '---'}
-                                     </div>
-                                   )}
-                                </td>
-                                <td className="border-r px-4">
-                                   {isAdmin ? (
-                                     <Input 
-                                      type="date"
-                                      value={item.dateTo || ''}
-                                      onChange={(e) => updateItem(sIdx, iIdx, 'dateTo', e.target.value)}
-                                      className="h-9 text-[10px] font-bold border-slate-200 bg-white"
-                                     />
-                                   ) : (
-                                     <div className="flex items-center justify-center gap-2 text-[10px] font-bold text-slate-500">
-                                       <Calendar className="size-3" />
-                                       {item.dateTo || '---'}
-                                     </div>
-                                   )}
-                                </td>
-                                {isAdmin && (
-                                  <td className="p-1 text-center">
-                                    <Button 
-                                      onClick={() => deleteItem(sIdx, iIdx)} 
-                                      variant="ghost" 
-                                      size="icon" 
-                                      className="size-10 text-rose-200 hover:text-rose-600 hover:bg-rose-50 rounded-xl"
-                                    >
-                                      <Trash2 className="size-4" />
-                                    </Button>
+                            {service.items.map((item: any, iIdx: number) => {
+                              const active = isItemActive(item);
+                              return (
+                                <tr key={item.id} className={cn(
+                                  "h-14 border-b border-slate-100 last:border-b-0 hover:bg-slate-50/50 transition-colors group/row",
+                                  !active && "opacity-60 grayscale-[0.5] bg-slate-50/30"
+                                )}>
+                                  <td className="text-center font-black text-slate-300 text-xs border-r">{iIdx + 1}</td>
+                                  <td className="text-center border-r">
+                                    {active ? (
+                                      <Badge className="bg-emerald-50 text-emerald-600 border-none text-[8px] font-black uppercase h-5 px-2">Active</Badge>
+                                    ) : (
+                                      <Badge className="bg-slate-200 text-slate-500 border-none text-[8px] font-black uppercase h-5 px-2 flex items-center justify-center gap-1 mx-auto w-fit"><History className="size-2.5" /> Previous</Badge>
+                                    )}
                                   </td>
-                                )}
-                              </tr>
-                            ))}
+                                  <td className="px-6 border-r">
+                                    {isAdmin ? (
+                                      <Input 
+                                        value={item.name} 
+                                        onChange={(e) => updateItem(sIdx, iIdx, 'name', e.target.value)}
+                                        className="h-9 text-xs font-bold uppercase border-slate-200 bg-white"
+                                      />
+                                    ) : (
+                                      <span className="text-slate-700 font-black text-xs uppercase tracking-tight">
+                                        {item.name}
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="text-right pr-8 border-r">
+                                    {isAdmin ? (
+                                      <div className="flex items-center justify-end gap-2">
+                                        <span className="text-[10px] font-black text-slate-400">₹</span>
+                                        <Input 
+                                          type="number" 
+                                          value={item.rate} 
+                                          onChange={(e) => updateItem(sIdx, iIdx, 'rate', parseFloat(e.target.value) || 0)}
+                                          className="h-9 w-24 text-right text-xs font-black text-blue-700 bg-white"
+                                        />
+                                      </div>
+                                    ) : (
+                                      <span className="font-black text-[#1e3a8a] text-sm tabular-nums">
+                                        ₹ {item.rate.toLocaleString('en-IN')}
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="border-r px-4">
+                                     {isAdmin ? (
+                                       <Input 
+                                        type="date"
+                                        value={item.dateFrom || ''}
+                                        onChange={(e) => updateItem(sIdx, iIdx, 'dateFrom', e.target.value)}
+                                        className="h-9 text-[10px] font-bold border-slate-200 bg-white"
+                                       />
+                                     ) : (
+                                       <div className="flex items-center justify-center gap-2 text-[10px] font-bold text-slate-500">
+                                         <Calendar className="size-3" />
+                                         {item.dateFrom || '---'}
+                                       </div>
+                                     )}
+                                  </td>
+                                  <td className="border-r px-4">
+                                     {isAdmin ? (
+                                       <Input 
+                                        type="date"
+                                        value={item.dateTo || ''}
+                                        onChange={(e) => updateItem(sIdx, iIdx, 'dateTo', e.target.value)}
+                                        className="h-9 text-[10px] font-bold border-slate-200 bg-white"
+                                       />
+                                     ) : (
+                                       <div className="flex items-center justify-center gap-2 text-[10px] font-bold text-slate-500">
+                                         <Calendar className="size-3" />
+                                         {item.dateTo || 'PRESENT'}
+                                       </div>
+                                     )}
+                                  </td>
+                                  {isAdmin && (
+                                    <td className="p-1 text-center">
+                                      <Button 
+                                        onClick={() => deleteItem(sIdx, iIdx)} 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="size-10 text-rose-200 hover:text-rose-600 hover:bg-rose-50 rounded-xl"
+                                      >
+                                        <Trash2 className="size-4" />
+                                      </Button>
+                                    </td>
+                                  )}
+                                </tr>
+                              );
+                            })}
                           </tbody>
                         </table>
                       </div>
@@ -489,8 +497,8 @@ export default function ServicesRatesCatalog() {
               <div className="size-24 bg-slate-50 rounded-full flex items-center justify-center mb-6">
                 <Search className="h-10 w-10 text-slate-200" />
               </div>
-              <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">No match found</h3>
-              <p className="text-slate-400 text-[10px] uppercase font-bold tracking-widest mt-2">Adjust your query or check system configurations.</p>
+              <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">No results found</h3>
+              <p className="text-slate-400 text-[10px] uppercase font-bold tracking-widest mt-2">Adjust your query or check system technical configurations.</p>
             </div>
           )}
         </div>
@@ -503,12 +511,12 @@ export default function ServicesRatesCatalog() {
                   <div className="flex items-center gap-4 pl-4">
                     <div className="p-2 bg-blue-50 rounded-xl"><Settings className="size-5 text-blue-600 animate-spin-slow" /></div>
                     <div>
-                      <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Unsaved Modifications</p>
-                      <p className="text-[8px] font-bold text-slate-400 uppercase">You have pending changes to the technical rates catalog.</p>
+                      <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Global Sync Required</p>
+                      <p className="text-[8px] font-bold text-slate-400 uppercase">Pending modifications detected in the technical rates matrix.</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <Button variant="ghost" onClick={() => { setLocalServices(cloudSettings?.services || INITIAL_SERVICES_DATA); setIsDirty(false); }} className="rounded-xl font-black text-[10px] uppercase tracking-widest text-slate-400">DISCARD</Button>
+                    <Button variant="ghost" onClick={() => { setLocalServices(cloudSettings?.services || INITIAL_SERVICES_DATA); setIsDirty(false); }} className="rounded-xl font-black text-[10px] uppercase tracking-widest text-slate-400">DISCARD ALL</Button>
                     <Button onClick={handleSaveChanges} disabled={isPending} className="h-12 px-10 rounded-2xl bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[10px] gap-2 shadow-xl shadow-blue-900/20 transition-all hover:scale-[1.02] active:scale-95">
                       {isPending ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
                       SYNCHRONIZE TO CLOUD
@@ -516,22 +524,6 @@ export default function ServicesRatesCatalog() {
                   </div>
                </div>
             </Card>
-          </div>
-        )}
-
-        {/* FOOTER NOTE */}
-        {!isAdmin && !isAuthLoading && !isProfileLoading && (
-          <div className="p-8 bg-white/50 backdrop-blur-md rounded-[32px] border border-slate-200 flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
-            <div className="p-4 bg-white rounded-2xl shadow-sm ring-1 ring-slate-100">
-              <Info className="h-6 w-6 text-blue-400" />
-            </div>
-            <div className="space-y-1">
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Administrative Compliance</p>
-              <p className="text-[10px] font-bold text-slate-400 leading-relaxed uppercase">
-                All rates are established under official departmental mandates and subject to periodic government review. 
-                Management of these records is restricted to authorized district administrators via the Technical Hub.
-              </p>
-            </div>
           </div>
         )}
       </div>
