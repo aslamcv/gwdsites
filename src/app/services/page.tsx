@@ -18,7 +18,8 @@ import {
   Calendar,
   History,
   CheckCircle2,
-  Clock
+  Clock,
+  Copy
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -192,6 +193,26 @@ export default function ServicesRatesCatalog() {
     });
     setLocalServices(updated);
     setIsDirty(true);
+  };
+
+  const copyItem = (serviceId: string, itemToCopy: any) => {
+    if (!isAdmin) return;
+    const updated = [...localServices];
+    const serviceIdx = updated.findIndex(s => s.id === serviceId);
+    if (serviceIdx === -1) return;
+
+    const newId = `item-${Date.now()}`;
+    updated[serviceIdx].items.push({ 
+      ...itemToCopy,
+      id: newId,
+      dateTo: '' 
+    });
+    setLocalServices(updated);
+    setIsDirty(true);
+    toast({
+      title: "Item Duplicated",
+      description: "A copy has been created in the active section.",
+    });
   };
 
   const updateScope = (serviceId: string, scopeIdx: number, value: string) => {
@@ -408,7 +429,7 @@ export default function ServicesRatesCatalog() {
                                 <th className="w-40 text-right pr-8 border-r">Rate (₹)</th>
                                 <th className="w-40 text-center border-r">Effect From</th>
                                 <th className="w-40 text-center border-r">Effect To</th>
-                                {isAdmin && <th className="w-16"></th>}
+                                {isAdmin && <th className="w-32">Actions</th>}
                               </tr>
                             </thead>
                             <tbody>
@@ -476,15 +497,27 @@ export default function ServicesRatesCatalog() {
                                      )}
                                   </td>
                                   {isAdmin && (
-                                    <td className="p-1 text-center">
-                                      <Button 
-                                        onClick={() => deleteItem(service.id, item.id)} 
-                                        variant="ghost" 
-                                        size="icon" 
-                                        className="size-10 text-rose-200 hover:text-rose-600 hover:bg-rose-50 rounded-xl"
-                                      >
-                                        <Trash2 className="size-4" />
-                                      </Button>
+                                    <td className="px-2 text-center">
+                                      <div className="flex items-center justify-center gap-1">
+                                        <Button 
+                                          onClick={() => copyItem(service.id, item)} 
+                                          variant="ghost" 
+                                          size="icon" 
+                                          className="size-9 text-blue-200 hover:text-blue-600 hover:bg-blue-50 rounded-xl"
+                                          title="Duplicate Item"
+                                        >
+                                          <Copy className="size-4" />
+                                        </Button>
+                                        <Button 
+                                          onClick={() => deleteItem(service.id, item.id)} 
+                                          variant="ghost" 
+                                          size="icon" 
+                                          className="size-9 text-rose-200 hover:text-rose-600 hover:bg-rose-50 rounded-xl"
+                                          title="Delete Item"
+                                        >
+                                          <Trash2 className="size-4" />
+                                        </Button>
+                                      </div>
                                     </td>
                                   )}
                                 </tr>
@@ -512,8 +545,8 @@ export default function ServicesRatesCatalog() {
                                   <th className="px-6 text-left border-r">Technical Item / Category</th>
                                   <th className="w-40 text-right pr-8 border-r">Expired Rate (₹)</th>
                                   <th className="w-40 text-center border-r">Effect From</th>
-                                  <th className="w-40 text-center">Effect To</th>
-                                  {isAdmin && <th className="w-16 border-l"></th>}
+                                  <th className="w-40 text-center border-r">Effect To</th>
+                                  {isAdmin && <th className="w-32 border-l">Actions</th>}
                                 </tr>
                               </thead>
                               <tbody>
@@ -559,7 +592,7 @@ export default function ServicesRatesCatalog() {
                                          <span className="text-[10px] font-medium text-slate-400">{item.dateFrom || '---'}</span>
                                        )}
                                     </td>
-                                    <td className="px-4 text-center">
+                                    <td className="border-r px-4 text-center">
                                        {isAdmin ? (
                                          <Input 
                                           type="date"
@@ -573,14 +606,26 @@ export default function ServicesRatesCatalog() {
                                     </td>
                                     {isAdmin && (
                                       <td className="p-1 text-center border-l">
-                                        <Button 
-                                          onClick={() => deleteItem(service.id, item.id)} 
-                                          variant="ghost" 
-                                          size="icon" 
-                                          className="size-8 text-rose-200 hover:text-rose-600 hover:bg-rose-50 rounded-lg"
-                                        >
-                                          <Trash2 className="size-3.5" />
-                                        </Button>
+                                        <div className="flex items-center justify-center gap-1">
+                                          <Button 
+                                            onClick={() => copyItem(service.id, item)} 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className="size-8 text-blue-200 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
+                                            title="Duplicate Item"
+                                          >
+                                            <Copy className="size-3.5" />
+                                          </Button>
+                                          <Button 
+                                            onClick={() => deleteItem(service.id, item.id)} 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className="size-8 text-rose-200 hover:text-rose-600 hover:bg-rose-50 rounded-lg"
+                                            title="Delete Item"
+                                          >
+                                            <Trash2 className="size-3.5" />
+                                          </Button>
+                                        </div>
                                       </td>
                                     )}
                                   </tr>
