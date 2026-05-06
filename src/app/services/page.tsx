@@ -1,10 +1,16 @@
 'use client';
 
-import { useState } from 'react';
-import { ChevronDown, Search, FileText, Info, IndianRupee } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { ChevronDown, Search, FileText, Info, IndianRupee, PlusCircle, Lock, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+
+const MASTER_ADMIN_EMAIL = 'gwdmpm@gmail.com';
 
 const servicesData = [
   {
@@ -78,6 +84,21 @@ const servicesData = [
 export default function ServicesRatesCatalog() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
   const [search, setSearch] = useState("");
+  const { user, isUserLoading: isAuthLoading } = useUser();
+  const firestore = useFirestore();
+
+  // Role detection
+  const userProfileRef = useMemoFirebase(() => {
+    if (!firestore || !user?.email) return null;
+    return doc(firestore, 'users', user.email.toLowerCase().trim());
+  }, [firestore, user?.email]);
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
+
+  const isAdmin = useMemo(() => {
+    if (isAuthLoading || isProfileLoading) return false;
+    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
+    return userProfile?.role === 'admin';
+  }, [user, userProfile, isAuthLoading, isProfileLoading]);
 
   const toggle = (index: number) => {
     setOpenIndex(openIndex === index ? null : index);
@@ -105,22 +126,38 @@ export default function ServicesRatesCatalog() {
                   District Office, Malappuram
                 </div>
               </div>
-              <div className="bg-white/10 p-3 rounded-2xl backdrop-blur-md border border-white/10">
-                <FileText className="h-8 w-8 text-white" />
+              <div className="flex items-center gap-4">
+                {isAdmin && (
+                  <Button className="rounded-2xl h-14 px-8 bg-white text-[#1e3a8a] hover:bg-blue-50 shadow-xl font-black uppercase tracking-widest text-[11px] gap-3">
+                    <PlusCircle className="size-5" />
+                    PROVISION NEW RATE
+                  </Button>
+                )}
+                <div className="bg-white/10 p-3 rounded-2xl backdrop-blur-md border border-white/10 hidden sm:block">
+                  <FileText className="h-8 w-8 text-white" />
+                </div>
               </div>
             </div>
           </div>
           
           <CardContent className="p-8">
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-              <Input
-                type="text"
-                placeholder="Search services, items or technical parameters..."
-                className="h-14 pl-12 bg-slate-50 border-slate-200 rounded-2xl text-sm font-medium focus:ring-primary/20 shadow-inner"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
+            <div className="flex flex-col md:flex-row gap-4 items-center">
+              <div className="relative flex-1 w-full">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                <Input
+                  type="text"
+                  placeholder="Search services, items or technical parameters..."
+                  className="h-14 pl-12 bg-slate-50 border-slate-200 rounded-2xl text-sm font-medium focus:ring-primary/20 shadow-inner"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+              {!isAdmin && !isAuthLoading && !isProfileLoading && (
+                <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-100 font-black h-10 px-4 gap-2 uppercase text-[9px] tracking-widest">
+                  <Lock className="size-3.5" />
+                  READ ONLY
+                </Badge>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -144,13 +181,13 @@ export default function ServicesRatesCatalog() {
                   <div className="flex items-center gap-4">
                     <div className={cn(
                       "size-10 rounded-xl flex items-center justify-center transition-all",
-                      openIndex === index ? "bg-primary text-white scale-110 shadow-lg shadow-primary/20" : "bg-slate-100 text-slate-400 group-hover:bg-slate-200"
+                      openIndex === index ? "bg-[#1e3a8a] text-white scale-110 shadow-lg shadow-blue-900/20" : "bg-slate-100 text-slate-400 group-hover:bg-slate-200"
                     )}>
                       <IndianRupee className="h-5 w-5" />
                     </div>
                     <h2 className={cn(
                       "font-black text-lg uppercase tracking-tight",
-                      openIndex === index ? "text-primary" : "text-slate-700"
+                      openIndex === index ? "text-[#1e3a8a]" : "text-slate-700"
                     )}>
                       {service.title}
                     </h2>
@@ -158,11 +195,11 @@ export default function ServicesRatesCatalog() {
 
                   <div className={cn(
                     "p-2 rounded-full transition-all",
-                    openIndex === index ? "bg-primary/10 rotate-180" : "bg-slate-100"
+                    openIndex === index ? "bg-blue-100 rotate-180" : "bg-slate-100"
                   )}>
                     <ChevronDown className={cn(
                       "h-4 w-4",
-                      openIndex === index ? "text-primary" : "text-slate-400"
+                      openIndex === index ? "text-[#1e3a8a]" : "text-slate-400"
                     )} />
                   </div>
                 </div>
@@ -172,15 +209,15 @@ export default function ServicesRatesCatalog() {
                   <div className="px-8 pb-8 animate-in slide-in-from-top-2 duration-300">
                     
                     {/* SCOPE DESCRIPTION */}
-                    <div className="mb-6 p-4 bg-primary/5 rounded-2xl border border-primary/10">
+                    <div className="mb-6 p-4 bg-slate-50 rounded-2xl border border-slate-100">
                       <div className="flex items-center gap-2 mb-2">
-                        <Info className="h-3 w-3 text-primary" />
-                        <span className="text-[10px] font-black uppercase text-primary tracking-widest">Scope of Work</span>
+                        <Info className="h-3 w-3 text-slate-400" />
+                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Scope of Work</span>
                       </div>
                       <ul className="space-y-1">
                         {service.description.map((d, i) => (
                           <li key={i} className="text-xs text-slate-600 font-medium leading-relaxed flex items-start gap-2">
-                            <div className="mt-1.5 size-1 rounded-full bg-primary/40 shrink-0" />
+                            <div className="mt-1.5 size-1 rounded-full bg-slate-300 shrink-0" />
                             {d}
                           </li>
                         ))}
@@ -205,7 +242,7 @@ export default function ServicesRatesCatalog() {
                                 {item.name}
                               </td>
                               <td className="text-right pr-8">
-                                <span className="font-black text-primary text-sm">
+                                <span className="font-black text-[#1e3a8a] text-sm">
                                   ₹ {item.rate.toLocaleString('en-IN')}
                                 </span>
                               </td>
@@ -222,29 +259,21 @@ export default function ServicesRatesCatalog() {
             <div className="flex flex-col items-center justify-center py-20 bg-white rounded-[32px] border-2 border-dashed border-slate-200 text-center">
               <Search className="h-12 w-12 text-slate-200 mb-4" />
               <h3 className="text-lg font-bold text-slate-800">No services found</h3>
-              <p className="text-slate-500 text-sm">Try searching for different keywords or categories.</p>
+              <p className="text-slate-500 text-sm uppercase font-black text-[10px] tracking-widest mt-2">Try searching for different keywords or categories.</p>
             </div>
           )}
         </div>
 
         {/* FOOTER NOTE */}
         <div className="p-6 bg-slate-100/50 rounded-2xl border border-slate-200 flex items-center gap-4">
-          <div className="p-2 bg-white rounded-xl">
+          <div className="p-2 bg-white rounded-xl shadow-sm">
             <Info className="h-5 w-5 text-slate-400" />
           </div>
-          <p className="text-[10px] font-bold text-slate-500 leading-relaxed uppercase">
-            Rates are subject to official government revisions as per Kerala Ground Water Department guidelines. All charges include technical supervision and documentation fees.
+          <p className="text-[10px] font-bold text-slate-500 leading-relaxed uppercase tracking-tight">
+            Rates are subject to official government revisions as per Kerala Ground Water Department guidelines. All charges include technical supervision and documentation fees as per district policy.
           </p>
         </div>
       </div>
     </div>
   );
-}
-
-function Card({ children, className }: { children: React.ReactNode, className?: string }) {
-  return <div className={cn("bg-card text-card-foreground shadow-sm", className)}>{children}</div>;
-}
-
-function CardContent({ children, className }: { children: React.ReactNode, className?: string }) {
-  return <div className={cn("p-6 pt-0", className)}>{children}</div>;
 }
