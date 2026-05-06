@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useTransition } from 'react';
 import { 
   ChevronDown, 
   Search, 
@@ -108,6 +108,7 @@ const INITIAL_SERVICES_DATA = [
 
 export default function ServicesRatesCatalog() {
   const { toast } = useToast();
+  const [isPending, startTransition] = useTransition();
   const [openIndex, setOpenIndex] = useState<number | null>(0);
   const [search, setSearch] = useState("");
   const [isEditMode, setIsEditMode] = useState(false);
@@ -166,16 +167,19 @@ export default function ServicesRatesCatalog() {
 
   const handleSaveChanges = () => {
     if (!settingsRef || !isAdmin) return;
-    setDocumentNonBlocking(settingsRef, {
-      services: localServices,
-      lastUpdatedBy: user?.email,
-      updatedAt: new Date().toISOString()
-    }, { merge: true });
     
-    setIsEditMode(false);
-    toast({
-      title: "Rates Synchronized",
-      description: "Updated technical rates and scope have been saved to the cloud.",
+    startTransition(() => {
+      setDocumentNonBlocking(settingsRef, {
+        services: localServices,
+        lastUpdatedBy: user?.email,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+      
+      setIsEditMode(false);
+      toast({
+        title: "Rates Synchronized",
+        description: "Updated technical rates and scope have been saved to the cloud.",
+      });
     });
   };
 
