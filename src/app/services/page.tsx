@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect, useTransition } from 'react';
@@ -554,31 +555,14 @@ export default function ServicesRatesCatalog() {
                                   <tr key={item.id} className="h-12 border-b border-slate-100 last:border-b-0 hover:bg-white/50 transition-colors">
                                     <td className="text-center font-bold text-slate-300 text-[10px] border-r">{iIdx + 1}</td>
                                     <td className="px-6 border-r">
-                                      {isAdmin ? (
-                                        <Input 
-                                          value={item.name} 
-                                          onChange={(e) => updateItem(service.id, item.id, 'name', e.target.value)}
-                                          className="h-8 text-[11px] font-bold uppercase border-slate-200 bg-white"
-                                        />
-                                      ) : (
-                                        <span className="text-slate-500 font-bold text-[11px] uppercase tracking-tight">
-                                          {item.name}
-                                        </span>
-                                      )}
+                                      <span className="text-slate-500 font-bold text-[11px] uppercase tracking-tight">
+                                        {item.name}
+                                      </span>
                                     </td>
                                     <td className="text-right pr-8 border-r">
-                                      {isAdmin ? (
-                                        <Input 
-                                          type="number" 
-                                          value={item.rate} 
-                                          onChange={(e) => updateItem(service.id, item.id, 'rate', parseFloat(e.target.value) || 0)}
-                                          className="h-8 w-24 text-right text-[11px] font-black text-slate-600 bg-white"
-                                        />
-                                      ) : (
-                                        <span className="font-bold text-slate-400 text-xs tabular-nums">
-                                          ₹ {item.rate.toLocaleString('en-IN')}
-                                        </span>
-                                      )}
+                                      <span className="font-bold text-slate-400 text-xs tabular-nums">
+                                        ₹ {item.rate.toLocaleString('en-IN')}
+                                      </span>
                                     </td>
                                     <td className="border-r px-4 text-center">
                                        {isAdmin ? (
