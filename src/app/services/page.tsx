@@ -18,7 +18,8 @@ import {
   ArrowRight,
   ShieldCheck,
   CheckCircle2,
-  Settings
+  Settings,
+  Calendar
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -37,9 +38,9 @@ const INITIAL_SERVICES_DATA = [
     id: "gi",
     title: "Groundwater Investigation",
     items: [
-      { id: "gi-1", name: "Individual / Domestic", rate: 585 },
-      { id: "gi-2", name: "Govt, LSGD, Institutions", rate: 1935 },
-      { id: "gi-3", name: "Industrial / Commercial", rate: 3860 },
+      { id: "gi-1", name: "Individual / Domestic", rate: 585, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "gi-2", name: "Govt, LSGD, Institutions", rate: 1935, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "gi-3", name: "Industrial / Commercial", rate: 3860, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
     ],
     description: [
       "Scientific assessment of groundwater availability using geophysical techniques.",
@@ -51,10 +52,10 @@ const INITIAL_SERVICES_DATA = [
     id: "ds",
     title: "Drilling Services",
     items: [
-      { id: "ds-1", name: "110 mm Borewell Drilling", rate: 390 },
-      { id: "ds-2", name: "150 mm Borewell Drilling", rate: 665 },
-      { id: "ds-3", name: "200 mm Tubewell Construction", rate: 2980 },
-      { id: "ds-4", name: "Overburden Drilling (Casing)", rate: 450 },
+      { id: "ds-1", name: "110 mm Borewell Drilling", rate: 390, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "ds-2", name: "150 mm Borewell Drilling", rate: 665, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "ds-3", name: "200 mm Tubewell Construction", rate: 2980, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "ds-4", name: "Overburden Drilling (Casing)", rate: 450, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
     ],
     description: [
       "Construction of bore wells and tube wells using specialized departmental rigs.",
@@ -66,9 +67,9 @@ const INITIAL_SERVICES_DATA = [
     id: "yt",
     title: "Yield Testing (Pumping Test)",
     items: [
-      { id: "yt-1", name: "Step Drawdown Test (SDT)", rate: 7490 },
-      { id: "yt-2", name: "Constant Discharge Test (CDT)", rate: 12500 },
-      { id: "yt-3", name: "Well Logging / Depth Profiling", rate: 14475 },
+      { id: "yt-1", name: "Step Drawdown Test (SDT)", rate: 7490, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "yt-2", name: "Constant Discharge Test (CDT)", rate: 12500, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "yt-3", name: "Well Logging / Depth Profiling", rate: 14475, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
     ],
     description: [
       "Determining the sustainable yield and recovery parameters of the well.",
@@ -80,9 +81,9 @@ const INITIAL_SERVICES_DATA = [
     id: "wq",
     title: "Water Quality Analysis",
     items: [
-      { id: "wq-1", name: "Physical & Chemical Testing", rate: 1200 },
-      { id: "wq-2", name: "Bacteriological (Microbial) Testing", rate: 900 },
-      { id: "wq-3", name: "Heavy Metal Analysis", rate: 2500 },
+      { id: "wq-1", name: "Physical & Chemical Testing", rate: 1200, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "wq-2", name: "Bacteriological (Microbial) Testing", rate: 900, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "wq-3", name: "Heavy Metal Analysis", rate: 2500, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
     ],
     description: [
       "Comprehensive testing in regional departmental laboratories.",
@@ -94,9 +95,9 @@ const INITIAL_SERVICES_DATA = [
     id: "pr",
     title: "Permit & Regulation",
     items: [
-      { id: "pr-1", name: "New Borewell Permit Application", rate: 500 },
-      { id: "pr-2", name: "Well Conversion / Deepening Permit", rate: 750 },
-      { id: "pr-3", name: "Industrial No-Objection Certificate (NOC)", rate: 5000 },
+      { id: "pr-1", name: "New Borewell Permit Application", rate: 500, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "pr-2", name: "Well Conversion / Deepening Permit", rate: 750, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "pr-3", name: "Industrial No-Objection Certificate (NOC)", rate: 5000, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
     ],
     description: [
       "Regulatory oversight to ensure sustainable groundwater usage.",
@@ -111,8 +112,8 @@ export default function ServicesRatesCatalog() {
   const [isPending, startTransition] = useTransition();
   const [openIndex, setOpenIndex] = useState<number | null>(0);
   const [search, setSearch] = useState("");
-  const [isEditMode, setIsEditMode] = useState(false);
   const [localServices, setLocalServices] = useState<any[]>([]);
+  const [isDirty, setIsDirty] = useState(false);
   
   const { user, isUserLoading: isAuthLoading } = useUser();
   const firestore = useFirestore();
@@ -156,15 +157,6 @@ export default function ServicesRatesCatalog() {
     s.items.some((item: any) => item.name.toLowerCase().includes(search.toLowerCase()))
   );
 
-  const handleToggleEdit = () => {
-    if (!isAdmin) return;
-    if (isEditMode) {
-      // If turning off edit mode without saving, reset to cloud state
-      setLocalServices(cloudSettings?.services || INITIAL_SERVICES_DATA);
-    }
-    setIsEditMode(!isEditMode);
-  };
-
   const handleSaveChanges = () => {
     if (!settingsRef || !isAdmin) return;
     
@@ -175,10 +167,10 @@ export default function ServicesRatesCatalog() {
         updatedAt: new Date().toISOString()
       }, { merge: true });
       
-      setIsEditMode(false);
+      setIsDirty(false);
       toast({
         title: "Rates Synchronized",
-        description: "Updated technical rates and scope have been saved to the cloud.",
+        description: "Updated technical rates and effective dates have been saved.",
       });
     });
   };
@@ -187,42 +179,55 @@ export default function ServicesRatesCatalog() {
     const updated = [...localServices];
     updated[serviceIdx].items[itemIdx][field] = value;
     setLocalServices(updated);
+    setIsDirty(true);
   };
 
   const deleteItem = (serviceIdx: number, itemIdx: number) => {
     const updated = [...localServices];
     updated[serviceIdx].items.splice(itemIdx, 1);
     setLocalServices(updated);
+    setIsDirty(true);
   };
 
   const addItem = (serviceIdx: number) => {
     const updated = [...localServices];
     const newId = `item-${Date.now()}`;
-    updated[serviceIdx].items.push({ id: newId, name: "New Technical Item", rate: 0 });
+    updated[serviceIdx].items.push({ 
+      id: newId, 
+      name: "NEW TECHNICAL ITEM", 
+      rate: 0,
+      dateFrom: new Date().toISOString().split('T')[0],
+      dateTo: ''
+    });
     setLocalServices(updated);
+    setIsDirty(true);
+    toast({ title: "New Item Provisioned", description: "Technical row added. Please specify name and rate." });
   };
 
   const updateScope = (serviceIdx: number, scopeIdx: number, value: string) => {
     const updated = [...localServices];
     updated[serviceIdx].description[scopeIdx] = value;
     setLocalServices(updated);
+    setIsDirty(true);
   };
 
   const addScope = (serviceIdx: number) => {
     const updated = [...localServices];
     updated[serviceIdx].description.push("New technical objective...");
     setLocalServices(updated);
+    setIsDirty(true);
   };
 
   const deleteScope = (serviceIdx: number, scopeIdx: number) => {
     const updated = [...localServices];
     updated[serviceIdx].description.splice(scopeIdx, 1);
     setLocalServices(updated);
+    setIsDirty(true);
   };
 
   return (
     <div className="min-h-screen bg-slate-50/50 p-4 sm:p-8 animate-in fade-in duration-700 pb-32">
-      <div className="max-w-5xl mx-auto space-y-8">
+      <div className="max-w-7xl mx-auto space-y-8">
         
         {/* OFFICIAL HEADER */}
         <Card className="border-none shadow-xl shadow-slate-200/50 rounded-[32px] overflow-hidden ring-1 ring-slate-200 bg-white">
@@ -239,22 +244,6 @@ export default function ServicesRatesCatalog() {
                 </div>
               </div>
               <div className="flex items-center gap-4">
-                {isAdmin && (
-                  <Button 
-                    onClick={handleToggleEdit}
-                    variant={isEditMode ? "destructive" : "white"}
-                    className={cn(
-                      "rounded-2xl h-14 px-8 font-black uppercase tracking-widest text-[11px] gap-3 shadow-xl transition-all active:scale-95",
-                      !isEditMode && "bg-white text-[#1e3a8a] hover:bg-blue-50"
-                    )}
-                  >
-                    {isEditMode ? (
-                      <><X className="size-5" /> EXIT EDITOR</>
-                    ) : (
-                      <><Edit3 className="size-5" /> PROVISION NEW RATE</>
-                    )}
-                  </Button>
-                )}
                 <div className="bg-white/10 p-3 rounded-2xl backdrop-blur-md border border-white/10 hidden sm:block">
                   <FileText className="h-8 w-8 text-white" />
                 </div>
@@ -317,9 +306,6 @@ export default function ServicesRatesCatalog() {
                       )}>
                         {service.title}
                       </h2>
-                      {isEditMode && (
-                        <span className="text-[8px] font-black text-blue-500 tracking-widest">SYSTEM NODE: {service.id}</span>
-                      )}
                     </div>
                   </div>
 
@@ -345,7 +331,7 @@ export default function ServicesRatesCatalog() {
                           <Info className="h-4 w-4 text-primary" />
                           <span className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Scope of Work</span>
                         </div>
-                        {isEditMode && (
+                        {isAdmin && (
                           <Button 
                             onClick={(e) => { e.stopPropagation(); addScope(sIdx); }} 
                             variant="ghost" 
@@ -360,7 +346,7 @@ export default function ServicesRatesCatalog() {
                         {service.description.map((d: string, dIdx: number) => (
                           <div key={dIdx} className="flex items-start gap-3 group/scope">
                             <div className="mt-1.5 size-1.5 rounded-full bg-primary/30 shrink-0" />
-                            {isEditMode ? (
+                            {isAdmin ? (
                               <div className="flex-1 flex gap-2">
                                 <Input 
                                   value={d} 
@@ -390,13 +376,13 @@ export default function ServicesRatesCatalog() {
                     <div className="space-y-4">
                        <div className="flex items-center justify-between px-2">
                           <span className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Technical Rate Grid</span>
-                          {isEditMode && (
+                          {isAdmin && (
                             <Button 
                               onClick={() => addItem(sIdx)} 
                               size="sm" 
-                              className="h-8 text-[9px] font-black uppercase tracking-widest gap-2 bg-[#1e3a8a] rounded-xl"
+                              className="h-10 px-6 text-[10px] font-black uppercase tracking-widest gap-2 bg-[#1e3a8a] text-white rounded-xl shadow-lg shadow-blue-900/10 hover:bg-blue-900"
                             >
-                              <PlusCircle className="size-3.5" /> PROVISION ITEM
+                              <PlusCircle className="size-4" /> ADD TECHNICAL ITEM
                             </Button>
                           )}
                        </div>
@@ -406,8 +392,10 @@ export default function ServicesRatesCatalog() {
                             <tr className="h-12 text-[9px] font-black uppercase text-slate-500 tracking-widest">
                               <th className="w-16 text-center border-r">Sl No</th>
                               <th className="px-6 text-left border-r">Technical Item / Category</th>
-                              <th className="w-48 text-right pr-8">Official Rate (₹)</th>
-                              {isEditMode && <th className="w-16"></th>}
+                              <th className="w-48 text-right pr-8 border-r">Rate (₹)</th>
+                              <th className="w-44 text-center border-r">Effect From</th>
+                              <th className="w-44 text-center border-r">Effect To</th>
+                              {isAdmin && <th className="w-16"></th>}
                             </tr>
                           </thead>
                           <tbody>
@@ -415,7 +403,7 @@ export default function ServicesRatesCatalog() {
                               <tr key={item.id} className="h-14 border-b border-slate-100 last:border-b-0 hover:bg-slate-50/50 transition-colors group/row">
                                 <td className="text-center font-black text-slate-300 text-xs border-r">{iIdx + 1}</td>
                                 <td className="px-6 border-r">
-                                  {isEditMode ? (
+                                  {isAdmin ? (
                                     <Input 
                                       value={item.name} 
                                       onChange={(e) => updateItem(sIdx, iIdx, 'name', e.target.value)}
@@ -428,7 +416,7 @@ export default function ServicesRatesCatalog() {
                                   )}
                                 </td>
                                 <td className="text-right pr-8 border-r">
-                                  {isEditMode ? (
+                                  {isAdmin ? (
                                     <div className="flex items-center justify-end gap-2">
                                       <span className="text-[10px] font-black text-slate-400">₹</span>
                                       <Input 
@@ -444,7 +432,37 @@ export default function ServicesRatesCatalog() {
                                     </span>
                                   )}
                                 </td>
-                                {isEditMode && (
+                                <td className="border-r px-4">
+                                   {isAdmin ? (
+                                     <Input 
+                                      type="date"
+                                      value={item.dateFrom || ''}
+                                      onChange={(e) => updateItem(sIdx, iIdx, 'dateFrom', e.target.value)}
+                                      className="h-9 text-[10px] font-bold border-slate-200 bg-white"
+                                     />
+                                   ) : (
+                                     <div className="flex items-center justify-center gap-2 text-[10px] font-bold text-slate-500">
+                                       <Calendar className="size-3" />
+                                       {item.dateFrom || '---'}
+                                     </div>
+                                   )}
+                                </td>
+                                <td className="border-r px-4">
+                                   {isAdmin ? (
+                                     <Input 
+                                      type="date"
+                                      value={item.dateTo || ''}
+                                      onChange={(e) => updateItem(sIdx, iIdx, 'dateTo', e.target.value)}
+                                      className="h-9 text-[10px] font-bold border-slate-200 bg-white"
+                                     />
+                                   ) : (
+                                     <div className="flex items-center justify-center gap-2 text-[10px] font-bold text-slate-500">
+                                       <Calendar className="size-3" />
+                                       {item.dateTo || '---'}
+                                     </div>
+                                   )}
+                                </td>
+                                {isAdmin && (
                                   <td className="p-1 text-center">
                                     <Button 
                                       onClick={() => deleteItem(sIdx, iIdx)} 
@@ -477,20 +495,20 @@ export default function ServicesRatesCatalog() {
           )}
         </div>
 
-        {/* PERSISTENT ACTION FOOTER (Edit Mode Only) */}
-        {isEditMode && (
+        {/* PERSISTENT ACTION FOOTER (Admin Only) */}
+        {isAdmin && isDirty && (
           <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] w-full max-w-4xl px-4 animate-in slide-in-from-bottom-8 duration-500">
             <Card className="rounded-[28px] border-none shadow-2xl ring-2 ring-[#1e3a8a] bg-white p-4">
                <div className="flex items-center justify-between gap-8">
                   <div className="flex items-center gap-4 pl-4">
                     <div className="p-2 bg-blue-50 rounded-xl"><Settings className="size-5 text-blue-600 animate-spin-slow" /></div>
                     <div>
-                      <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Rate Management Node</p>
-                      <p className="text-[8px] font-bold text-slate-400 uppercase">You are currently modifying global technical rates.</p>
+                      <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Unsaved Modifications</p>
+                      <p className="text-[8px] font-bold text-slate-400 uppercase">You have pending changes to the technical rates catalog.</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <Button variant="ghost" onClick={handleToggleEdit} className="rounded-xl font-black text-[10px] uppercase tracking-widest text-slate-400">DISCARD</Button>
+                    <Button variant="ghost" onClick={() => { setLocalServices(cloudSettings?.services || INITIAL_SERVICES_DATA); setIsDirty(false); }} className="rounded-xl font-black text-[10px] uppercase tracking-widest text-slate-400">DISCARD</Button>
                     <Button onClick={handleSaveChanges} disabled={isPending} className="h-12 px-10 rounded-2xl bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[10px] gap-2 shadow-xl shadow-blue-900/20 transition-all hover:scale-[1.02] active:scale-95">
                       {isPending ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
                       SYNCHRONIZE TO CLOUD
@@ -502,7 +520,7 @@ export default function ServicesRatesCatalog() {
         )}
 
         {/* FOOTER NOTE */}
-        {!isEditMode && (
+        {!isAdmin && !isAuthLoading && !isProfileLoading && (
           <div className="p-8 bg-white/50 backdrop-blur-md rounded-[32px] border border-slate-200 flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
             <div className="p-4 bg-white rounded-2xl shadow-sm ring-1 ring-slate-100">
               <Info className="h-6 w-6 text-blue-400" />
