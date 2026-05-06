@@ -17,7 +17,8 @@ import {
   Plus,
   ArrowRight,
   ShieldCheck,
-  CheckCircle2
+  CheckCircle2,
+  Settings
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -270,7 +271,7 @@ export default function ServicesRatesCatalog() {
                 />
               </div>
               {!isAdmin && !isAuthLoading && !isProfileLoading && (
-                <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-100 font-black h-10 px-4 gap-2 uppercase text-[9px] tracking-widest">
+                <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-200 h-10 px-4 gap-2 font-black uppercase text-[9px] tracking-widest">
                   <Lock className="size-3.5" />
                   READ ONLY
                 </Badge>
@@ -515,4 +516,3 @@ export default function ServicesRatesCatalog() {
     </div>
   );
 }
-
