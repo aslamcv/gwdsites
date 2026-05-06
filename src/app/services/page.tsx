@@ -17,7 +17,8 @@ import {
   Settings,
   Calendar,
   History,
-  CheckCircle2
+  CheckCircle2,
+  Clock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -129,17 +130,7 @@ export default function ServicesRatesCatalog() {
     return localServices.filter((s) =>
       s.title.toLowerCase().includes(search.toLowerCase()) ||
       s.items.some((item: any) => item.name.toLowerCase().includes(search.toLowerCase()))
-    ).map(service => ({
-      ...service,
-      items: [...service.items].sort((a, b) => {
-        // Sort active first, then by date desc
-        const aActive = isItemActive(a);
-        const bActive = isItemActive(b);
-        if (aActive && !bActive) return -1;
-        if (!aActive && bActive) return 1;
-        return (b.dateFrom || '').localeCompare(a.dateFrom || '');
-      })
-    }));
+    );
   }, [localServices, search]);
 
   const handleSaveChanges = () => {
@@ -160,25 +151,37 @@ export default function ServicesRatesCatalog() {
     });
   };
 
-  const updateItem = (serviceIdx: number, itemIdx: number, field: string, value: any) => {
+  const updateItem = (serviceId: string, itemId: string, field: string, value: any) => {
     if (!isAdmin) return;
     const updated = [...localServices];
+    const serviceIdx = updated.findIndex(s => s.id === serviceId);
+    if (serviceIdx === -1) return;
+    
+    const itemIdx = updated[serviceIdx].items.findIndex((i: any) => i.id === itemId);
+    if (itemIdx === -1) return;
+
     updated[serviceIdx].items[itemIdx][field] = value;
     setLocalServices(updated);
     setIsDirty(true);
   };
 
-  const deleteItem = (serviceIdx: number, itemIdx: number) => {
+  const deleteItem = (serviceId: string, itemId: string) => {
     if (!isAdmin) return;
     const updated = [...localServices];
-    updated[serviceIdx].items.splice(itemIdx, 1);
+    const serviceIdx = updated.findIndex(s => s.id === serviceId);
+    if (serviceIdx === -1) return;
+
+    updated[serviceIdx].items = updated[serviceIdx].items.filter((i: any) => i.id !== itemId);
     setLocalServices(updated);
     setIsDirty(true);
   };
 
-  const addItem = (serviceIdx: number) => {
+  const addItem = (serviceId: string) => {
     if (!isAdmin) return;
     const updated = [...localServices];
+    const serviceIdx = updated.findIndex(s => s.id === serviceId);
+    if (serviceIdx === -1) return;
+
     const newId = `item-${Date.now()}`;
     updated[serviceIdx].items.push({ 
       id: newId, 
@@ -191,25 +194,34 @@ export default function ServicesRatesCatalog() {
     setIsDirty(true);
   };
 
-  const updateScope = (serviceIdx: number, scopeIdx: number, value: string) => {
+  const updateScope = (serviceId: string, scopeIdx: number, value: string) => {
     if (!isAdmin) return;
     const updated = [...localServices];
+    const serviceIdx = updated.findIndex(s => s.id === serviceId);
+    if (serviceIdx === -1) return;
+
     updated[serviceIdx].description[scopeIdx] = value;
     setLocalServices(updated);
     setIsDirty(true);
   };
 
-  const addScope = (serviceIdx: number) => {
+  const addScope = (serviceId: string) => {
     if (!isAdmin) return;
     const updated = [...localServices];
+    const serviceIdx = updated.findIndex(s => s.id === serviceId);
+    if (serviceIdx === -1) return;
+
     updated[serviceIdx].description.push("New technical objective...");
     setLocalServices(updated);
     setIsDirty(true);
   };
 
-  const deleteScope = (serviceIdx: number, scopeIdx: number) => {
+  const deleteScope = (serviceId: string, scopeIdx: number) => {
     if (!isAdmin) return;
     const updated = [...localServices];
+    const serviceIdx = updated.findIndex(s => s.id === serviceId);
+    if (serviceIdx === -1) return;
+
     updated[serviceIdx].description.splice(scopeIdx, 1);
     setLocalServices(updated);
     setIsDirty(true);
@@ -270,150 +282,144 @@ export default function ServicesRatesCatalog() {
         {/* SERVICES ACCORDION LIST */}
         <div className="space-y-4">
           {filteredServices.length > 0 ? (
-            filteredServices.map((service, sIdx) => (
-              <div
-                key={service.id}
-                className={cn(
-                  "group bg-white rounded-[24px] shadow-sm border border-slate-200 overflow-hidden transition-all duration-300",
-                  openIndex === sIdx ? "shadow-md ring-2 ring-primary/5" : "hover:shadow-md"
-                )}
-              >
-                {/* CATEGORY HEADER */}
+            filteredServices.map((service, sIdx) => {
+              const activeItems = service.items.filter((i: any) => isItemActive(i));
+              const previousItems = service.items.filter((i: any) => !isItemActive(i));
+
+              return (
                 <div
+                  key={service.id}
                   className={cn(
-                    "flex justify-between items-center p-6 cursor-pointer transition-colors",
-                    openIndex === sIdx ? "bg-slate-50" : "hover:bg-slate-50/50"
+                    "group bg-white rounded-[24px] shadow-sm border border-slate-200 overflow-hidden transition-all duration-300",
+                    openIndex === sIdx ? "shadow-md ring-2 ring-primary/5" : "hover:shadow-md"
                   )}
-                  onClick={() => toggle(sIdx)}
                 >
-                  <div className="flex items-center gap-4">
-                    <div className={cn(
-                      "size-10 rounded-xl flex items-center justify-center transition-all",
-                      openIndex === sIdx ? "bg-[#1e3a8a] text-white scale-110 shadow-lg shadow-blue-900/20" : "bg-slate-100 text-slate-400 group-hover:bg-slate-200"
-                    )}>
-                      <IndianRupee className="h-5 w-5" />
-                    </div>
-                    <div className="flex flex-col">
-                      <h2 className={cn(
-                        "font-black text-lg uppercase tracking-tight",
-                        openIndex === sIdx ? "text-[#1e3a8a]" : "text-slate-700"
+                  {/* CATEGORY HEADER */}
+                  <div
+                    className={cn(
+                      "flex justify-between items-center p-6 cursor-pointer transition-colors",
+                      openIndex === sIdx ? "bg-slate-50" : "hover:bg-slate-50/50"
+                    )}
+                    onClick={() => toggle(sIdx)}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className={cn(
+                        "size-10 rounded-xl flex items-center justify-center transition-all",
+                        openIndex === sIdx ? "bg-[#1e3a8a] text-white scale-110 shadow-lg shadow-blue-900/20" : "bg-slate-100 text-slate-400 group-hover:bg-slate-200"
                       )}>
-                        {service.title}
-                      </h2>
+                        <IndianRupee className="h-5 w-5" />
+                      </div>
+                      <div className="flex flex-col">
+                        <h2 className={cn(
+                          "font-black text-lg uppercase tracking-tight",
+                          openIndex === sIdx ? "text-[#1e3a8a]" : "text-slate-700"
+                        )}>
+                          {service.title}
+                        </h2>
+                      </div>
+                    </div>
+
+                    <div className={cn(
+                      "p-2 rounded-full transition-all",
+                      openIndex === sIdx ? "bg-blue-100 rotate-180" : "bg-slate-100"
+                    )}>
+                      <ChevronDown className={cn(
+                        "h-4 w-4",
+                        openIndex === sIdx ? "text-[#1e3a8a]" : "text-slate-400"
+                      )} />
                     </div>
                   </div>
 
-                  <div className={cn(
-                    "p-2 rounded-full transition-all",
-                    openIndex === sIdx ? "bg-blue-100 rotate-180" : "bg-slate-100"
-                  )}>
-                    <ChevronDown className={cn(
-                      "h-4 w-4",
-                      openIndex === sIdx ? "text-[#1e3a8a]" : "text-slate-400"
-                    )} />
-                  </div>
-                </div>
-
-                {/* EXPANDABLE CONTENT */}
-                {openIndex === sIdx && (
-                  <div className="px-8 pb-8 animate-in slide-in-from-top-2 duration-300 space-y-8">
-                    
-                    {/* SCOPE DESCRIPTION */}
-                    <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-2">
-                          <Info className="h-4 w-4 text-primary" />
-                          <span className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Technical Scope</span>
-                        </div>
-                        {isAdmin && (
-                          <Button 
-                            onClick={(e) => { e.stopPropagation(); addScope(sIdx); }} 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-7 text-[8px] font-black uppercase tracking-widest gap-1.5 bg-white border shadow-sm rounded-lg"
-                          >
-                            <Plus className="size-3" /> ADD LINE
-                          </Button>
-                        )}
-                      </div>
-                      <div className="space-y-3">
-                        {service.description.map((d: string, dIdx: number) => (
-                          <div key={dIdx} className="flex items-start gap-3 group/scope">
-                            <div className="mt-1.5 size-1.5 rounded-full bg-primary/30 shrink-0" />
-                            {isAdmin ? (
-                              <div className="flex-1 flex gap-2">
-                                <Input 
-                                  value={d} 
-                                  onChange={(e) => updateScope(sIdx, dIdx, e.target.value)} 
-                                  className="h-10 text-xs bg-white border-slate-200" 
-                                />
-                                <Button 
-                                  onClick={() => deleteScope(sIdx, dIdx)} 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className="size-10 text-rose-300 hover:text-rose-600 hover:bg-rose-50 rounded-xl"
-                                >
-                                  <Trash2 className="size-4" />
-                                </Button>
-                              </div>
-                            ) : (
-                              <p className="text-xs text-slate-600 font-bold leading-relaxed text-justify">
-                                {d}
-                              </p>
-                            )}
+                  {/* EXPANDABLE CONTENT */}
+                  {openIndex === sIdx && (
+                    <div className="px-8 pb-8 animate-in slide-in-from-top-2 duration-300 space-y-8">
+                      
+                      {/* SCOPE DESCRIPTION */}
+                      <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-2">
+                            <Info className="h-4 w-4 text-primary" />
+                            <span className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Technical Scope</span>
                           </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* RATES TABLE */}
-                    <div className="space-y-4">
-                       <div className="flex items-center justify-between px-2">
-                          <span className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Official Rate Matrix</span>
                           {isAdmin && (
                             <Button 
-                              onClick={() => addItem(sIdx)} 
+                              onClick={(e) => { e.stopPropagation(); addScope(service.id); }} 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-7 text-[8px] font-black uppercase tracking-widest gap-1.5 bg-white border shadow-sm rounded-lg"
+                            >
+                              <Plus className="size-3" /> ADD LINE
+                            </Button>
+                          )}
+                        </div>
+                        <div className="space-y-3">
+                          {service.description.map((d: string, dIdx: number) => (
+                            <div key={dIdx} className="flex items-start gap-3 group/scope">
+                              <div className="mt-1.5 size-1.5 rounded-full bg-primary/30 shrink-0" />
+                              {isAdmin ? (
+                                <div className="flex-1 flex gap-2">
+                                  <Input 
+                                    value={d} 
+                                    onChange={(e) => updateScope(service.id, dIdx, e.target.value)} 
+                                    className="h-10 text-xs bg-white border-slate-200" 
+                                  />
+                                  <Button 
+                                    onClick={() => deleteScope(service.id, dIdx)} 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="size-10 text-rose-300 hover:text-rose-600 hover:bg-rose-50 rounded-xl"
+                                  >
+                                    <Trash2 className="size-4" />
+                                  </Button>
+                                </div>
+                              ) : (
+                                <p className="text-xs text-slate-600 font-bold leading-relaxed text-justify">
+                                  {d}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* ACTIVE RATES SECTION */}
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between px-2">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className="size-4 text-emerald-500" />
+                            <span className="text-[10px] font-black uppercase text-emerald-600 tracking-[0.2em]">Active Technical Rates</span>
+                          </div>
+                          {isAdmin && (
+                            <Button 
+                              onClick={() => addItem(service.id)} 
                               size="sm" 
                               className="h-10 px-6 text-[10px] font-black uppercase tracking-widest gap-2 bg-[#1e3a8a] text-white rounded-xl shadow-lg shadow-blue-900/10 hover:bg-blue-900"
                             >
                               <PlusCircle className="size-4" /> ADD TECHNICAL ITEM
                             </Button>
                           )}
-                       </div>
-                       <div className="border border-slate-200 rounded-[28px] overflow-hidden shadow-sm bg-white">
-                        <table className="w-full border-collapse">
-                          <thead className="bg-slate-50 border-b border-slate-200">
-                            <tr className="h-12 text-[9px] font-black uppercase text-slate-500 tracking-widest">
-                              <th className="w-16 text-center border-r">Sl No</th>
-                              <th className="w-32 text-center border-r">Status</th>
-                              <th className="px-6 text-left border-r">Technical Item / Category</th>
-                              <th className="w-40 text-right pr-8 border-r">Rate (₹)</th>
-                              <th className="w-40 text-center border-r">Effect From</th>
-                              <th className="w-40 text-center border-r">Effect To</th>
-                              {isAdmin && <th className="w-16"></th>}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {service.items.map((item: any, iIdx: number) => {
-                              const active = isItemActive(item);
-                              return (
-                                <tr key={item.id} className={cn(
-                                  "h-14 border-b border-slate-100 last:border-b-0 hover:bg-slate-50/50 transition-colors group/row",
-                                  !active && "opacity-60 grayscale-[0.5] bg-slate-50/30"
-                                )}>
+                        </div>
+                        <div className="border border-slate-200 rounded-[28px] overflow-hidden shadow-sm bg-white">
+                          <table className="w-full border-collapse">
+                            <thead className="bg-slate-50 border-b border-slate-200">
+                              <tr className="h-12 text-[9px] font-black uppercase text-slate-500 tracking-widest">
+                                <th className="w-16 text-center border-r">Sl No</th>
+                                <th className="px-6 text-left border-r">Technical Item / Category</th>
+                                <th className="w-40 text-right pr-8 border-r">Rate (₹)</th>
+                                <th className="w-40 text-center border-r">Effect From</th>
+                                <th className="w-40 text-center border-r">Effect To</th>
+                                {isAdmin && <th className="w-16"></th>}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {activeItems.length > 0 ? activeItems.map((item: any, iIdx: number) => (
+                                <tr key={item.id} className="h-14 border-b border-slate-100 last:border-b-0 hover:bg-slate-50/50 transition-colors group/row">
                                   <td className="text-center font-black text-slate-300 text-xs border-r">{iIdx + 1}</td>
-                                  <td className="text-center border-r">
-                                    {active ? (
-                                      <Badge className="bg-emerald-50 text-emerald-600 border-none text-[8px] font-black uppercase h-5 px-2">Active</Badge>
-                                    ) : (
-                                      <Badge className="bg-slate-200 text-slate-500 border-none text-[8px] font-black uppercase h-5 px-2 flex items-center justify-center gap-1 mx-auto w-fit"><History className="size-2.5" /> Previous</Badge>
-                                    )}
-                                  </td>
                                   <td className="px-6 border-r">
                                     {isAdmin ? (
                                       <Input 
                                         value={item.name} 
-                                        onChange={(e) => updateItem(sIdx, iIdx, 'name', e.target.value)}
+                                        onChange={(e) => updateItem(service.id, item.id, 'name', e.target.value)}
                                         className="h-9 text-xs font-bold uppercase border-slate-200 bg-white"
                                       />
                                     ) : (
@@ -429,7 +435,7 @@ export default function ServicesRatesCatalog() {
                                         <Input 
                                           type="number" 
                                           value={item.rate} 
-                                          onChange={(e) => updateItem(sIdx, iIdx, 'rate', parseFloat(e.target.value) || 0)}
+                                          onChange={(e) => updateItem(service.id, item.id, 'rate', parseFloat(e.target.value) || 0)}
                                           className="h-9 w-24 text-right text-xs font-black text-blue-700 bg-white"
                                         />
                                       </div>
@@ -444,7 +450,7 @@ export default function ServicesRatesCatalog() {
                                        <Input 
                                         type="date"
                                         value={item.dateFrom || ''}
-                                        onChange={(e) => updateItem(sIdx, iIdx, 'dateFrom', e.target.value)}
+                                        onChange={(e) => updateItem(service.id, item.id, 'dateFrom', e.target.value)}
                                         className="h-9 text-[10px] font-bold border-slate-200 bg-white"
                                        />
                                      ) : (
@@ -459,7 +465,7 @@ export default function ServicesRatesCatalog() {
                                        <Input 
                                         type="date"
                                         value={item.dateTo || ''}
-                                        onChange={(e) => updateItem(sIdx, iIdx, 'dateTo', e.target.value)}
+                                        onChange={(e) => updateItem(service.id, item.id, 'dateTo', e.target.value)}
                                         className="h-9 text-[10px] font-bold border-slate-200 bg-white"
                                        />
                                      ) : (
@@ -472,7 +478,7 @@ export default function ServicesRatesCatalog() {
                                   {isAdmin && (
                                     <td className="p-1 text-center">
                                       <Button 
-                                        onClick={() => deleteItem(sIdx, iIdx)} 
+                                        onClick={() => deleteItem(service.id, item.id)} 
                                         variant="ghost" 
                                         size="icon" 
                                         className="size-10 text-rose-200 hover:text-rose-600 hover:bg-rose-50 rounded-xl"
@@ -482,16 +488,113 @@ export default function ServicesRatesCatalog() {
                                     </td>
                                   )}
                                 </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
+                              )) : (
+                                <tr className="h-20"><td colSpan={isAdmin ? 6 : 5} className="text-center italic text-slate-400 text-xs uppercase">No active items for this category</td></tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
+
+                      {/* PREVIOUS RATES SECTION */}
+                      {previousItems.length > 0 && (
+                        <div className="space-y-4 pt-8 border-t border-dashed border-slate-200">
+                          <div className="flex items-center gap-2 px-2">
+                            <History className="size-4 text-slate-400" />
+                            <span className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Previous Technical Rates (Expired Validity)</span>
+                            <Badge variant="secondary" className="bg-slate-100 text-slate-500 text-[8px] uppercase font-bold h-5 ml-2">Historical Audit</Badge>
+                          </div>
+                          <div className="border border-slate-200 rounded-[28px] overflow-hidden shadow-sm bg-slate-50/30 opacity-70">
+                            <table className="w-full border-collapse">
+                              <thead className="bg-slate-100 border-b border-slate-200">
+                                <tr className="h-10 text-[9px] font-black uppercase text-slate-400 tracking-widest">
+                                  <th className="w-16 text-center border-r">Sl No</th>
+                                  <th className="px-6 text-left border-r">Technical Item / Category</th>
+                                  <th className="w-40 text-right pr-8 border-r">Expired Rate (₹)</th>
+                                  <th className="w-40 text-center border-r">Effect From</th>
+                                  <th className="w-40 text-center">Effect To</th>
+                                  {isAdmin && <th className="w-16 border-l"></th>}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {previousItems.map((item: any, iIdx: number) => (
+                                  <tr key={item.id} className="h-12 border-b border-slate-100 last:border-b-0 hover:bg-white/50 transition-colors">
+                                    <td className="text-center font-bold text-slate-300 text-[10px] border-r">{iIdx + 1}</td>
+                                    <td className="px-6 border-r">
+                                      {isAdmin ? (
+                                        <Input 
+                                          value={item.name} 
+                                          onChange={(e) => updateItem(service.id, item.id, 'name', e.target.value)}
+                                          className="h-8 text-[11px] font-bold uppercase border-slate-200 bg-white"
+                                        />
+                                      ) : (
+                                        <span className="text-slate-500 font-bold text-[11px] uppercase tracking-tight">
+                                          {item.name}
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className="text-right pr-8 border-r">
+                                      {isAdmin ? (
+                                        <Input 
+                                          type="number" 
+                                          value={item.rate} 
+                                          onChange={(e) => updateItem(service.id, item.id, 'rate', parseFloat(e.target.value) || 0)}
+                                          className="h-8 w-24 text-right text-[11px] font-black text-slate-600 bg-white"
+                                        />
+                                      ) : (
+                                        <span className="font-bold text-slate-400 text-xs tabular-nums">
+                                          ₹ {item.rate.toLocaleString('en-IN')}
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className="border-r px-4 text-center">
+                                       {isAdmin ? (
+                                         <Input 
+                                          type="date"
+                                          value={item.dateFrom || ''}
+                                          onChange={(e) => updateItem(service.id, item.id, 'dateFrom', e.target.value)}
+                                          className="h-8 text-[9px] font-bold border-slate-200 bg-white"
+                                         />
+                                       ) : (
+                                         <span className="text-[10px] font-medium text-slate-400">{item.dateFrom || '---'}</span>
+                                       )}
+                                    </td>
+                                    <td className="px-4 text-center">
+                                       {isAdmin ? (
+                                         <Input 
+                                          type="date"
+                                          value={item.dateTo || ''}
+                                          onChange={(e) => updateItem(service.id, item.id, 'dateTo', e.target.value)}
+                                          className="h-8 text-[9px] font-bold border-slate-200 bg-white"
+                                         />
+                                       ) : (
+                                         <span className="text-[10px] font-medium text-slate-400">{item.dateTo || '---'}</span>
+                                       )}
+                                    </td>
+                                    {isAdmin && (
+                                      <td className="p-1 text-center border-l">
+                                        <Button 
+                                          onClick={() => deleteItem(service.id, item.id)} 
+                                          variant="ghost" 
+                                          size="icon" 
+                                          className="size-8 text-rose-200 hover:text-rose-600 hover:bg-rose-50 rounded-lg"
+                                        >
+                                          <Trash2 className="size-3.5" />
+                                        </Button>
+                                      </td>
+                                    )}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                )}
-              </div>
-            ))
+                  )}
+                </div>
+              );
+            })
           ) : (
             <div className="flex flex-col items-center justify-center py-32 bg-white rounded-[40px] border-2 border-dashed border-slate-200 text-center animate-in zoom-in duration-500">
               <div className="size-24 bg-slate-50 rounded-full flex items-center justify-center mb-6">
