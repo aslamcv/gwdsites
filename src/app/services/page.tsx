@@ -49,7 +49,7 @@ const INITIAL_SERVICES_DATA = [
     id: "ds",
     title: "Drilling Services",
     items: [
-      { id: "ds-1", nameEn: "110 mm Borewell Drilling", nameMl: "110 mm dia കുഴല്‍കിണര്‍ ഡ്രില്ലിംഗ് ചാര്‍ജ് ", rate: 300, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "ds-1", nameEn: "110 mm Borewell Drilling", nameMl: "110 mm dia കുഴല്‍കിണര്‍ ഡ്രില്ലിംഗ് ചാര്‍ജ് ", rate: 390, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
       { id: "ds-2", nameEn: "150 mm Borewell Drilling", nameMl: "150 mm dia കുഴല്‍കിണര്‍ ഡ്രില്ലിംഗ് ചാര്‍ജ് ", rate: 665, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
       { id: "ds-3", nameEn: "200 mm Tubewell Construction", nameMl: "200 മി.മീ ട്യൂബ് വെൽ നിർമ്മാണം", rate: 2980, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
       { id: "ds-4", nameEn: "Overburden Drilling (Casing)", nameMl: "ഓവർബർഡൻ ഡ്രില്ലിംഗ് (കേസിംഗ്)", rate: 450, dateFrom: '2024-04-01', dateTo: '2025-03-31' },

@@ -73,16 +73,16 @@ function BillContent() {
     const findRate = (searchLabel: string) => {
       if (!cloudRates?.services || !refDate) return null;
       
-      const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9\u0D00-\u0D7F]/g, ''); 
-      const target = normalize(searchLabel);
+      const normalizeStr = (s: string) => s.toLowerCase().replace(/[^a-z0-9\u0D00-\u0D7F]/g, ''); 
+      const target = normalizeStr(searchLabel);
 
       for (const service of cloudRates.services) {
         for (const item of service.items) {
-          const catalogItemNameMl = normalize(item.nameMl || '');
-          const catalogItemNameEn = normalize(item.nameEn || '');
+          const catalogItemNameMl = normalizeStr(item.nameMl || '');
+          const catalogItemNameEn = normalizeStr(item.nameEn || '');
           
-          if (catalogItemNameMl.includes(target) || target.includes(catalogItemNameMl) || 
-              catalogItemNameEn.includes(target) || target.includes(catalogItemNameEn)) {
+          // CRITICAL: Use EXACT matching on normalized technical labels
+          if (catalogItemNameMl === target || catalogItemNameEn === target) {
             const from = item.dateFrom || '0000-00-00';
             const to = item.dateTo || '9999-99-99';
             if (refDate >= from && refDate <= to) {
