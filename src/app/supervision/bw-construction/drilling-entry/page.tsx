@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect, useMemo, Suspense } from 'react';
@@ -44,6 +43,7 @@ import type { GroundwaterReport, Employee } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { StaffMultiSelect } from '@/components/investigation/staff-multi-select';
+import { cn } from '@/lib/utils';
 import { Logo } from '@/components/logo';
 
 const MASTER_ADMIN_EMAIL = 'gwdmpm@gmail.com';
@@ -61,10 +61,12 @@ const categoryMappings: Record<string, string[]> = {
 };
 
 const conveyanceOptions = [
-  "SKE DTH RIG VEHICLE (KL01CE7618)",
-  "DEPARTMENT TRUCK",
-  "RENTED SUPPORT VEHICLE",
-  "PERSONAL VEHICLE"
+  "TATA SUMO GOLD (KL01CE7618)",
+  "RENTED VEHICLE",
+  "PERSONAL VEHICLE",
+  "GENERAL TRANSPORT",
+  "SKE DTH RIG VEHICLE",
+  "PT UNIT VEHICLE"
 ];
 
 const borewellSizeOptions = ["110mm (4.5\")", "150mm (6\")", "200mm (8\")"];
@@ -382,6 +384,7 @@ function UnifiedDrillingSupervisionContent() {
                   <SelectItem value="Medium yield">Medium Yield</SelectItem>
                   <SelectItem value="High yield">High Yield</SelectItem>
                   <SelectItem value="Dry well">Dry Well</SelectItem>
+                  <SelectItem value="collapsed">Collapsed well</SelectItem>
                 </SelectContent>
               </Select>
             </div>
