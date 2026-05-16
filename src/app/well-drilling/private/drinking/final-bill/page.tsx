@@ -47,25 +47,33 @@ function BillContent() {
                        report.category?.toLowerCase().includes('flushing');
 
     const yieldStatus = (report.remarks || '').toLowerCase().trim();
-    const isDryWell = yieldStatus === 'dry well';
+    const isDryWell = yieldStatus === 'dry well' || yieldStatus === 'dry';
     const isPrivate = report.sector?.toLowerCase() === 'private';
     const isAgri = (report.subCategory || report.category)?.toLowerCase() === 'agriculture';
 
-    // Rule 1: Private unsuccessful construction well -> 25% drilling charge, no material charge
     const isDryWellPrivate = isPrivate && isDryWell && !isFlushing;
-    
-    // Rule 2: Private successful agriculture well -> 50% drilling charge, full material charge
     const isAgriSubsidy = isPrivate && isAgri && !isFlushing && ['low yield', 'medium yield', 'high yield'].includes(yieldStatus);
 
-    // Target Date for rate lookup (Prefer End Date per user request)
+    // Target Date for rate lookup (Prefer End Date)
     const targetDate = report.dateOfInvestigation?.split(' - ')[1] || report.reportDate || report.createdAt?.split('T')[0] || '';
 
-    // Technical Rate Lookup Engine
-    const findRate = (pattern: string, fallback: number) => {
+    /**
+     * Resilient Rate Lookup Engine
+     * Handles diameter extraction and ignores formatting differences (110mm vs 110 mm)
+     */
+    const findRate = (keywords: string[], fallback: number) => {
       if (!cloudRates?.services) return fallback;
+      
+      const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const normalizedKeywords = keywords.map(kw => normalize(kw));
+
       for (const service of cloudRates.services) {
         for (const item of service.items) {
-          if (item.name.toLowerCase().includes(pattern.toLowerCase())) {
+          const normalizedItem = normalize(item.name);
+          // Match if ALL keywords are found in the normalized item name
+          const isMatch = normalizedKeywords.every(kw => normalizedItem.includes(kw));
+          
+          if (isMatch) {
             const from = item.dateFrom || '0000-00-00';
             const to = item.dateTo || '9999-99-99';
             if (targetDate >= from && targetDate <= to) {
@@ -77,12 +85,15 @@ function BillContent() {
       return fallback;
     };
 
+    // Extract diameter number for precision (e.g. "110" from "110mm (4.5\")")
+    const diameter = (report.borewellSize || '').match(/\d+/)?.[0] || '150';
+
     const rates = {
-      drilling: findRate(report.borewellSize || 'Drilling', 390),
-      pvc6: findRate('6kg', 566.56),
-      pvc10: findRate('10kg', 879.01),
-      endCap: findRate('End Cap', 87.59),
-      flushingMin: findRate('Flushing', 5790.00)
+      drilling: findRate([diameter, 'Drilling'], 390),
+      pvc6: findRate(['6kg'], 566.56),
+      pvc10: findRate(['10kg'], 879.01),
+      endCap: findRate(['End Cap'], 87.59),
+      flushingMin: findRate(['Flushing'], 5790.00)
     };
 
     let rows: any[] = [];
@@ -202,7 +213,7 @@ function BillContent() {
         <Alert className="bg-blue-50 border-blue-200 py-3">
             <AlertCircle className="size-4 text-blue-600" />
             <AlertDescription className="text-[11px] font-bold text-blue-800 uppercase tracking-tight">
-                Billing rates applied based on work completion date: {calc.targetDate}
+                BILLING RATES APPLIED BASED ON WORK COMPLETION DATE: {calc.targetDate}
             </AlertDescription>
         </Alert>
       </div>
@@ -306,7 +317,7 @@ function BillContent() {
                 </span>
                 <div className="text-right font-mono text-[13px]">
                   {calc.isAgriSubsidy && <p>= {calc.baseDrillingAmt.toFixed(2)} / 2</p>}
-                  <p className={cn(calc.isAgriSubsidy && "border-t border-black mt-1 font-black")}>= {calc.finalDrillingAmt}/-</p>
+                  <p className={cn(calc.isAgriSubsidy && "border-t border-black mt-1 font-black")}>= {calc.finalDrillingAmt.toFixed(2)}/-</p>
                 </div>
              </div>
           </div>
@@ -357,4 +368,3 @@ export default function FinalBillPage() {
     </Suspense>
   );
 }
-
