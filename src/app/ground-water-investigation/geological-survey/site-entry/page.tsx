@@ -148,16 +148,16 @@ function UnifiedGeologicalSurveyContent() {
   const [isManualVillageOpen, setIsManualVillageOpen] = useState(false);
   const [manualVillageName, setManualVillageName] = useState('');
 
-  // Role detection
+  // Role detection with robust email casing
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user?.email) return null;
-    return doc(firestore, 'users', user.email);
+    return doc(firestore, 'users', user.email.toLowerCase().trim());
   }, [firestore, user?.email]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
   
   const isAllowed = useMemo(() => {
     if (isUserLoading || isProfileLoading) return false;
-    if (user?.email === MASTER_ADMIN_EMAIL) return true;
+    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
     return (userProfile?.role === 'admin' || userProfile?.role === 'scientist') && userProfile?.isApproved === true;
   }, [user, userProfile, isUserLoading, isProfileLoading]);
 
@@ -415,9 +415,12 @@ function UnifiedGeologicalSurveyContent() {
         </Card>
 
         <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><Building className="size-4 text-primary" /> Location & Admin Details</CardTitle></CardHeader>
-          <CardContent className="p-0 overflow-hidden">
-             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 p-8">
+          <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
+            <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3">
+               <Building className="size-4" /> 2. Location & Admin Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-10 grid grid-cols-1 md:grid-cols-4 gap-8">
                 <FormFieldItem label="8. Village" id="village">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -476,7 +479,6 @@ function UnifiedGeologicalSurveyContent() {
                   </Select>
                 </FormFieldItem>
                 <FormFieldItem label="15. Date of Feasibility" id="dateOfFeasibility"><Input disabled={!isAllowed} type="date" value={formData.dateOfFeasibility} onChange={(e) => updateField('dateOfFeasibility', e.target.value)} /></FormFieldItem>
-             </div>
           </CardContent>
         </Card>
         
@@ -535,21 +537,18 @@ function UnifiedGeologicalSurveyContent() {
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
                 <FormFieldItem label="Recommendation Type" id="recommendationType" className="w-full">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" className="w-full h-12 justify-between border-slate-200 rounded-2xl font-black uppercase text-xs tracking-widest shadow-sm" disabled={!isAllowed}>
-                        <span>{formData.recommendationType ? recommendationTypeOptions.find(o => o.value === formData.recommendationType)?.label : "ENTER THE DETAILS"}</span>
-                        <ChevronDown className="size-4 opacity-50" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-[300px] rounded-2xl p-2 bg-white shadow-2xl border-slate-200">
+                  <Select disabled={!isAllowed} onValueChange={(val) => {updateField('recommendationType', val); setIsRecommendationDialogOpen(true);}} value={formData.recommendationType}>
+                    <SelectTrigger className="h-14 border-slate-200 rounded-2xl font-black uppercase text-xs tracking-widest shadow-sm">
+                      <SelectValue placeholder="ENTER THE DETAILS" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-2xl border-slate-200 shadow-2xl">
                       {recommendationTypeOptions.map(o => (
-                        <DropdownMenuItem key={o.value} onClick={() => {updateField('recommendationType', o.value); setIsRecommendationDialogOpen(true);}} className="rounded-xl py-3 font-bold text-xs uppercase cursor-pointer">
+                        <SelectItem key={o.value} value={o.value} className="py-3 font-bold text-xs uppercase cursor-pointer">
                           {o.label}
-                        </DropdownMenuItem>
+                        </SelectItem>
                       ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                    </SelectContent>
+                  </Select>
                 </FormFieldItem>
                 
                 <div className="space-y-4 pt-6">
@@ -618,7 +617,7 @@ function UnifiedGeologicalSurveyContent() {
         </Card>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-slate-200 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] h-24">
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] h-24">
         <div className="max-w-screen-2xl mx-auto h-full px-8 flex items-center justify-between">
           <div className="flex items-center gap-6">
             <Logo />
