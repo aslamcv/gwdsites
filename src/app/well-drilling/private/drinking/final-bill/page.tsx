@@ -18,6 +18,24 @@ function numberToMalayalamWords(num: number): string {
   return `${rounded.toLocaleString('en-IN')} രൂപ (അക്ഷരത്തിൽ)`;
 }
 
+/**
+ * Helper to format date from YYYY-MM-DD to DD-MM-YYYY
+ */
+const formatTechnicalDate = (dateStr: string) => {
+  if (!dateStr) return '';
+  const trimmed = dateStr.trim();
+  const parts = trimmed.split(/[-/]/);
+  if (parts.length === 3) {
+    // If it's YYYY-MM-DD
+    if (parts[0].length === 4) {
+      return `${parts[2]}-${parts[1]}-${parts[0]}`;
+    }
+    // If it's already DD-MM-YYYY or similar, return as is
+    return trimmed;
+  }
+  return dateStr;
+};
+
 function BillContent() {
   const searchParams = useSearchParams();
   const firestore = useFirestore();
@@ -181,12 +199,13 @@ function BillContent() {
     if (isDryWellPrivate) {
       const subsidyAmt = Math.ceil(originalDrillingAmt * 0.75);
       billableDrillingAmt = originalDrillingAmt - subsidyAmt;
-      subsidyLabel = 'കുഴൽ കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് വകുപ്പിന് ലഭിക്കേണ്ട തുക (ഡ്രില്ലിംഗ് ചാർജിന്റെ 25%):';
+      subsidyLabel = 'കുഴൽ കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് വകുപ്പിന് ലഭിക്കേണ്ട തുക (ഡ്രില്ലിംഗ് ചാർജിന്റെ 25%)';
+      subsidyValueText = billableDrillingAmt.toFixed(2);
     } else if (isAgriSubsidy) {
       const subsidyAmt = Math.ceil(originalDrillingAmt * 0.5);
       billableDrillingAmt = originalDrillingAmt - subsidyAmt;
       subsidyLabel = 'ഡ്രില്ലിംഗ് ചാർജ്ജ് സബ് സിഡി തുക( 50%)';
-      subsidyValueText = `₹${subsidyAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })} (50% of ₹${originalDrillingAmt.toLocaleString('en-IN', { minimumFractionDigits: 0 })})`;
+      subsidyValueText = subsidyAmt.toFixed(2);
     }
 
     const billableTotal = Math.ceil(billableDrillingAmt + (isDryWellPrivate ? 0 : materialsAmtFull));
@@ -286,7 +305,7 @@ function BillContent() {
 
           <div className="grid grid-cols-2 border border-black mb-4 text-[14px] text-left">
             <div className="border-r border-black p-2 px-4">ഫയൽ നമ്പർ: <span className="font-bold ml-2">{report.fileNo}</span></div>
-            <div className="p-2 px-4 text-right">തീയതി: <span className="font-bold ml-2">{report.reportDate}</span></div>
+            <div className="p-2 px-4 text-right">തീയതി: <span className="font-bold ml-2">{formatTechnicalDate(report.reportDate)}</span></div>
           </div>
 
           <div className="mb-4 text-left">
@@ -318,6 +337,7 @@ function BillContent() {
                 </tr>
               </thead>
               <tbody>
+                <tr className="h-0.5"><td colSpan={5} className="border-b border-black p-0"></td></tr>
                 {calc.rows.map((row, i) => (
                   <tr key={i} className={cn("min-h-[32px]", row.isSummary && "bg-slate-50 font-black border-t border-slate-400")}>
                     <td className="border-r border-black p-2">{row.isSummary ? '' : i + 1}</td>
@@ -344,21 +364,19 @@ function BillContent() {
           </div>
 
           {(calc.isDryWellPrivate || calc.isAgriSubsidy) && (
-            <div className="mb-4 p-4 border-x border-b border-black text-left font-bold text-[11.5px] leading-tight space-y-2">
-              {calc.isAgriSubsidy && (
-                <div className="flex justify-between items-start text-red-600">
-                    <span>ഡ്രില്ലിംഗ് ചാർജ്ജ് സബ് സിഡി തുക( 50%) :</span>
-                    <div className="text-right font-mono text-[13px]">
-                      <p>{calc.subsidyValueText}</p>
-                    </div>
-                </div>
-              )}
-              <div className="flex justify-between items-start">
+            <div className="mb-4 p-4 border-x border-b border-black text-left font-bold text-[11.5px] leading-tight space-y-4">
+              <div className={cn("flex justify-between items-start gap-4", calc.isAgriSubsidy && "text-red-600")}>
+                  <span className="flex-1 leading-normal">{calc.subsidyLabel} :</span>
+                  <div className="text-right font-mono text-[13px] shrink-0 min-w-[140px]">
+                    <p>= {calc.subsidyValueText} /-</p>
+                  </div>
+              </div>
+              <div className="flex justify-between items-start gap-4">
                   <span className={cn(calc.isAgriSubsidy && "text-red-600")}>
-                      {calc.isAgriSubsidy ? "കുഴൽകിണർ നിർമ്മാണ പ്രവൃത്തിയുടെ ആകെ ചിലവ്" : calc.subsidyLabel} :
+                      {calc.isAgriSubsidy ? "കുഴൽകിണർ നിർമ്മാണ പ്രവൃത്തിയുടെ ആകെ ചിലവ്" : "മൊത്തം തുക"} :
                   </span>
-                  <div className={cn("text-right font-mono text-[13px]", calc.isAgriSubsidy && "text-red-600")}>
-                    <p>= {calc.billableTotal.toFixed(2)}/-</p>
+                  <div className={cn("text-right font-mono text-[13px] shrink-0 min-w-[140px]", calc.isAgriSubsidy && "text-red-600")}>
+                    <p>= {calc.billableTotal.toFixed(2)} /-</p>
                   </div>
               </div>
             </div>
@@ -366,12 +384,14 @@ function BillContent() {
 
           <div className="flex justify-end mb-6 text-left">
             <div className="w-[400px] border border-black font-bold text-[14px]">
-              <div className="grid grid-cols-[1fr_140px] border-b border-black">
-                <div className="border-r border-black p-2 px-4 text-right font-medium">മൊത്തം തുക :</div>
-                <div className="p-2 text-center">
-                  ₹ {calc.billableTotal.toFixed(2)}
+              {!calc.isDryWellPrivate && !calc.isAgriSubsidy && (
+                <div className="grid grid-cols-[1fr_140px] border-b border-black">
+                  <div className="border-r border-black p-2 px-4 text-right font-medium">മൊത്തം തുക :</div>
+                  <div className="p-2 text-center">
+                    ₹ {calc.billableTotal.toFixed(2)}
+                  </div>
                 </div>
-              </div>
+              )}
               <div className="grid grid-cols-[1fr_140px] border-b border-black">
                 <div className="border-r border-black p-2 px-4 text-right uppercase text-[10px]">Total Amount Remitted :</div>
                 <div className="p-2 text-center font-black">₹ {calc.remitted.toFixed(2)}</div>
