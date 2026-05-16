@@ -39,9 +39,9 @@ const INITIAL_SERVICES_DATA = [
     id: "gi",
     title: "Groundwater Investigation",
     items: [
-      { id: "gi-1", name: "Individual / Domestic", rate: 585, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
-      { id: "gi-2", name: "Govt, LSGD, Institutions", rate: 1935, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
-      { id: "gi-3", name: "Industrial / Commercial", rate: 3860, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "gi-1", nameEn: "Individual / Domestic", nameMl: "വ്യക്തിഗത / ഗാർഹികം", rate: 585, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "gi-2", nameEn: "Govt, LSGD, Institutions", nameMl: "സർക്കാർ, തദ്ദേശ സ്വയംഭരണം, സ്ഥാപനങ്ങൾ", rate: 1935, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "gi-3", nameEn: "Industrial / Commercial", nameMl: "വ്യവസായം / വാണിജ്യം", rate: 3860, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
     ],
     description: [
       "Scientific assessment of groundwater availability using geophysical techniques.",
@@ -53,13 +53,13 @@ const INITIAL_SERVICES_DATA = [
     id: "ds",
     title: "Drilling Services",
     items: [
-      { id: "ds-1", name: "110 mm Borewell Drilling", rate: 300, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
-      { id: "ds-2", name: "150 mm Borewell Drilling", rate: 665, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
-      { id: "ds-3", name: "200 mm Tubewell Construction", rate: 2980, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
-      { id: "ds-4", name: "Overburden Drilling (Casing)", rate: 450, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
-      { id: "ds-5", name: "140mm PVC Casing (6kg)", rate: 566.56, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
-      { id: "ds-6", name: "140mm PVC Casing (10kg)", rate: 879.01, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
-      { id: "ds-7", name: "End Cap (Technical Fitting)", rate: 87.59, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "ds-1", nameEn: "110 mm Borewell Drilling", nameMl: "ഡ്രില്ലിംഗ് നടത്തിയ ആകെ ആഴം (110 മി.മീ.)", rate: 300, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "ds-2", nameEn: "150 mm Borewell Drilling", nameMl: "ഡ്രില്ലിംഗ് നടത്തിയ ആകെ ആഴം (150 മി.മീ.)", rate: 665, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "ds-3", nameEn: "200 mm Tubewell Construction", nameMl: "200 മി.മീ ട്യൂബ് വെൽ നിർമ്മാണം", rate: 2980, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "ds-4", nameEn: "Overburden Drilling (Casing)", nameMl: "ഓവർബർഡൻ ഡ്രില്ലിംഗ് (കേസിംഗ്)", rate: 450, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "ds-5", nameEn: "140mm PVC Casing (6kg)", nameMl: "140 മി.മീ PVC PIPE (6KG/CM²)", rate: 566.56, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "ds-6", nameEn: "140mm PVC Casing (10kg)", nameMl: "140 മി.മീ PVC PIPE (10KG/CM²)", rate: 879.01, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "ds-7", nameEn: "End Cap (Technical Fitting)", nameMl: "END CAP", rate: 87.59, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
     ],
     description: [
       "Construction of bore wells and tube wells using specialized departmental rigs.",
@@ -71,10 +71,10 @@ const INITIAL_SERVICES_DATA = [
     id: "yt",
     title: "Yield Testing (Pumping Test)",
     items: [
-      { id: "yt-1", name: "Step Drawdown Test (SDT)", rate: 7490, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
-      { id: "yt-2", name: "Constant Discharge Test (CDT)", rate: 12500, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
-      { id: "yt-3", name: "Well Logging / Depth Profiling", rate: 14475, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
-      { id: "yt-4", name: "Borewell Flushing (Minimum Charge)", rate: 5790, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "yt-1", nameEn: "Step Drawdown Test (SDT)", nameMl: "സ്റ്റെപ്പ് ഡ്രോഡൗൺ ടെസ്റ്റ് (SDT)", rate: 7490, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "yt-2", nameEn: "Constant Discharge Test (CDT)", nameMl: "കോൺസ്റ്റന്റ് ഡിസ്ചാർജ് ടെസ്റ്റ് (CDT)", rate: 12500, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "yt-3", nameEn: "Well Logging / Depth Profiling", nameMl: "വെൽ ലോഗിംഗ്", rate: 14475, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "yt-4", nameEn: "Borewell Flushing", nameMl: "ഫ്ലഷിംഗ് നടത്തിയ ആകെ ആഴം", rate: 5790, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
     ],
     description: [
       "Determining the sustainable yield and recovery parameters of the well.",
@@ -135,7 +135,10 @@ export default function ServicesRatesCatalog() {
   const filteredServices = useMemo(() => {
     return localServices.filter((s) =>
       s.title.toLowerCase().includes(search.toLowerCase()) ||
-      s.items.some((item: any) => item.name.toLowerCase().includes(search.toLowerCase()))
+      s.items.some((item: any) => 
+        (item.nameEn || '').toLowerCase().includes(search.toLowerCase()) ||
+        (item.nameMl || '').toLowerCase().includes(search.toLowerCase())
+      )
     );
   }, [localServices, search]);
 
@@ -159,8 +162,8 @@ export default function ServicesRatesCatalog() {
 
   const updateItem = (serviceId: string, itemId: string, field: string, value: any) => {
     if (!isAdmin) return;
-    const updated = [...localServices];
-    const serviceIdx = updated.findIndex(s => s.id === serviceId);
+    const updated = JSON.parse(JSON.stringify(localServices));
+    const serviceIdx = updated.findIndex((s: any) => s.id === serviceId);
     if (serviceIdx === -1) return;
     
     const itemIdx = updated[serviceIdx].items.findIndex((i: any) => i.id === itemId);
@@ -173,8 +176,8 @@ export default function ServicesRatesCatalog() {
 
   const deleteItem = (serviceId: string, itemId: string) => {
     if (!isAdmin) return;
-    const updated = [...localServices];
-    const serviceIdx = updated.findIndex(s => s.id === serviceId);
+    const updated = JSON.parse(JSON.stringify(localServices));
+    const serviceIdx = updated.findIndex((s: any) => s.id === serviceId);
     if (serviceIdx === -1) return;
 
     updated[serviceIdx].items = updated[serviceIdx].items.filter((i: any) => i.id !== itemId);
@@ -184,14 +187,15 @@ export default function ServicesRatesCatalog() {
 
   const addItem = (serviceId: string) => {
     if (!isAdmin) return;
-    const updated = [...localServices];
-    const serviceIdx = updated.findIndex(s => s.id === serviceId);
+    const updated = JSON.parse(JSON.stringify(localServices));
+    const serviceIdx = updated.findIndex((s: any) => s.id === serviceId);
     if (serviceIdx === -1) return;
 
     const newId = `item-${Date.now()}`;
     updated[serviceIdx].items.push({ 
       id: newId, 
-      name: "NEW TECHNICAL ITEM", 
+      nameEn: "NEW TECHNICAL ITEM (EN)", 
+      nameMl: "പുതിയ ഐറ്റം (ML)",
       rate: 0,
       dateFrom: new Date().toISOString().split('T')[0],
       dateTo: ''
@@ -202,8 +206,8 @@ export default function ServicesRatesCatalog() {
 
   const copyItem = (serviceId: string, itemToCopy: any) => {
     if (!isAdmin) return;
-    const updated = [...localServices];
-    const serviceIdx = updated.findIndex(s => s.id === serviceId);
+    const updated = JSON.parse(JSON.stringify(localServices));
+    const serviceIdx = updated.findIndex((s: any) => s.id === serviceId);
     if (serviceIdx === -1) return;
 
     const newId = `item-${Date.now()}`;
@@ -222,8 +226,8 @@ export default function ServicesRatesCatalog() {
 
   const updateScope = (serviceId: string, scopeIdx: number, value: string) => {
     if (!isAdmin) return;
-    const updated = [...localServices];
-    const serviceIdx = updated.findIndex(s => s.id === serviceId);
+    const updated = JSON.parse(JSON.stringify(localServices));
+    const serviceIdx = updated.findIndex((s: any) => s.id === serviceId);
     if (serviceIdx === -1) return;
 
     updated[serviceIdx].description[scopeIdx] = value;
@@ -233,8 +237,8 @@ export default function ServicesRatesCatalog() {
 
   const addScope = (serviceId: string) => {
     if (!isAdmin) return;
-    const updated = [...localServices];
-    const serviceIdx = updated.findIndex(s => s.id === serviceId);
+    const updated = JSON.parse(JSON.stringify(localServices));
+    const serviceIdx = updated.findIndex((s: any) => s.id === serviceId);
     if (serviceIdx === -1) return;
 
     updated[serviceIdx].description.push("New technical objective...");
@@ -244,8 +248,8 @@ export default function ServicesRatesCatalog() {
 
   const deleteScope = (serviceId: string, scopeIdx: number) => {
     if (!isAdmin) return;
-    const updated = [...localServices];
-    const serviceIdx = updated.findIndex(s => s.id === serviceId);
+    const updated = JSON.parse(JSON.stringify(localServices));
+    const serviceIdx = updated.findIndex((s: any) => s.id === serviceId);
     if (serviceIdx === -1) return;
 
     updated[serviceIdx].description.splice(scopeIdx, 1);
@@ -275,11 +279,6 @@ export default function ServicesRatesCatalog() {
                   District Office, Malappuram
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                <div className="bg-white/10 p-3 rounded-2xl backdrop-blur-md border border-white/10 hidden sm:block">
-                  <FileText className="h-8 w-8 text-white" />
-                </div>
-              </div>
             </div>
           </div>
           
@@ -289,7 +288,7 @@ export default function ServicesRatesCatalog() {
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                 <Input
                   type="text"
-                  placeholder="Search current and historical technical rates..."
+                  placeholder="Search current and historical technical rates (English or Malayalam)..."
                   className="h-14 pl-12 bg-slate-50 border-slate-200 rounded-2xl text-sm font-medium focus:ring-primary/20 shadow-inner"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
@@ -335,14 +334,12 @@ export default function ServicesRatesCatalog() {
                       )}>
                         <IndianRupee className="h-5 w-5" />
                       </div>
-                      <div className="flex flex-col">
-                        <h2 className={cn(
-                          "font-black text-lg uppercase tracking-tight",
-                          openIndex === sIdx ? "text-[#1e3a8a]" : "text-slate-700"
-                        )}>
-                          {service.title}
-                        </h2>
-                      </div>
+                      <h2 className={cn(
+                        "font-black text-lg uppercase tracking-tight",
+                        openIndex === sIdx ? "text-[#1e3a8a]" : "text-slate-700"
+                      )}>
+                        {service.title}
+                      </h2>
                     </div>
 
                     <div className={cn(
@@ -429,105 +426,78 @@ export default function ServicesRatesCatalog() {
                           <table className="w-full border-collapse">
                             <thead className="bg-slate-50 border-b border-slate-200">
                               <tr className="h-12 text-[9px] font-black uppercase text-slate-500 tracking-widest">
-                                <th className="w-16 text-center border-r">Sl No</th>
-                                <th className="px-6 text-left border-r">Technical Item / Category</th>
-                                <th className="w-40 text-right pr-8 border-r">Rate (₹)</th>
-                                <th className="w-40 text-center border-r">Effect From</th>
-                                <th className="w-40 text-center border-r">Effect To</th>
-                                {isAdmin && <th className="w-32">Actions</th>}
+                                <th className="w-12 text-center border-r">Sl</th>
+                                <th className="px-6 text-left border-r min-w-[200px]">Technical Item (English)</th>
+                                <th className="px-6 text-left border-r min-w-[200px]">Technical Item (Malayalam)</th>
+                                <th className="w-32 text-right pr-6 border-r">Rate (₹)</th>
+                                <th className="w-32 text-center border-r">From</th>
+                                <th className="w-32 text-center border-r">To</th>
+                                {isAdmin && <th className="w-24">Actions</th>}
                               </tr>
                             </thead>
                             <tbody>
                               {activeItems.length > 0 ? activeItems.map((item: any, iIdx: number) => (
-                                <tr key={item.id} className="h-14 border-b border-slate-100 last:border-b-0 hover:bg-slate-50/50 transition-colors group/row">
-                                  <td className="text-center font-black text-slate-300 text-xs border-r">{iIdx + 1}</td>
+                                <tr key={item.id} className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/50 transition-colors">
+                                  <td className="text-center font-black text-slate-300 text-[10px] border-r">{iIdx + 1}</td>
                                   <td className="px-6 border-r">
                                     {isAdmin ? (
                                       <Input 
-                                        value={item.name} 
-                                        onChange={(e) => updateItem(service.id, item.id, 'name', e.target.value)}
-                                        className="h-9 text-xs font-bold uppercase border-slate-200 bg-white"
+                                        value={item.nameEn} 
+                                        onChange={(e) => updateItem(service.id, item.id, 'nameEn', e.target.value)}
+                                        className="h-8 text-xs border-slate-200 bg-white"
                                       />
                                     ) : (
-                                      <span className="text-slate-700 font-black text-xs uppercase tracking-tight">
-                                        {item.name}
-                                      </span>
+                                      <span className="text-slate-700 font-bold text-xs uppercase">{item.nameEn}</span>
                                     )}
                                   </td>
-                                  <td className="text-right pr-8 border-r">
+                                  <td className="px-6 border-r">
                                     {isAdmin ? (
-                                      <div className="flex items-center justify-end gap-2">
-                                        <span className="text-[10px] font-black text-slate-400">₹</span>
-                                        <Input 
-                                          type="number" 
-                                          value={item.rate} 
-                                          onChange={(e) => updateItem(service.id, item.id, 'rate', parseFloat(e.target.value) || 0)}
-                                          className="h-9 w-24 text-right text-xs font-black text-blue-700 bg-white"
-                                        />
-                                      </div>
+                                      <Input 
+                                        value={item.nameMl} 
+                                        onChange={(e) => updateItem(service.id, item.id, 'nameMl', e.target.value)}
+                                        className="h-8 text-xs font-bold border-slate-200 bg-white"
+                                      />
                                     ) : (
-                                      <span className="font-black text-[#1e3a8a] text-sm tabular-nums">
-                                        ₹ {item.rate.toLocaleString('en-IN')}
-                                      </span>
+                                      <span className="text-slate-700 font-bold text-xs">{item.nameMl}</span>
                                     )}
                                   </td>
-                                  <td className="border-r px-4">
+                                  <td className="text-right pr-6 border-r">
+                                    {isAdmin ? (
+                                      <Input 
+                                        type="number" 
+                                        value={item.rate} 
+                                        onChange={(e) => updateItem(service.id, item.id, 'rate', parseFloat(e.target.value) || 0)}
+                                        className="h-8 w-24 text-right text-xs font-black text-blue-700 bg-white"
+                                      />
+                                    ) : (
+                                      <span className="font-black text-[#1e3a8a] text-xs">₹{item.rate.toLocaleString('en-IN')}</span>
+                                    )}
+                                  </td>
+                                  <td className="border-r px-2">
                                      {isAdmin ? (
-                                       <Input 
-                                        type="date"
-                                        value={item.dateFrom || ''}
-                                        onChange={(e) => updateItem(service.id, item.id, 'dateFrom', e.target.value)}
-                                        className="h-9 text-[10px] font-bold border-slate-200 bg-white"
-                                       />
+                                       <Input type="date" value={item.dateFrom || ''} onChange={(e) => updateItem(service.id, item.id, 'dateFrom', e.target.value)} className="h-8 text-[9px] px-1 border-slate-200" />
                                      ) : (
-                                       <div className="flex items-center justify-center gap-2 text-[10px] font-bold text-slate-500">
-                                         <Calendar className="size-3" />
-                                         {item.dateFrom || '---'}
-                                       </div>
+                                       <span className="text-[9px] font-bold text-slate-500 block text-center">{item.dateFrom || '---'}</span>
                                      )}
                                   </td>
-                                  <td className="border-r px-4">
+                                  <td className="border-r px-2">
                                      {isAdmin ? (
-                                       <Input 
-                                        type="date"
-                                        value={item.dateTo || ''}
-                                        onChange={(e) => updateItem(service.id, item.id, 'dateTo', e.target.value)}
-                                        className="h-9 text-[10px] font-bold border-slate-200 bg-white"
-                                       />
+                                       <Input type="date" value={item.dateTo || ''} onChange={(e) => updateItem(service.id, item.id, 'dateTo', e.target.value)} className="h-8 text-[9px] px-1 border-slate-200" />
                                      ) : (
-                                       <div className="flex items-center justify-center gap-2 text-[10px] font-bold text-slate-500">
-                                         <Calendar className="size-3" />
-                                         {item.dateTo || 'PRESENT'}
-                                       </div>
+                                       <span className="text-[9px] font-bold text-slate-500 block text-center">{item.dateTo || 'PRESENT'}</span>
                                      )}
                                   </td>
                                   {isAdmin && (
                                     <td className="px-2 text-center">
                                       <div className="flex items-center justify-center gap-1">
-                                        <Button 
-                                          onClick={() => copyItem(service.id, item)} 
-                                          variant="ghost" 
-                                          size="icon" 
-                                          className="size-9 text-blue-200 hover:text-blue-600 hover:bg-blue-50 rounded-xl"
-                                          title="Duplicate Item"
-                                        >
-                                          <Copy className="size-4" />
-                                        </Button>
-                                        <Button 
-                                          onClick={() => deleteItem(service.id, item.id)} 
-                                          variant="ghost" 
-                                          size="icon" 
-                                          className="size-9 text-rose-200 hover:text-rose-600 hover:bg-rose-50 rounded-xl"
-                                          title="Delete Item"
-                                        >
-                                          <Trash2 className="size-4" />
-                                        </Button>
+                                        <Button onClick={() => copyItem(service.id, item)} variant="ghost" size="icon" className="size-7 text-blue-200 hover:text-blue-600 rounded-lg"><Copy className="size-3.5" /></Button>
+                                        <Button onClick={() => deleteItem(service.id, item.id)} variant="ghost" size="icon" className="size-7 text-rose-200 hover:text-rose-600 rounded-lg"><Trash2 className="size-3.5" /></Button>
                                       </div>
                                     </td>
                                   )}
                                 </tr>
                               )) : (
-                                <tr className="h-20"><td colSpan={isAdmin ? 6 : 5} className="text-center italic text-slate-400 text-xs uppercase">No active items for this category</td></tr>
+                                <tr className="h-20"><td colSpan={isAdmin ? 7 : 6} className="text-center italic text-slate-400 text-xs uppercase">No active items for this category</td></tr>
                               )}
                             </tbody>
                           </table>
@@ -536,83 +506,38 @@ export default function ServicesRatesCatalog() {
 
                       {/* PREVIOUS RATES SECTION */}
                       {previousItems.length > 0 && (
-                        <div className="space-y-4 pt-8 border-t border-dashed border-slate-200">
+                        <div className="space-y-4 pt-8 border-t border-dashed border-slate-200 opacity-70 grayscale">
                           <div className="flex items-center gap-2 px-2">
                             <History className="size-4 text-slate-400" />
-                            <span className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Previous Technical Rates (Expired Validity)</span>
-                            <Badge variant="secondary" className="bg-slate-100 text-slate-500 text-[8px] uppercase font-bold h-5 ml-2">Historical Audit</Badge>
+                            <span className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Previous Technical Rates (Historical Archive)</span>
                           </div>
-                          <div className="border border-slate-200 rounded-[28px] overflow-hidden shadow-sm bg-slate-50/30 opacity-70">
+                          <div className="border border-slate-200 rounded-[28px] overflow-hidden bg-white">
                             <table className="w-full border-collapse">
-                              <thead className="bg-slate-100 border-b border-slate-200">
+                              <thead className="bg-slate-50 border-b border-slate-200">
                                 <tr className="h-10 text-[9px] font-black uppercase text-slate-400 tracking-widest">
-                                  <th className="w-16 text-center border-r">Sl No</th>
-                                  <th className="px-6 text-left border-r">Technical Item / Category</th>
-                                  <th className="w-40 text-right pr-8 border-r">Expired Rate (₹)</th>
-                                  <th className="w-40 text-center border-r">Effect From</th>
-                                  <th className="w-40 text-center border-r">Effect To</th>
-                                  {isAdmin && <th className="w-32 border-l">Actions</th>}
+                                  <th className="w-12 text-center border-r">Sl</th>
+                                  <th className="px-6 text-left border-r min-w-[200px]">Technical Item (English)</th>
+                                  <th className="px-6 text-left border-r min-w-[200px]">Technical Item (Malayalam)</th>
+                                  <th className="w-32 text-right pr-6 border-r">Expired Rate</th>
+                                  <th className="w-32 text-center border-r">From</th>
+                                  <th className="w-32 text-center border-r">To</th>
+                                  {isAdmin && <th className="w-24">Actions</th>}
                                 </tr>
                               </thead>
                               <tbody>
                                 {previousItems.map((item: any, iIdx: number) => (
-                                  <tr key={item.id} className="h-12 border-b border-slate-100 last:border-b-0 hover:bg-white/50 transition-colors">
+                                  <tr key={item.id} className="h-11 border-b border-slate-100 last:border-b-0">
                                     <td className="text-center font-bold text-slate-300 text-[10px] border-r">{iIdx + 1}</td>
-                                    <td className="px-6 border-r">
-                                      <span className="text-slate-500 font-bold text-[11px] uppercase tracking-tight">
-                                        {item.name}
-                                      </span>
-                                    </td>
-                                    <td className="text-right pr-8 border-r">
-                                      <span className="font-bold text-slate-400 text-xs tabular-nums">
-                                        ₹ {item.rate.toLocaleString('en-IN')}
-                                      </span>
-                                    </td>
-                                    <td className="border-r px-4 text-center">
-                                       {isAdmin ? (
-                                         <Input 
-                                          type="date"
-                                          value={item.dateFrom || ''}
-                                          onChange={(e) => updateItem(service.id, item.id, 'dateFrom', e.target.value)}
-                                          className="h-8 text-[9px] font-bold border-slate-200 bg-white"
-                                         />
-                                       ) : (
-                                         <span className="text-[10px] font-medium text-slate-400">{item.dateFrom || '---'}</span>
-                                       )}
-                                    </td>
-                                    <td className="border-r px-4 text-center">
-                                       {isAdmin ? (
-                                         <Input 
-                                          type="date"
-                                          value={item.dateTo || ''}
-                                          onChange={(e) => updateItem(service.id, item.id, 'dateTo', e.target.value)}
-                                          className="h-8 text-[9px] font-bold border-slate-200 bg-white"
-                                         />
-                                       ) : (
-                                         <span className="text-[10px] font-medium text-slate-400">{item.dateTo || '---'}</span>
-                                       )}
-                                    </td>
+                                    <td className="px-6 border-r text-[11px] font-bold text-slate-400 uppercase">{item.nameEn}</td>
+                                    <td className="px-6 border-r text-[11px] font-bold text-slate-400">{item.nameMl}</td>
+                                    <td className="text-right pr-6 border-r text-[11px] font-bold text-slate-400">₹{item.rate.toLocaleString('en-IN')}</td>
+                                    <td className="border-r px-2 text-center text-[9px] font-medium text-slate-400">{item.dateFrom}</td>
+                                    <td className="border-r px-2 text-center text-[9px] font-medium text-slate-400">{item.dateTo}</td>
                                     {isAdmin && (
-                                      <td className="p-1 text-center border-l">
+                                      <td className="px-2 text-center">
                                         <div className="flex items-center justify-center gap-1">
-                                          <Button 
-                                            onClick={() => copyItem(service.id, item)} 
-                                            variant="ghost" 
-                                            size="icon" 
-                                            className="size-8 text-blue-200 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
-                                            title="Duplicate Item"
-                                          >
-                                            <Copy className="size-3.5" />
-                                          </Button>
-                                          <Button 
-                                            onClick={() => deleteItem(service.id, item.id)} 
-                                            variant="ghost" 
-                                            size="icon" 
-                                            className="size-8 text-rose-200 hover:text-rose-600 hover:bg-rose-50 rounded-lg"
-                                            title="Delete Item"
-                                          >
-                                            <Trash2 className="size-3.5" />
-                                          </Button>
+                                          <Button onClick={() => copyItem(service.id, item)} variant="ghost" size="icon" className="size-7 text-blue-200 hover:text-blue-600 rounded-lg"><Copy className="size-3.5" /></Button>
+                                          <Button onClick={() => deleteItem(service.id, item.id)} variant="ghost" size="icon" className="size-7 text-rose-200 hover:text-rose-600 rounded-lg"><Trash2 className="size-3.5" /></Button>
                                         </div>
                                       </td>
                                     )}
