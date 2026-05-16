@@ -176,13 +176,17 @@ function BillContent() {
 
     let billableDrillingAmt = originalDrillingAmt;
     let subsidyLabel = '';
+    let subsidyValueText = '';
     
     if (isDryWellPrivate) {
-      billableDrillingAmt = Math.ceil(originalDrillingAmt * 0.25);
+      const subsidyAmt = Math.ceil(originalDrillingAmt * 0.75);
+      billableDrillingAmt = originalDrillingAmt - subsidyAmt;
       subsidyLabel = 'കുഴൽ കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് വകുപ്പിന് ലഭിക്കേണ്ട തുക (ഡ്രില്ലിംഗ് ചാർജിന്റെ 25%):';
     } else if (isAgriSubsidy) {
-      billableDrillingAmt = Math.ceil(originalDrillingAmt * 0.5);
+      const subsidyAmt = Math.ceil(originalDrillingAmt * 0.5);
+      billableDrillingAmt = originalDrillingAmt - subsidyAmt;
       subsidyLabel = 'ഡ്രില്ലിംഗ് ചാർജ്ജ് സബ് സിഡി തുക( 50%)';
+      subsidyValueText = `₹${subsidyAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })} (50% of ₹${originalDrillingAmt.toLocaleString('en-IN', { minimumFractionDigits: 0 })})`;
     }
 
     const billableTotal = Math.ceil(billableDrillingAmt + (isDryWellPrivate ? 0 : materialsAmtFull));
@@ -198,6 +202,7 @@ function BillContent() {
         isDryWellPrivate, 
         isAgriSubsidy,
         subsidyLabel,
+        subsidyValueText,
         refDate
     };
   }, [report, cloudRates]);
@@ -305,16 +310,16 @@ function BillContent() {
             <table className="w-full border-collapse border border-black text-center text-[12px]">
               <thead className="bg-slate-50">
                 <tr className="font-bold h-10 border-b border-black">
-                  <th className="border-r border-black p-2 w-12">ക്ര.നം</th>
-                  <th className="border-r border-black p-2 text-left">ഇനം</th>
-                  <th className="border-r border-black p-2 w-24">അളവ്</th>
-                  <th className="border-r border-black p-2 w-24">നിരക്ക്</th>
-                  <th className="border-r border-black p-2 w-32">ആകെ തുക</th>
+                  <th className="border-r border-black p-2 w-12 border-t">ക്ര.നം</th>
+                  <th className="border-r border-black p-2 text-left border-t">ഇനം</th>
+                  <th className="border-r border-black p-2 w-24 border-t">അളവ്</th>
+                  <th className="border-r border-black p-2 w-24 border-t">നിരക്ക്</th>
+                  <th className="border-r border-black p-2 w-32 border-t">ആകെ തുക</th>
                 </tr>
               </thead>
               <tbody>
                 {calc.rows.map((row, i) => (
-                  <tr key={i} className={cn("min-h-[32px]", i === 0 && "border-t border-black", row.isSummary && "bg-slate-50 font-black border-t border-black")}>
+                  <tr key={i} className={cn("min-h-[32px]", row.isSummary && "bg-slate-50 font-black border-t border-slate-400")}>
                     <td className="border-r border-black p-2">{row.isSummary ? '' : i + 1}</td>
                     <td className="border-r border-black p-2 text-left font-bold relative">
                       {row.label}
@@ -339,10 +344,18 @@ function BillContent() {
           </div>
 
           {(calc.isDryWellPrivate || calc.isAgriSubsidy) && (
-            <div className="mb-4 p-4 border-x border-b border-black text-left font-bold text-[11.5px] leading-tight">
+            <div className="mb-4 p-4 border-x border-b border-black text-left font-bold text-[11.5px] leading-tight space-y-2">
+              {calc.isAgriSubsidy && (
+                <div className="flex justify-between items-start text-red-600">
+                    <span>ഡ്രില്ലിംഗ് ചാർജ്ജ് സബ് സിഡി തുക( 50%) :</span>
+                    <div className="text-right font-mono text-[13px]">
+                      <p>{calc.subsidyValueText}</p>
+                    </div>
+                </div>
+              )}
               <div className="flex justify-between items-start">
-                  <span className={cn("max-w-[400px]", calc.isAgriSubsidy && "text-red-600")}>
-                      {calc.subsidyLabel}
+                  <span className={cn(calc.isAgriSubsidy && "text-red-600")}>
+                      {calc.isAgriSubsidy ? "കുഴൽകിണർ നിർമ്മാണ പ്രവൃത്തിയുടെ ആകെ ചിലവ്" : calc.subsidyLabel} :
                   </span>
                   <div className={cn("text-right font-mono text-[13px]", calc.isAgriSubsidy && "text-red-600")}>
                     <p>= {calc.billableTotal.toFixed(2)}/-</p>
