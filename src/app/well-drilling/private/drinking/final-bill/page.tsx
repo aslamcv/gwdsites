@@ -1,7 +1,7 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Printer, ArrowLeft, AlertCircle, ShieldAlert } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -26,11 +26,9 @@ const formatTechnicalDate = (dateStr: string) => {
   const trimmed = dateStr.trim();
   const parts = trimmed.split(/[-/]/);
   if (parts.length === 3) {
-    // If it's YYYY-MM-DD
     if (parts[0].length === 4) {
       return `${parts[2]}-${parts[1]}-${parts[0]}`;
     }
-    // If it's already DD-MM-YYYY or similar, return as is
     return trimmed;
   }
   return dateStr;
@@ -48,7 +46,6 @@ function BillContent() {
 
   const { data: report, isLoading } = useDoc<GroundwaterReport>(reportRef);
 
-  // Fetch central service rates from appSettings/service_rates
   const ratesRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return doc(firestore, 'appSettings', 'service_rates');
@@ -71,7 +68,6 @@ function BillContent() {
     const isDryWellPrivate = isPrivate && isDryWell && !isFlushing;
     const isAgriSubsidy = isPrivate && isAgri && !isFlushing && ['low yield', 'medium yield', 'high yield'].includes(yieldStatus);
 
-    // HELPER: Normalize date for reliable comparison (YYYY-MM-DD)
     const normalizeDateString = (d: string) => {
       if (!d) return '';
       const trimmed = d.trim();
@@ -89,21 +85,17 @@ function BillContent() {
 
     const findRate = (searchLabel: string) => {
       if (!cloudRates?.services || !refDate) return null;
-      
-      const normalizeStr = (s: string) => s.toLowerCase().replace(/[^a-z0-9\u0D00-\u0D7F]/g, ''); 
+      const normalizeStr = (s: string) => s.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9\u0D00-\u0D7F]/g, ''); 
       const target = normalizeStr(searchLabel);
 
       for (const service of cloudRates.services) {
         for (const item of service.items) {
           const catalogItemNameMl = normalizeStr(item.nameMl || '');
           const catalogItemNameEn = normalizeStr(item.nameEn || '');
-          
           if (catalogItemNameMl === target || catalogItemNameEn === target) {
             const from = item.dateFrom || '0000-00-00';
             const to = item.dateTo || '9999-99-99';
-            if (refDate >= from && refDate <= to) {
-              return item.rate;
-            }
+            if (refDate >= from && refDate <= to) return item.rate;
           }
         }
       }
@@ -119,43 +111,23 @@ function BillContent() {
     const LABEL_PVC_6KG = '140 mm dia 6 kg/cm2 പി. വി.സി. കേയ്സിംഗ് പൈപ്പിന്റെ വില ';
     const LABEL_PVC_10KG = '140 മി.മീ PVC PIPE (10KG/CM²)';
     const LABEL_END_CAP = '140 mm dia ഏന്‍ഡ് ക്യാപ്പിന്റെ വില';
-    const LABEL_CONSTRUCTION_TOTAL = 'കുഴൽകിണർ നിർമ്മാണ പ്രവൃത്തിയുടെ ആകെ ചിലവ് ';
 
     if (isFlushing) {
       const workingHoursStr = report.compressorWorkingHour || '2.5';
       const hours = parseFloat(workingHoursStr.replace(/[^0-9.]/g, '')) || 2.5;
       const baseRate = findRate(LABEL_FLUSHING);
-      
       if (baseRate === null) return { error: true, refDate, missingItem: LABEL_FLUSHING };
-      
       const hourlyRate = baseRate / 2.5;
       const flushingCharge = hours > 2.5 ? (hourlyRate * hours) : baseRate;
-
       originalDrillingAmt = flushingCharge;
-      rows.push({ 
-        label: LABEL_FLUSHING, 
-        qty: `${report.totalDepth || '0'} m`, 
-        rate: flushingCharge, 
-        unit: 'Lump Sum',
-        extraInfo: `(Compressor working time: ${workingHoursStr})`,
-        amount: flushingCharge,
-      });
+      rows.push({ label: LABEL_FLUSHING, qty: `${report.totalDepth || '0'} m`, rate: flushingCharge, unit: 'Lump Sum', amount: flushingCharge });
     } else {
       const drillingQty = parseFloat(report.totalDepth || '0');
       const baseRate = findRate(LABEL_DRILLING);
-      
       if (baseRate === null) return { error: true, refDate, missingItem: LABEL_DRILLING };
-      
       const baseDrillingAmt = drillingQty * baseRate;
       originalDrillingAmt = baseDrillingAmt;
-      
-      rows.push({ 
-        label: LABEL_DRILLING, 
-        qty: `${drillingQty} m`, 
-        rate: baseRate, 
-        unit: 'm',
-        amount: baseDrillingAmt,
-      });
+      rows.push({ label: LABEL_DRILLING, qty: `${drillingQty} m`, rate: baseRate, unit: 'm', amount: baseDrillingAmt });
     }
 
     if (!isDryWellPrivate) {
@@ -186,26 +158,18 @@ function BillContent() {
 
     const constructionTotal = Math.ceil(originalDrillingAmt + materialsAmtFull);
     
-    rows.push({
-        label: LABEL_CONSTRUCTION_TOTAL,
-        amount: constructionTotal,
-        isSummary: true
-    });
-
     let billableDrillingAmt = originalDrillingAmt;
     let subsidyLabel = '';
-    let subsidyValueText = '';
+    let subsidyAmount = 0;
     
     if (isDryWellPrivate) {
-      const subsidyAmt = Math.ceil(originalDrillingAmt * 0.75);
-      billableDrillingAmt = originalDrillingAmt - subsidyAmt;
+      subsidyAmount = Math.ceil(originalDrillingAmt * 0.75);
+      billableDrillingAmt = originalDrillingAmt - subsidyAmount;
       subsidyLabel = 'കുഴൽ കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് വകുപ്പിന് ലഭിക്കേണ്ട തുക (ഡ്രില്ലിംഗ് ചാർജിന്റെ 25%)';
-      subsidyValueText = billableDrillingAmt.toFixed(2);
     } else if (isAgriSubsidy) {
-      const subsidyAmt = Math.ceil(originalDrillingAmt * 0.5);
-      billableDrillingAmt = originalDrillingAmt - subsidyAmt;
+      subsidyAmount = Math.ceil(originalDrillingAmt * 0.5);
+      billableDrillingAmt = originalDrillingAmt - subsidyAmount;
       subsidyLabel = 'ഡ്രില്ലിംഗ് ചാർജ്ജ് സബ് സിഡി തുക( 50%)';
-      subsidyValueText = subsidyAmt.toFixed(2);
     }
 
     const billableTotal = Math.ceil(billableDrillingAmt + (isDryWellPrivate ? 0 : materialsAmtFull));
@@ -214,6 +178,7 @@ function BillContent() {
 
     return { 
         rows, 
+        constructionTotal,
         billableTotal, 
         remitted, 
         balance, 
@@ -221,7 +186,7 @@ function BillContent() {
         isDryWellPrivate, 
         isAgriSubsidy,
         subsidyLabel,
-        subsidyValueText,
+        subsidyAmount,
         refDate
     };
   }, [report, cloudRates]);
@@ -254,21 +219,14 @@ function BillContent() {
             )}
         </div>
         
-        {calc.error ? (
+        {calc.error && (
           <Alert variant="destructive" className="bg-rose-50 border-rose-200 py-6 rounded-2xl animate-in fade-in zoom-in duration-300">
             <ShieldAlert className="size-6 text-rose-600" />
             <AlertTitle className="text-sm font-black uppercase tracking-tight ml-2">Rate Configuration Missing</AlertTitle>
             <AlertDescription className="text-xs font-bold text-rose-800 ml-2 mt-2 leading-relaxed">
               No valid rate found for the technical item: <span className="underline">{calc.missingItem}</span> on date: <span className="underline">{calc.refDate}</span>. 
-              <br/>Please update the <strong>Services & Rates Catalog</strong> in the Administration panel to include a validity period for this date.
+              <br/>Please update the <strong>Services & Rates Catalog</strong>.
             </AlertDescription>
-          </Alert>
-        ) : (
-          <Alert className="bg-blue-50 border-blue-200 py-3 rounded-xl">
-              <AlertCircle className="size-4 text-blue-600" />
-              <AlertDescription className="text-[11px] font-black text-blue-800 uppercase tracking-tight">
-                  Rate applied based on End Date (Opt): {calc.refDate}
-              </AlertDescription>
           </Alert>
         )}
       </div>
@@ -298,8 +256,7 @@ function BillContent() {
             <div className="text-right text-[10px] leading-tight font-bold italic w-[180px]">
               <p>District Office</p>
               <p>Ground Water Department,</p>
-              <p>B1-block, Civil Station,</p>
-              <p>Malappuram - 676505</p>
+              <p>Civil Station, Malappuram</p>
             </div>
           </div>
 
@@ -308,92 +265,76 @@ function BillContent() {
             <div className="p-2 px-4 text-right">തീയതി: <span className="font-bold ml-2">{formatTechnicalDate(report.reportDate)}</span></div>
           </div>
 
-          <div className="mb-4 text-left">
-            <div className="border border-black text-[14px]">
-              <div className="grid grid-cols-[200px_1fr] border-b border-black">
-                <div className="border-r border-black p-2 px-4 font-bold bg-slate-50 text-[11px] uppercase">സൈറ്റിന്റെ പേര്</div>
-                <div className="p-2 px-4 font-bold uppercase">{report.nameOfSite}</div>
-              </div>
-              <div className="grid grid-cols-[200px_1fr] border-b border-black">
-                <div className="border-r border-black p-2 px-4 font-bold bg-slate-50 text-[11px] uppercase">പഞ്ചായത്ത് / നഗരസഭ</div>
-                <div className="p-2 px-4 font-bold uppercase">{report.lsgd}</div>
-              </div>
-              <div className="grid grid-cols-[200px_1fr]">
-                <div className="border-r border-black p-2 px-4 font-bold bg-slate-50 text-[11px] uppercase">വിലാസം</div>
-                <div className="p-2 px-4 font-bold uppercase truncate">{report.address}</div>
-              </div>
+          <div className="mb-4 text-left border border-black text-[14px]">
+            <div className="grid grid-cols-[200px_1fr] border-b border-black">
+              <div className="border-r border-black p-2 px-4 font-bold bg-slate-50 text-[11px] uppercase">സൈറ്റിന്റെ പേര്</div>
+              <div className="p-2 px-4 font-bold uppercase">{report.nameOfSite}</div>
+            </div>
+            <div className="grid grid-cols-[200px_1fr] border-b border-black">
+              <div className="border-r border-black p-2 px-4 font-bold bg-slate-50 text-[11px] uppercase">പഞ്ചായത്ത് / നഗരസഭ</div>
+              <div className="p-2 px-4 font-bold uppercase">{report.lsgd}</div>
+            </div>
+            <div className="grid grid-cols-[200px_1fr]">
+              <div className="border-r border-black p-2 px-4 font-bold bg-slate-50 text-[11px] uppercase">വിലാസം</div>
+              <div className="p-2 px-4 font-bold uppercase truncate">{report.address}</div>
             </div>
           </div>
 
           <div className="mb-4 text-left">
             <table className="w-full border-collapse border border-black text-center text-[12px]">
-              <thead className="bg-slate-50">
-                <tr className="font-bold h-10 border-b border-black">
-                  <th className="border-r border-black p-2 w-12 border-t">ക്ര.നം</th>
-                  <th className="border-r border-black p-2 text-left border-t">ഇനം</th>
-                  <th className="border-r border-black p-2 w-24 border-t">അളവ്</th>
-                  <th className="border-r border-black p-2 w-24 border-t">നിരക്ക്</th>
-                  <th className="border-r border-black p-2 w-32 border-t">ആകെ തുക</th>
+              <thead className="bg-slate-50 border-b border-black">
+                <tr className="font-bold h-10">
+                  <th className="border-r border-black p-2 w-12">ക്ര.നം</th>
+                  <th className="border-r border-black p-2 text-left">ഇനം</th>
+                  <th className="border-r border-black p-2 w-24">അളവ്</th>
+                  <th className="border-r border-black p-2 w-24">നിരക്ക്</th>
+                  <th className="border-r border-black p-2 w-32">മൊത്തം തുക</th>
                 </tr>
               </thead>
               <tbody>
-                <tr className="h-0.5"><td colSpan={5} className="border-b border-black p-0"></td></tr>
+                <tr className="h-0.5 border-t border-black"><td colSpan={5} className="p-0"></td></tr>
                 {calc.rows.map((row, i) => (
-                  <tr key={i} className={cn("min-h-[32px]", row.isSummary && "bg-slate-50 font-black border-t border-slate-400")}>
-                    <td className="border-r border-black p-2">{row.isSummary ? '' : i + 1}</td>
-                    <td className="border-r border-black p-2 text-left font-bold relative">
-                      {row.label}
-                      {row.extraInfo && <span className="block text-[10px] font-normal italic mt-1">{row.extraInfo}</span>}
-                    </td>
-                    <td className="border-r border-black p-2 font-bold">{row.isSummary ? '---' : row.qty}</td>
-                    <td className="border-r border-black p-2 font-black">{row.isSummary ? '---' : (typeof row.rate === 'number' ? row.rate.toFixed(2) : row.rate)}</td>
+                  <tr key={i} className="h-8 border-b border-black last:border-b-0">
+                    <td className="border-r border-black p-2">{i + 1}</td>
+                    <td className="border-r border-black p-2 text-left font-bold">{row.label}</td>
+                    <td className="border-r border-black p-2 font-bold">{row.qty}</td>
+                    <td className="border-r border-black p-2 font-black">{row.rate.toFixed(2)}</td>
                     <td className="border-r border-black p-2 font-bold">₹ {row.amount.toFixed(2)}</td>
-                  </tr>
-                ))}
-                {Array.from({ length: Math.max(0, 5 - calc.rows.length) }).map((_, idx) => (
-                  <tr key={`empty-${idx}`} className="h-8">
-                    <td className="border-r border-black p-2"></td>
-                    <td className="border-r border-black p-2"></td>
-                    <td className="border-r border-black p-2"></td>
-                    <td className="border-r border-black p-2"></td>
-                    <td className="p-2"></td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
 
-          {(calc.isDryWellPrivate || calc.isAgriSubsidy) && (
-            <div className="mb-4 p-4 border-x border-b border-black text-left font-bold text-[11.5px] leading-tight space-y-4">
-              <div className={cn("flex justify-between items-start gap-4", calc.isAgriSubsidy && "text-red-600")}>
-                  <span className="flex-1 leading-normal">{calc.subsidyLabel} :</span>
+          <div className="mb-4 p-4 border border-black text-left font-bold text-[11.5px] leading-tight space-y-4">
+              <div className="flex justify-between items-center gap-4">
+                  <span className="flex-1 uppercase text-[10px] tracking-tight">കുഴൽകിണർ നിർമ്മാണ പ്രവൃത്തിയുടെ ആകെ ചിലവ് :</span>
                   <div className="text-right font-mono text-[13px] shrink-0 min-w-[140px]">
-                    <p>= {calc.subsidyValueText} /-</p>
+                    <p>= {calc.constructionTotal.toFixed(2)} /-</p>
                   </div>
               </div>
-              <div className="flex justify-between items-start gap-4">
-                  <span className={cn(calc.isAgriSubsidy && "text-red-600")}>
-                      {calc.isAgriSubsidy ? "കുഴൽകിണർ നിർമ്മാണ പ്രവൃത്തിയുടെ ആകെ ചിലവ്" : "മൊത്തം തുക"} :
-                  </span>
-                  <div className={cn("text-right font-mono text-[13px] shrink-0 min-w-[140px]", calc.isAgriSubsidy && "text-red-600")}>
+
+              {(calc.isDryWellPrivate || calc.isAgriSubsidy) && (
+                <div className="flex justify-between items-start gap-4 text-red-600">
+                    <span className="flex-1 leading-normal uppercase text-[10px] tracking-tight">{calc.subsidyLabel} :</span>
+                    <div className="text-right font-mono text-[13px] shrink-0 min-w-[140px]">
+                      <p>= {calc.subsidyAmount.toFixed(2)} /-</p>
+                    </div>
+                </div>
+              )}
+
+              <div className="flex justify-between items-center gap-4 pt-2 border-t border-dotted border-black">
+                  <span className="flex-1 uppercase text-[10px] font-black tracking-widest text-primary">കുഴൽകിണർ നിർമ്മാണ പ്രവൃത്തിയുടെ ആകെ ചിലവ് :</span>
+                  <div className="text-right font-mono text-[13px] shrink-0 min-w-[140px] font-black text-primary">
                     <p>= {calc.billableTotal.toFixed(2)} /-</p>
                   </div>
               </div>
-            </div>
-          )}
+          </div>
 
           <div className="flex justify-end mb-6 text-left">
-            <div className="w-[400px] border border-black font-bold text-[14px]">
-              {!calc.isDryWellPrivate && !calc.isAgriSubsidy && (
-                <div className="grid grid-cols-[1fr_140px] border-b border-black">
-                  <div className="border-r border-black p-2 px-4 text-right font-medium">മൊത്തം തുക :</div>
-                  <div className="p-2 text-center">
-                    ₹ {calc.billableTotal.toFixed(2)}
-                  </div>
-                </div>
-              )}
+            <div className="w-[400px] border border-black font-bold text-[13.5px]">
               <div className="grid grid-cols-[1fr_140px] border-b border-black">
-                <div className="border-r border-black p-2 px-4 text-right uppercase text-[10px]">Total Amount Remitted :</div>
+                <div className="border-r border-black p-2 px-4 text-right uppercase text-[9px] tracking-widest text-slate-500">Total Amount Remitted :</div>
                 <div className="p-2 text-center font-black">₹ {calc.remitted.toFixed(2)}</div>
               </div>
               <div className="grid grid-cols-[1fr_140px] border-b border-black bg-slate-50">
@@ -406,7 +347,7 @@ function BillContent() {
             </div>
           </div>
 
-          <div className="flex flex-col items-end pt-6 text-left">
+          <div className="flex flex-col items-end pt-12 text-left">
             <div className="text-center min-w-[200px]">
               <div className="h-20 w-full"></div>
               <p className="font-bold text-[14px] uppercase border-t border-black pt-1">ജില്ലാ ഓഫീസർ</p>
