@@ -49,19 +49,22 @@ function BillContent() {
     const yieldStatus = (report.remarks || '').toLowerCase().trim();
     const isDryWell = yieldStatus === 'dry well' || yieldStatus === 'dry' || yieldStatus === 'collapsed well' || yieldStatus === 'collapsed';
     const isPrivate = report.sector?.toLowerCase() === 'private';
-    const isAgri = (report.subCategory || report.category)?.toLowerCase() === 'agriculture';
+    const isAgri = (report.subCategory || report.category || report.purpose)?.toLowerCase().includes('agriculture');
 
     const isDryWellPrivate = isPrivate && isDryWell && !isFlushing;
     const isAgriSubsidy = isPrivate && isAgri && !isFlushing && ['low yield', 'medium yield', 'high yield'].includes(yieldStatus);
 
-    // Target Date for rate lookup (Prefer End Date)
-    const targetDate = report.dateOfInvestigation?.split(' - ')[1] || report.reportDate || report.createdAt?.split('T')[0] || '';
+    // Target Date for rate lookup (Use Bill Date/reportDate as primary anchor)
+    const targetDate = report.reportDate || report.dateOfInvestigation?.split(' - ')[1] || report.createdAt?.split('T')[0] || '';
 
     const findRate = (keywords: string[], fallback: number) => {
       if (!cloudRates?.services) return fallback;
       
       const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
       const normalizedKeywords = keywords.map(kw => normalize(kw));
+
+      let mostRecentRate = null;
+      let latestDateFound = '0000-00-00';
 
       for (const service of cloudRates.services) {
         for (const item of service.items) {
@@ -71,13 +74,23 @@ function BillContent() {
           if (isMatch) {
             const from = item.dateFrom || '0000-00-00';
             const to = item.dateTo || '9999-99-99';
+            
+            // Priority 1: Exact date range match
             if (targetDate >= from && targetDate <= to) {
               return item.rate;
+            }
+
+            // Priority 2: Keep track of the most recent rate in the catalog for this item
+            if (from > latestDateFound) {
+              latestDateFound = from;
+              mostRecentRate = item.rate;
             }
           }
         }
       }
-      return fallback;
+      
+      // Return the most recent rate found in catalog, or hardcoded fallback if none
+      return mostRecentRate !== null ? mostRecentRate : fallback;
     };
 
     const diameter = (report.borewellSize || '').match(/\d+/)?.[0] || '150';
@@ -207,7 +220,7 @@ function BillContent() {
         <Alert className="bg-blue-50 border-blue-200 py-3">
             <AlertCircle className="size-4 text-blue-600" />
             <AlertDescription className="text-[11px] font-bold text-blue-800 uppercase tracking-tight">
-                BILLING RATES APPLIED BASED ON WORK COMPLETION DATE: {calc.targetDate}
+                BILLING RATES APPLIED BASED ON DOCUMENT DATE: {calc.targetDate}
             </AlertDescription>
         </Alert>
       </div>
@@ -283,7 +296,7 @@ function BillContent() {
                     {row.extraInfo && <span className="block text-[10px] font-normal italic mt-1">{row.extraInfo}</span>}
                   </td>
                   <td className="border border-black p-2 font-bold">{row.isPlaceholder ? '' : row.qty}</td>
-                  <td className="border border-black p-2">{row.isPlaceholder ? '' : (typeof row.rate === 'number' ? row.rate.toFixed(2) : row.rate)}</td>
+                  <td className="border border-black p-2 font-black">{row.isPlaceholder ? '' : (typeof row.rate === 'number' ? row.rate.toFixed(2) : row.rate)}</td>
                   <td className="border border-black p-2 font-bold">{row.isPlaceholder ? '' : (row.amount || row.total).toFixed(2)}</td>
                 </tr>
               ))}
