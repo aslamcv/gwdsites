@@ -25,7 +25,8 @@ import {
   SearchCode,
   Calculator,
   ArrowRight,
-  ChevronDown
+  ChevronDown,
+  PlusCircle
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -53,6 +54,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
@@ -143,6 +145,8 @@ function UnifiedGeologicalSurveyContent() {
   const [isRecommendationDialogOpen, setIsRecommendationDialogOpen] = useState(false);
   const [isNearbyDialogOpen, setIsNearbyDialogOpen] = useState(false);
   const [selectedNearbyStructure, setSelectedNearbyStructure] = useState<string | null>(null);
+  const [isManualVillageOpen, setIsManualVillageOpen] = useState(false);
+  const [manualVillageName, setManualVillageName] = useState('');
 
   // Role detection
   const userProfileRef = useMemoFirebase(() => {
@@ -331,6 +335,14 @@ function UnifiedGeologicalSurveyContent() {
     }
   };
 
+  const handleManualVillageSave = () => {
+    if (manualVillageName.trim()) {
+      updateField('village', manualVillageName.trim().toUpperCase());
+      setIsManualVillageOpen(false);
+      setManualVillageName('');
+    }
+  };
+
 
   return (
     <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black">
@@ -407,23 +419,36 @@ function UnifiedGeologicalSurveyContent() {
           <CardContent className="p-0 overflow-hidden">
              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 p-8">
                 <FormFieldItem label="8. Village" id="village">
-                  <Select disabled={!isAllowed} onValueChange={(v) => updateField('village', v)} value={formData.village || ''}>
-                    <SelectTrigger className="h-10 border-slate-200 font-bold">
-                      <SelectValue placeholder="ENTER THE DETAILS" />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-[400px] rounded-2xl">
-                      {villageOptions.map((group, groupIdx) => (
-                        <SelectGroup key={groupIdx}>
-                          <SelectLabel className="bg-slate-50 py-2 px-4 text-[10px] font-black uppercase text-primary tracking-widest">{group.label}</SelectLabel>
-                          {group.options.map((v, i) => (
-                            <SelectItem key={i} value={v} className="py-2.5 px-6 font-bold text-xs uppercase cursor-pointer">
-                              {v}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="w-full h-10 justify-between border-slate-200 font-bold" disabled={!isAllowed}>
+                        <span className="uppercase text-[11px] tracking-tight truncate">
+                          {formData.village || "ENTER THE DETAILS"}
+                        </span>
+                        <ChevronDown className="size-4 opacity-50" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-[320px] rounded-2xl p-2 bg-white shadow-2xl border-slate-200">
+                      <ScrollArea className="h-[400px]">
+                        <DropdownMenuLabel className="px-4 py-2 text-[10px] font-black uppercase text-primary tracking-widest bg-slate-50">Select Revenue Village</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        {villageOptions.map((group, groupIdx) => (
+                          <div key={groupIdx}>
+                            <div className="px-4 py-2 text-[10px] font-black uppercase text-slate-400 bg-slate-50/50">{group.label}</div>
+                            {group.options.map((v, i) => (
+                              <DropdownMenuItem key={i} onClick={() => updateField('village', v)} className="rounded-xl py-2.5 px-6 font-bold text-xs uppercase cursor-pointer">
+                                {v}
+                              </DropdownMenuItem>
+                            ))}
+                          </div>
+                        ))}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => setIsManualVillageOpen(true)} className="rounded-xl py-3 px-6 font-black text-xs uppercase cursor-pointer text-blue-600 bg-blue-50 hover:bg-blue-100">
+                          <PlusCircle className="size-4 mr-2" /> OTHER / MANUAL ENTRY
+                        </DropdownMenuItem>
+                      </ScrollArea>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </FormFieldItem>
                 <FormFieldItem label="9. Ward" id="ward"><Input disabled={!isAllowed} value={formData.ward} onChange={(e) => updateField('ward', e.target.value)} /></FormFieldItem>
                 <FormFieldItem label="10. Altitude" id="altitude"><Input disabled={!isAllowed} value={formData.altitude} onChange={(e) => updateField('altitude', e.target.value)} /></FormFieldItem>
@@ -512,10 +537,8 @@ function UnifiedGeologicalSurveyContent() {
                 <FormFieldItem label="Recommendation Type" id="recommendationType" className="w-full">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="outline" className="w-full h-12 justify-between border-slate-200" disabled={!isAllowed}>
-                        <span className="font-bold uppercase text-[11px] tracking-widest">
-                          {formData.recommendationType ? recommendationTypeOptions.find(o => o.value === formData.recommendationType)?.label : "ENTER THE DETAILS"}
-                        </span>
+                      <Button variant="outline" className="w-full h-12 justify-between border-slate-200 rounded-2xl font-black uppercase text-xs tracking-widest shadow-sm" disabled={!isAllowed}>
+                        <span>{formData.recommendationType ? recommendationTypeOptions.find(o => o.value === formData.recommendationType)?.label : "ENTER THE DETAILS"}</span>
                         <ChevronDown className="size-4 opacity-50" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -631,6 +654,32 @@ function UnifiedGeologicalSurveyContent() {
         formData={formData}
         updateField={updateField}
       />
+
+      {/* Manual Village Entry Dialog */}
+      <Dialog open={isManualVillageOpen} onOpenChange={setIsManualVillageOpen}>
+        <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="uppercase font-black text-primary tracking-tight">Manual Village Entry</DialogTitle>
+            <DialogDescription className="text-xs font-bold uppercase text-slate-400">Enter revenue village name if not present in the master list.</DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase text-slate-500">Village Name</Label>
+              <Input 
+                value={manualVillageName}
+                onChange={(e) => setManualVillageName(e.target.value)}
+                placeholder="ENTER NAME"
+                className="h-12 border-slate-200 font-bold uppercase"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleManualVillageSave} className="w-full h-12 rounded-xl font-black uppercase text-[11px] tracking-widest shadow-lg shadow-blue-900/20">
+              Confirm Entry
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
