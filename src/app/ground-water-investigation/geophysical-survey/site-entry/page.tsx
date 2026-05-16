@@ -28,8 +28,16 @@ import {
   Clock,
   CheckCircle2,
   Info,
-  PackageSearch
+  PackageSearch,
+  ChevronDown
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useLsgdData } from '@/hooks/use-lsgd-data';
@@ -542,23 +550,55 @@ function UnifiedGeophysicalSurveyContent() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
             <div className="space-y-4">
               <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Structure Recommendation Type</Label>
-              <Select disabled={!isAllowed} onValueChange={(v) => {updateField('recommendationType', v); setIsRecommendationDialogOpen(true);}} value={formData.recommendationType || ''}>
-                <SelectTrigger className="h-14 border-slate-200 rounded-2xl font-black uppercase text-xs tracking-widest shadow-sm"><SelectValue placeholder="SELECT RECOMMENDATION" /></SelectTrigger>
-                <SelectContent className="rounded-2xl border-slate-200">{recommendationTypeOptions.map(o => <SelectItem key={o.value} value={o.value} className="text-xs font-black uppercase">{o.label}</SelectItem>)}</SelectContent>
-              </Select>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="w-full h-14 border-slate-200 rounded-2xl font-black uppercase text-xs tracking-widest shadow-sm justify-between" disabled={!isAllowed}>
+                    <span>{formData.recommendationType ? recommendationTypeOptions.find(o => o.value === formData.recommendationType)?.label : "ENTER THE DETAILS"}</span>
+                    <ChevronDown className="size-4 opacity-50" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-[300px] rounded-2xl p-2 bg-white shadow-2xl border-slate-200">
+                  {recommendationTypeOptions.map(o => (
+                    <DropdownMenuItem key={o.value} onClick={() => {updateField('recommendationType', o.value); setIsRecommendationDialogOpen(true);}} className="rounded-xl py-3 font-bold text-xs uppercase cursor-pointer">
+                      {o.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
             
             <div className="space-y-4">
                <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Nearby groundwater structures</Label>
                <div className="grid grid-cols-2 gap-4">
-                  <Select onValueChange={(val) => handleNearbyTypeSelect('borewell', val)} disabled={!isAllowed}>
-                    <SelectTrigger className="h-12"><SelectValue placeholder="Borewell Status" /></SelectTrigger>
-                    <SelectContent><SelectItem value="borewell1">Add Bore well-1</SelectItem><SelectItem value="borewell2">Add Bore well-2</SelectItem><SelectItem value="borewell3">Add Bore well-3</SelectItem><SelectItem value="none">None found</SelectItem></SelectContent>
-                  </Select>
-                  <Select onValueChange={(val) => handleNearbyTypeSelect('openwell', val)} disabled={!isAllowed}>
-                    <SelectTrigger className="h-12"><SelectValue placeholder="Openwell Status" /></SelectTrigger>
-                    <SelectContent><SelectItem value="openwell1">Add open well-1</SelectItem><SelectItem value="openwell2">Add open well-2</SelectItem><SelectItem value="openwell3">Add open well-3</SelectItem><SelectItem value="none">None found</SelectItem></SelectContent>
-                  </Select>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="w-full h-12 justify-between border-slate-200" disabled={!isAllowed}>
+                        <span className="font-bold uppercase text-[10px] tracking-widest">ENTER THE DETAILS</span>
+                        <ChevronDown className="size-4 opacity-50" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-[200px] rounded-2xl p-2">
+                      <DropdownMenuItem onClick={() => handleNearbyTypeSelect('borewell', 'borewell1')}>Add Bore well-1</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleNearbyTypeSelect('borewell', 'borewell2')}>Add Bore well-2</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleNearbyTypeSelect('borewell', 'borewell3')}>Add Bore well-3</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleNearbyTypeSelect('borewell', 'none')} className="text-rose-600">None found</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="w-full h-12 justify-between border-slate-200" disabled={!isAllowed}>
+                        <span className="font-bold uppercase text-[10px] tracking-widest">ENTER THE DETAILS</span>
+                        <ChevronDown className="size-4 opacity-50" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-[200px] rounded-2xl p-2">
+                      <DropdownMenuItem onClick={() => handleNearbyTypeSelect('openwell', 'openwell1')}>Add open well-1</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleNearbyTypeSelect('openwell', 'openwell2')}>Add open well-2</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleNearbyTypeSelect('openwell', 'openwell3')}>Add open well-3</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleNearbyTypeSelect('openwell', 'none')} className="text-rose-600">None found</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                </div>
             </div>
           </div>
