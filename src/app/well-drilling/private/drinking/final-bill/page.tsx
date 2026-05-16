@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useSearchParams } from 'next/navigation';
@@ -323,7 +322,7 @@ function BillContent() {
               </thead>
               <tbody>
                 {calc.rows.map((row, i) => (
-                  <tr key={i} className={cn("min-h-[32px]", row.isSummary && "bg-slate-50 font-black border-t-2 border-black")}>
+                  <tr key={i} className={cn("min-h-[32px]", row.isSummary && "bg-slate-50 font-black border-t border-black")}>
                     <td className="border-r border-black p-2">{row.isSummary ? '' : i + 1}</td>
                     <td className="border-r border-black p-2 text-left font-bold relative">
                       {row.label}
