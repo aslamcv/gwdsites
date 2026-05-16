@@ -31,7 +31,7 @@ function BillContent() {
 
   const { data: report, isLoading } = useDoc<GroundwaterReport>(reportRef);
 
-  // Fetch central service rates
+  // Fetch central service rates from appSettings/service_rates
   const ratesRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return doc(firestore, 'appSettings', 'service_rates');
@@ -54,32 +54,37 @@ function BillContent() {
     const isDryWellPrivate = isPrivate && isDryWell && !isFlushing;
     const isAgriSubsidy = isPrivate && isAgri && !isFlushing && ['low yield', 'medium yield', 'high yield'].includes(yieldStatus);
 
-    // HELPER: Normalize date for reliable comparison (handles YYYY-MM-DD and DD-MM-YYYY)
+    // HELPER: Normalize date for reliable comparison
     const normalizeDate = (d: string) => {
       if (!d) return '';
       const trimmed = d.trim();
-      // If already YYYY-MM-DD
       if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
-      // If DD-MM-YYYY or DD/MM/YYYY
       const parts = trimmed.split(/[-/]/);
       if (parts.length === 3) {
-        if (parts[2].length === 4) { // Year is at end
-            return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-        }
-        if (parts[0].length === 4) { // Year is at start but maybe missing pads
-            return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
-        }
+        if (parts[2].length === 4) return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+        if (parts[0].length === 4) return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
       }
       return trimmed;
     };
 
-    // Target Date for rate lookup: Prioritize End Date (completion)
+    // Determine the raw end date of work
     const dateOfInvestigation = report.dateOfInvestigation || '';
     const dateParts = dateOfInvestigation.split(/\s*[–-]\s*/);
-    
-    // User requirement: Priority is the "End Date (Opt)"
-    const rawTargetDate = (dateParts[1] || dateParts[0] || report.reportDate || report.createdAt?.split('T')[0] || '').trim();
-    const targetDate = normalizeDate(rawTargetDate);
+    const rawWorkDate = (dateParts[1] || dateParts[0] || report.reportDate || '').trim();
+    const workDateNormalized = normalizeDate(rawWorkDate);
+
+    // Determine the latest available date in the catalog to handle future dates
+    let maxCatalogDate = '0000-00-00';
+    if (cloudRates?.services) {
+      cloudRates.services.forEach((s: any) => s.items.forEach((i: any) => {
+        if (i.dateTo && i.dateTo > maxCatalogDate && i.dateTo !== '9999-99-99') maxCatalogDate = i.dateTo;
+      }));
+    }
+
+    // Capping Logic: If work is in the future relative to catalog, use the catalog's end date
+    const effectiveLookupDate = (workDateNormalized > maxCatalogDate && maxCatalogDate !== '0000-00-00') 
+      ? maxCatalogDate 
+      : workDateNormalized;
 
     const findRate = (keywords: string[], fallback: number) => {
       if (!cloudRates?.services) return fallback;
@@ -99,12 +104,12 @@ function BillContent() {
             const from = item.dateFrom || '0000-00-00';
             const to = item.dateTo || '9999-99-99';
             
-            // Priority 1: Exact date range match
-            if (targetDate >= from && targetDate <= to) {
+            // Exact fiscal range match
+            if (effectiveLookupDate >= from && effectiveLookupDate <= to) {
               return item.rate;
             }
 
-            // Priority 2: Most recent rate for this item if date is outside specific defined ranges
+            // Fallback to most recent rate for this technical item
             if (from > latestStartDate) {
               latestStartDate = from;
               bestMatchRate = item.rate;
@@ -174,20 +179,18 @@ function BillContent() {
         const amt = pvc6Qty * rates.pvc6;
         rows.push({ label: '140 മി.മീ PVC Pipe (6kg/cm²)', qty: `${pvc6Qty} m`, rate: rates.pvc6, unit: 'm', amount: amt, total: amt });
       }
-
       const pvc10Qty = parseFloat(report.pvc10kg || '0');
       if (pvc10Qty > 0) {
         const amt = pvc10Qty * rates.pvc10;
         rows.push({ label: '140 മി.മീ PVC Pipe (10kg/cm²)', qty: `${pvc10Qty} m`, rate: rates.pvc10, unit: 'm', amount: amt, total: amt });
       }
-
       if (pvc6Qty > 0 || pvc10Qty > 0) {
         const amt = rates.endCap;
         rows.push({ label: 'End Cap', qty: '1 No.', rate: rates.endCap, unit: 'No.', amount: amt, total: amt });
       }
     } else {
-        rows.push({ label: '140 മി.മീ PVC Pipe (6kg/cm²)', qty: '', rate: '', unit: 'm', amount: 0, total: 0, isPlaceholder: true });
-        rows.push({ label: 'End Cap', qty: '', rate: '', unit: 'No.', amount: 0, total: 0, isPlaceholder: true });
+        rows.push({ label: '140 മി.മീ PVC Pipe (6kg/cm²)', qty: '---', rate: '---', unit: 'm', amount: 0, total: 0, isPlaceholder: true });
+        rows.push({ label: 'End Cap', qty: '---', rate: '---', unit: 'No.', amount: 0, total: 0, isPlaceholder: true });
     }
 
     const grandTotal = rows.reduce((sum, r) => sum + (r.isPlaceholder ? 0 : r.total), 0);
@@ -204,14 +207,14 @@ function BillContent() {
         isAgriSubsidy,
         baseDrillingAmt,
         finalDrillingAmt,
-        targetDate: rawTargetDate // Show the original raw date for user context
+        effectiveLookupDate
     };
   }, [report, cloudRates]);
 
   if (isLoading || isRatesLoading) {
     return (
       <div className="min-h-screen bg-slate-50 p-8 flex flex-col items-center">
-        <Skeleton className="h-[1000px] w-full max-w-[850px] bg-white shadow-xl rounded-none" />
+        <Skeleton className="h-[1000px] w-full max-w-[800px] bg-white shadow-xl rounded-none" />
       </div>
     );
   }
@@ -228,15 +231,15 @@ function BillContent() {
                 Back to Portal
               </Link>
             </Button>
-            <Button onClick={() => window.print()} className="gap-2 font-bold bg-primary text-white h-8 text-xs">
+            <Button onClick={() => window.print()} className="gap-2 font-bold bg-[#1e3a8a] text-white h-8 text-xs px-6 rounded-lg">
               <Printer className="h-3 w-3" />
               Print Final Bill
             </Button>
         </div>
-        <Alert className="bg-blue-50 border-blue-200 py-3">
+        <Alert className="bg-blue-50 border-blue-200 py-3 rounded-xl">
             <AlertCircle className="size-4 text-blue-600" />
-            <AlertDescription className="text-[11px] font-bold text-blue-800 uppercase tracking-tight">
-                BILLING RATES APPLIED BASED ON WORK COMPLETION DATE: {calc.targetDate}
+            <AlertDescription className="text-[11px] font-black text-blue-800 uppercase tracking-tight">
+                BILLING RATES APPLIED BASED ON EFFECTIVE TECHNICAL DATE: {calc.effectiveLookupDate}
             </AlertDescription>
         </Alert>
       </div>
@@ -295,7 +298,7 @@ function BillContent() {
         <div className="mb-4 text-left">
           <table className="w-full border-collapse border border-black text-center text-[12px]">
             <thead className="bg-slate-50">
-              <tr className="font-bold">
+              <tr className="font-bold h-10">
                 <th className="border border-black p-2 w-12">ക്ര.നം</th>
                 <th className="border border-black p-2 text-left">ഇനം</th>
                 <th className="border border-black p-2 w-24">അളവ്</th>
@@ -311,9 +314,9 @@ function BillContent() {
                     {row.label}
                     {row.extraInfo && <span className="block text-[10px] font-normal italic mt-1">{row.extraInfo}</span>}
                   </td>
-                  <td className="border border-black p-2 font-bold">{row.isPlaceholder ? '' : row.qty}</td>
-                  <td className="border border-black p-2 font-black">{row.isPlaceholder ? '' : (typeof row.rate === 'number' ? row.rate.toFixed(2) : row.rate)}</td>
-                  <td className="border border-black p-2 font-bold">{row.isPlaceholder ? '' : (row.amount || row.total).toFixed(2)}</td>
+                  <td className="border border-black p-2 font-bold">{row.isPlaceholder ? '---' : row.qty}</td>
+                  <td className="border border-black p-2 font-black">{row.isPlaceholder ? '---' : (typeof row.rate === 'number' ? row.rate.toFixed(2) : row.rate)}</td>
+                  <td className="border border-black p-2 font-bold">{row.isPlaceholder ? '---' : (row.amount || row.total).toFixed(2)}</td>
                 </tr>
               ))}
               {Array.from({ length: Math.max(0, 5 - calc.rows.length) }).map((_, idx) => (
@@ -349,18 +352,18 @@ function BillContent() {
         <div className="flex justify-end mb-6 text-left">
           <div className="w-[400px] border border-black font-bold text-[14px]">
             <div className="grid grid-cols-[1fr_140px] border-b border-black">
-              <div className="border-r border-black p-2 px-4 text-right">മൊത്തം തുക :</div>
+              <div className="border-r border-black p-2 px-4 text-right font-medium">മൊത്തം തുക :</div>
               <div className="p-2 text-center">
                 ₹ {calc.grandTotal.toFixed(2)}
               </div>
             </div>
             <div className="grid grid-cols-[1fr_140px] border-b border-black">
               <div className="border-r border-black p-2 px-4 text-right uppercase text-[10px]">Total Amount Remitted :</div>
-              <div className="p-2 text-center">₹ {calc.remitted.toFixed(2)}</div>
+              <div className="p-2 text-center font-black">₹ {calc.remitted.toFixed(2)}</div>
             </div>
             <div className="grid grid-cols-[1fr_140px] border-b border-black bg-slate-50">
-              <div className="border-r border-black p-2 px-4 text-right">അപേക്ഷകന് തിриകെ നൽകേണ്ട തുക :</div>
-              <div className="p-2 text-center font-black">₹ {calc.balance.toFixed(2)}</div>
+              <div className="border-r border-black p-2 px-4 text-right">അപേക്ഷകന് തിരികെ നൽകേണ്ട തുക :</div>
+              <div className="p-2 text-center font-black text-primary">₹ {calc.balance.toFixed(2)}</div>
             </div>
             <div className="p-2 px-4 text-right italic font-normal text-[11px] leading-tight">
               {numberToMalayalamWords(calc.balance)}
@@ -370,12 +373,12 @@ function BillContent() {
 
         <div className="flex flex-col items-end pt-6 text-left">
           <div className="text-center min-w-[200px]">
-            <div className="h-16 w-full"></div>
-            <p className="font-bold text-[14px] uppercase">ജില്ലാ ഓഫീസർ</p>
+            <div className="h-20 w-full"></div>
+            <p className="font-bold text-[14px] uppercase border-t border-black pt-1">ജില്ലാ ഓഫീസർ</p>
           </div>
         </div>
 
-        <div className="mt-auto pt-4 border-t border-slate-200 text-[10px] text-muted-foreground flex justify-between uppercase tracking-widest font-sans font-bold">
+        <div className="mt-auto pt-4 border-t border-slate-200 text-[9px] text-muted-foreground flex justify-between uppercase tracking-widest font-sans font-bold">
           <span>GROUND WATER DEPARTMENT DISTRICT OFFICE, MALAPPURAM</span>
           <span>SYSTEM GENERATED FINAL BILL – TECHNICAL RECORD</span>
         </div>
