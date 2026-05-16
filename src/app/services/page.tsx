@@ -5,29 +5,25 @@ import { useState, useMemo, useEffect, useTransition } from 'react';
 import { 
   ChevronDown, 
   Search, 
-  FileText, 
-  Info, 
   IndianRupee, 
   PlusCircle, 
-  Lock, 
   Loader2, 
   Trash2, 
   Save, 
   Plus,
   ShieldCheck,
   Settings,
-  Calendar,
   History,
   CheckCircle2,
-  Clock,
-  Copy
+  Copy,
+  Info
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -53,13 +49,13 @@ const INITIAL_SERVICES_DATA = [
     id: "ds",
     title: "Drilling Services",
     items: [
-      { id: "ds-1", nameEn: "110 mm Borewell Drilling", nameMl: "ഡ്രില്ലിംഗ് നടത്തിയ ആകെ ആഴം (110 മി.മീ.)", rate: 300, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
-      { id: "ds-2", nameEn: "150 mm Borewell Drilling", nameMl: "ഡ്രില്ലിംഗ് നടത്തിയ ആകെ ആഴം (150 മി.മീ.)", rate: 665, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "ds-1", nameEn: "110 mm Borewell Drilling", nameMl: "110 mm dia കുഴല്‍കിണര്‍ ഡ്രില്ലിംഗ് ചാര്‍ജ് ", rate: 300, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "ds-2", nameEn: "150 mm Borewell Drilling", nameMl: "150 mm dia കുഴല്‍കിണര്‍ ഡ്രില്ലിംഗ് ചാര്‍ജ് ", rate: 665, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
       { id: "ds-3", nameEn: "200 mm Tubewell Construction", nameMl: "200 മി.മീ ട്യൂബ് വെൽ നിർമ്മാണം", rate: 2980, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
       { id: "ds-4", nameEn: "Overburden Drilling (Casing)", nameMl: "ഓവർബർഡൻ ഡ്രില്ലിംഗ് (കേസിംഗ്)", rate: 450, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
-      { id: "ds-5", nameEn: "140mm PVC Casing (6kg)", nameMl: "140 മി.മീ PVC PIPE (6KG/CM²)", rate: 566.56, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "ds-5", nameEn: "140mm PVC Casing (6kg)", nameMl: "140 mm dia 6 kg/cm2 പി. വി.സി. കേയ്സിംഗ് പൈപ്പിന്റെ വില ", rate: 566.56, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
       { id: "ds-6", nameEn: "140mm PVC Casing (10kg)", nameMl: "140 മി.മീ PVC PIPE (10KG/CM²)", rate: 879.01, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
-      { id: "ds-7", nameEn: "End Cap (Technical Fitting)", nameMl: "END CAP", rate: 87.59, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "ds-7", nameEn: "End Cap (Technical Fitting)", nameMl: "140 mm dia ഏന്‍ഡ് ക്യാപ്പിന്റെ വില", rate: 87.59, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
     ],
     description: [
       "Construction of bore wells and tube wells using specialized departmental rigs.",
@@ -618,4 +614,14 @@ export default function ServicesRatesCatalog() {
       </div>
     </div>
   );
+}
+
+function useLsgdData() {
+  const firestore = useFirestore();
+  const settingsRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, 'appSettings', 'global_data');
+  }, [firestore]);
+  const { data: settings } = useDoc(settingsRef);
+  return { lsgs: settings?.lsgs || [], lsgMappings: settings?.lsgMappings || [] };
 }

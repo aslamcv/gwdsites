@@ -55,7 +55,7 @@ function BillContent() {
     const isAgriSubsidy = isPrivate && isAgri && !isFlushing && ['low yield', 'medium yield', 'high yield'].includes(yieldStatus);
 
     // HELPER: Normalize date for reliable comparison (YYYY-MM-DD)
-    const normalizeDate = (d: string) => {
+    const normalizeDateString = (d: string) => {
       if (!d) return '';
       const trimmed = d.trim();
       if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
@@ -68,7 +68,7 @@ function BillContent() {
     };
 
     const rawWorkEndDate = (report.endDate || report.startDate || report.reportDate || '').trim();
-    const refDate = normalizeDate(rawWorkEndDate);
+    const refDate = normalizeDateString(rawWorkEndDate);
 
     const findRate = (searchLabel: string) => {
       if (!cloudRates?.services || !refDate) return null;
@@ -79,10 +79,12 @@ function BillContent() {
 
       for (const service of cloudRates.services) {
         for (const item of service.items) {
-          const catalogItemName = normalize(item.name);
+          const catalogItemNameMl = normalize(item.nameMl || '');
+          const catalogItemNameEn = normalize(item.nameEn || '');
           
-          // Technical matching: label must be part of catalog name or vice-versa
-          if (catalogItemName.includes(target) || target.includes(catalogItemName)) {
+          // Technical matching: check both language fields
+          if (catalogItemNameMl.includes(target) || target.includes(catalogItemNameMl) || 
+              catalogItemNameEn.includes(target) || target.includes(catalogItemNameEn)) {
             const from = item.dateFrom || '0000-00-00';
             const to = item.dateTo || '9999-99-99';
             if (refDate >= from && refDate <= to) {
@@ -97,12 +99,12 @@ function BillContent() {
     let rows: any[] = [];
     let finalDrillingAmt = 0;
     
-    // Labels matching the Catalog strings exactly
-    const LABEL_DRILLING = 'ഡ്രില്ലിംഗ് നടത്തിയ ആകെ ആഴം';
+    // Updated Labels matching official nomenclature
+    const LABEL_DRILLING = '110 mm dia കുഴല്‍കിണര്‍ ഡ്രില്ലിംഗ് ചാര്‍ജ് ';
     const LABEL_FLUSHING = 'ഫ്ലഷിംഗ് നടത്തിയ ആകെ ആഴം';
-    const LABEL_PVC_6KG = '140 മി.മീ PVC PIPE (6KG/CM²)';
+    const LABEL_PVC_6KG = '140 mm dia 6 kg/cm2 പി. വി.സി. കേയ്സിംഗ് പൈപ്പിന്റെ വില ';
     const LABEL_PVC_10KG = '140 മി.മീ PVC PIPE (10KG/CM²)';
-    const LABEL_END_CAP = 'END CAP';
+    const LABEL_END_CAP = '140 mm dia ഏന്‍ഡ് ക്യാപ്പിന്റെ വില';
 
     if (isFlushing) {
       const workingHoursStr = report.compressorWorkingHour || '2.5';
