@@ -4,6 +4,7 @@ import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Printer, ArrowLeft, AlertCircle, ShieldAlert } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Link from 'next/link';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
@@ -38,7 +39,7 @@ function BillContent() {
   const { data: cloudRates, isLoading: isRatesLoading } = useDoc(ratesRef);
 
   const calc = useMemo(() => {
-    if (!report) return null;
+    if (!report || !cloudRates) return null;
 
     const isFlushing = report.workType === 'FLUSHING' || 
                        report.purpose?.toLowerCase().includes('flushing') || 
@@ -92,7 +93,7 @@ function BillContent() {
     };
 
     let rows: any[] = [];
-    let drillingAmtFull = 0;
+    let originalDrillingAmt = 0;
     let materialsAmtFull = 0;
     
     const LABEL_DRILLING = '110 mm dia കുഴല്‍കിണര്‍ ഡ്രില്ലിംഗ് ചാര്‍ജ് ';
@@ -112,7 +113,7 @@ function BillContent() {
       const hourlyRate = baseRate / 2.5;
       const flushingCharge = hours > 2.5 ? (hourlyRate * hours) : baseRate;
 
-      drillingAmtFull = flushingCharge;
+      originalDrillingAmt = flushingCharge;
       rows.push({ 
         label: LABEL_FLUSHING, 
         qty: `${report.totalDepth || '0'} m`, 
@@ -120,7 +121,6 @@ function BillContent() {
         unit: 'Lump Sum',
         extraInfo: `(Compressor working time: ${workingHoursStr})`,
         amount: flushingCharge,
-        total: flushingCharge
       });
     } else {
       const drillingQty = parseFloat(report.totalDepth || '0');
@@ -129,7 +129,7 @@ function BillContent() {
       if (baseRate === null) return { error: true, refDate, missingItem: LABEL_DRILLING };
       
       const baseDrillingAmt = drillingQty * baseRate;
-      drillingAmtFull = baseDrillingAmt;
+      originalDrillingAmt = baseDrillingAmt;
       
       rows.push({ 
         label: LABEL_DRILLING, 
@@ -137,7 +137,6 @@ function BillContent() {
         rate: baseRate, 
         unit: 'm',
         amount: baseDrillingAmt,
-        total: baseDrillingAmt 
       });
     }
 
@@ -148,7 +147,7 @@ function BillContent() {
         if (rate === null) return { error: true, refDate, missingItem: LABEL_PVC_6KG };
         const amt = pvc6Qty * rate;
         materialsAmtFull += amt;
-        rows.push({ label: LABEL_PVC_6KG, qty: `${pvc6Qty} m`, rate: rate, unit: 'm', amount: amt, total: amt });
+        rows.push({ label: LABEL_PVC_6KG, qty: `${pvc6Qty} m`, rate: rate, unit: 'm', amount: amt });
       }
       const pvc10Qty = parseFloat(report.pvc10kg || '0');
       if (pvc10Qty > 0) {
@@ -156,38 +155,34 @@ function BillContent() {
         if (rate === null) return { error: true, refDate, missingItem: LABEL_PVC_10KG };
         const amt = pvc10Qty * rate;
         materialsAmtFull += amt;
-        rows.push({ label: LABEL_PVC_10KG, qty: `${pvc10Qty} m`, rate: rate, unit: 'm', amount: amt, total: amt });
+        rows.push({ label: LABEL_PVC_10KG, qty: `${pvc10Qty} m`, rate: rate, unit: 'm', amount: amt });
       }
       const endCapRate = findRate(LABEL_END_CAP);
       if (endCapRate !== null) {
         materialsAmtFull += endCapRate;
-        rows.push({ label: LABEL_END_CAP, qty: '1 No.', rate: endCapRate, unit: 'No.', amount: endCapRate, total: endCapRate });
+        rows.push({ label: LABEL_END_CAP, qty: '1 No.', rate: endCapRate, unit: 'No.', amount: endCapRate });
       } else {
          return { error: true, refDate, missingItem: LABEL_END_CAP };
       }
-    } else {
-        rows.push({ label: LABEL_PVC_6KG, qty: '---', rate: '---', unit: 'm', amount: 0, total: 0, isPlaceholder: true });
-        rows.push({ label: LABEL_END_CAP, qty: '---', rate: '---', unit: 'No.', amount: 0, total: 0, isPlaceholder: true });
     }
 
-    const grossSum = drillingAmtFull + materialsAmtFull;
-    const constructionTotal = Math.ceil(grossSum);
+    const constructionTotal = Math.ceil(originalDrillingAmt + materialsAmtFull);
     
     rows.push({
         label: LABEL_CONSTRUCTION_TOTAL,
-        qty: '---',
-        rate: '---',
-        unit: '',
         amount: constructionTotal,
-        total: constructionTotal,
         isSummary: true
     });
 
-    let billableDrillingAmt = drillingAmtFull;
+    let billableDrillingAmt = originalDrillingAmt;
+    let subsidyLabel = '';
+    
     if (isDryWellPrivate) {
-      billableDrillingAmt = Math.ceil(drillingAmtFull * 0.25);
+      billableDrillingAmt = Math.ceil(originalDrillingAmt * 0.25);
+      subsidyLabel = 'കുഴൽ കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് വകുപ്പിന് ലഭിക്കേണ്ട തുക (ഡ്രില്ലിംഗ് ചാർജിന്റെ 25%):';
     } else if (isAgriSubsidy) {
-      billableDrillingAmt = Math.ceil(drillingAmtFull * 0.5);
+      billableDrillingAmt = Math.ceil(originalDrillingAmt * 0.5);
+      subsidyLabel = 'ഡ്രില്ലിംഗ് ചാർജ്ജ് സബ് സിഡി തുക( 50%)';
     }
 
     const billableTotal = Math.ceil(billableDrillingAmt + (isDryWellPrivate ? 0 : materialsAmtFull));
@@ -202,6 +197,7 @@ function BillContent() {
         isFlushing, 
         isDryWellPrivate, 
         isAgriSubsidy,
+        subsidyLabel,
         refDate
     };
   }, [report, cloudRates]);
@@ -324,18 +320,18 @@ function BillContent() {
                       {row.label}
                       {row.extraInfo && <span className="block text-[10px] font-normal italic mt-1">{row.extraInfo}</span>}
                     </td>
-                    <td className="border-r border-black p-2 font-bold">{row.isPlaceholder || row.isSummary ? '---' : row.qty}</td>
-                    <td className="border-r border-black p-2 font-black">{row.isPlaceholder || row.isSummary ? '---' : (typeof row.rate === 'number' ? row.rate.toFixed(2) : row.rate)}</td>
-                    <td className="border-r border-black p-2 font-bold">₹ {(row.amount || row.total).toFixed(2)}</td>
+                    <td className="border-r border-black p-2 font-bold">{row.isSummary ? '---' : row.qty}</td>
+                    <td className="border-r border-black p-2 font-black">{row.isSummary ? '---' : (typeof row.rate === 'number' ? row.rate.toFixed(2) : row.rate)}</td>
+                    <td className="border-r border-black p-2 font-bold">₹ {row.amount.toFixed(2)}</td>
                   </tr>
                 ))}
                 {Array.from({ length: Math.max(0, 5 - calc.rows.length) }).map((_, idx) => (
                   <tr key={`empty-${idx}`} className="h-8">
-                    <td className="border-border p-2 border-r border-black"></td>
-                    <td className="border-border p-2 border-r border-black"></td>
-                    <td className="border-border p-2 border-r border-black"></td>
-                    <td className="border-border p-2 border-r border-black"></td>
-                    <td className="border-border p-2"></td>
+                    <td className="border-r border-black p-2"></td>
+                    <td className="border-r border-black p-2"></td>
+                    <td className="border-r border-black p-2"></td>
+                    <td className="border-r border-black p-2"></td>
+                    <td className="p-2"></td>
                   </tr>
                 ))}
               </tbody>
@@ -346,10 +342,7 @@ function BillContent() {
             <div className="mb-4 p-4 border-x border-b border-black text-left font-bold text-[11.5px] leading-tight">
               <div className="flex justify-between items-start">
                   <span className={cn("max-w-[400px]", calc.isAgriSubsidy && "text-red-600")}>
-                      {calc.isDryWellPrivate 
-                          ? "കുഴൽ കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് വകുപ്പിന് ലഭിക്കേണ്ട തുക (ഡ്രില്ലിംഗ് ചാർജിന്റെ 25%):"
-                          : "ഡ്രില്ലിംഗ് ചാർജ്ജ് സബ് സിഡി തുക( 50%)"
-                      }
+                      {calc.subsidyLabel}
                   </span>
                   <div className={cn("text-right font-mono text-[13px]", calc.isAgriSubsidy && "text-red-600")}>
                     <p>= {calc.billableTotal.toFixed(2)}/-</p>
