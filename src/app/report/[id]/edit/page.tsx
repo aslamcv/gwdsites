@@ -308,14 +308,33 @@ export default function EditReportPage() {
                   <div className="space-y-4 pt-6">
                     <FormField control={form.control} name="recommendedToGpSurvey" render={({ field }) => (
                       <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                        <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                        <FormControl>
+                          <Checkbox 
+                            checked={field.value} 
+                            onCheckedChange={(checked) => {
+                              field.onChange(checked);
+                              if (checked) form.setValue('recommendedToPumpingTest', false);
+                            }} 
+                          />
+                        </FormControl>
                         <Label className="text-[10px] font-black uppercase text-slate-700 cursor-pointer">RECCOMENDED TO GP SURVEY</Label>
                       </FormItem>
                     )} />
 
                     <FormField control={form.control} name="recommendedToPumpingTest" render={({ field }) => (
                       <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                        <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                        <FormControl>
+                          <Checkbox 
+                            checked={field.value} 
+                            onCheckedChange={(checked) => {
+                              field.onChange(checked);
+                              if (checked) {
+                                form.setValue('recommendedToGpSurvey', false);
+                                form.setValue('gpSurveyLocation', '');
+                              }
+                            }} 
+                          />
+                        </FormControl>
                         <Label className="text-[10px] font-black uppercase text-slate-700 cursor-pointer">RECCOMENDED TO PUMPING TEST</Label>
                       </FormItem>
                     )} />

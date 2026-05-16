@@ -479,7 +479,13 @@ function UnifiedGeologicalSurveyContent() {
                     <Checkbox 
                       id="recommendedToGpSurvey" 
                       checked={formData.recommendedToGpSurvey || false} 
-                      onCheckedChange={(checked) => updateField('recommendedToGpSurvey', !!checked)} 
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setFormData((prev: any) => ({ ...prev, recommendedToGpSurvey: true, recommendedToPumpingTest: false }));
+                        } else {
+                          updateField('recommendedToGpSurvey', false);
+                        }
+                      }} 
                     />
                     <label
                       htmlFor="recommendedToGpSurvey"
@@ -493,7 +499,13 @@ function UnifiedGeologicalSurveyContent() {
                     <Checkbox 
                       id="recommendedToPumpingTest" 
                       checked={formData.recommendedToPumpingTest || false} 
-                      onCheckedChange={(checked) => updateField('recommendedToPumpingTest', !!checked)} 
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setFormData((prev: any) => ({ ...prev, recommendedToPumpingTest: true, recommendedToGpSurvey: false, gpSurveyLocation: '' }));
+                        } else {
+                          updateField('recommendedToPumpingTest', false);
+                        }
+                      }} 
                     />
                     <label
                       htmlFor="recommendedToPumpingTest"
