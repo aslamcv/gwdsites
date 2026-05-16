@@ -33,6 +33,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -402,41 +404,66 @@ function UnifiedGeologicalSurveyContent() {
 
         <Card>
           <CardHeader><CardTitle className="flex items-center gap-2"><Building className="size-4 text-primary" /> Location & Admin Details</CardTitle></CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <FormFieldItem label="8. Village" id="village">
-              <Select disabled={!isAllowed} onValueChange={(v) => updateField('village', v)} value={formData.village}>
-                <SelectTrigger><SelectValue/></SelectTrigger>
-                <SelectContent className="max-h-[400px]">
-                  {villageOptions.map(g => <SelectGroup key={g.label}><SelectLabel>{g.label}</SelectLabel>{g.options.map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectGroup>)}
-                </SelectContent>
-              </Select>
-            </FormFieldItem>
-            <FormFieldItem label="9. Ward" id="ward"><Input disabled={!isAllowed} value={formData.ward} onChange={(e) => updateField('ward', e.target.value)} /></FormFieldItem>
-            <FormFieldItem label="10. Altitude" id="altitude"><Input disabled={!isAllowed} value={formData.altitude} onChange={(e) => updateField('altitude', e.target.value)} /></FormFieldItem>
-            <FormFieldItem label="11. LSGD" id="lsgd">
-              <Select disabled={!isAllowed} onValueChange={(v) => updateField('lsgd', v)} value={formData.lsgd}>
-                <SelectTrigger><SelectValue/></SelectTrigger>
-                <SelectContent>{lsgs.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
-              </Select>
-            </FormFieldItem>
-            <FormFieldItem label="12. Constituency (LAC)" id="assembly">
-                <Input value={detectedLac} disabled className="bg-slate-50 font-black text-blue-600 uppercase" placeholder="Auto-populated" />
-            </FormFieldItem>
-            <FormFieldItem label="13. Block" id="block">
-              <Select disabled={!isAllowed} onValueChange={(v) => updateField('block', v)} value={formData.block}>
-                <SelectTrigger><SelectValue/></SelectTrigger>
-                <SelectContent>{blockOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
-              </Select>
-            </FormFieldItem>
-            <FormFieldItem label="14. Type Applied For" id="typeAppliedFor">
-              <Select disabled={!isAllowed} onValueChange={(v) => updateField('typeAppliedFor', v)} value={formData.typeAppliedFor}>
-                <SelectTrigger><SelectValue/></SelectTrigger>
-                <SelectContent>
-                  {recommendationTypeOptions.filter(o=>o.value !== 'not_feasible').map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </FormFieldItem>
-            <FormFieldItem label="15. Date of Feasibility" id="dateOfFeasibility"><Input disabled={!isAllowed} type="date" value={formData.dateOfFeasibility} onChange={(e) => updateField('dateOfFeasibility', e.target.value)} /></FormFieldItem>
+          <CardContent className="p-0 overflow-hidden">
+             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 p-8">
+                <FormFieldItem label="8. Village" id="village">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="w-full h-10 border-slate-200 justify-between font-bold" disabled={!isAllowed}>
+                        <span className="truncate uppercase">{formData.village || "ENTER THE DETAILS"}</span>
+                        <ChevronDown className="size-4 opacity-50 shrink-0" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-[300px] rounded-2xl p-0 overflow-hidden border-slate-200 shadow-2xl">
+                      <ScrollArea className="h-[400px]">
+                        {villageOptions.map((group, groupIdx) => (
+                          <div key={groupIdx}>
+                            <DropdownMenuLabel className="bg-slate-50 py-3 px-4 text-[10px] font-black uppercase text-primary tracking-widest">
+                              {group.label}
+                            </DropdownMenuLabel>
+                            <DropdownMenuSeparator className="m-0" />
+                            {group.options.map((v, i) => (
+                              <DropdownMenuItem 
+                                key={i} 
+                                onClick={() => updateField('village', v)}
+                                className="py-2.5 px-6 font-bold text-xs uppercase cursor-pointer hover:bg-blue-50"
+                              >
+                                {v}
+                              </DropdownMenuItem>
+                            ))}
+                          </div>
+                        ))}
+                      </ScrollArea>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </FormFieldItem>
+                <FormFieldItem label="9. Ward" id="ward"><Input disabled={!isAllowed} value={formData.ward} onChange={(e) => updateField('ward', e.target.value)} /></FormFieldItem>
+                <FormFieldItem label="10. Altitude" id="altitude"><Input disabled={!isAllowed} value={formData.altitude} onChange={(e) => updateField('altitude', e.target.value)} /></FormFieldItem>
+                <FormFieldItem label="11. LSGD" id="lsgd">
+                  <Select disabled={!isAllowed} onValueChange={(v) => updateField('lsgd', v)} value={formData.lsgd}>
+                    <SelectTrigger><SelectValue/></SelectTrigger>
+                    <SelectContent>{lsgs.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
+                  </Select>
+                </FormFieldItem>
+                <FormFieldItem label="12. Constituency (LAC)" id="assembly">
+                    <Input value={detectedLac} disabled className="bg-slate-50 font-black text-blue-600 uppercase" placeholder="Auto-populated" />
+                </FormFieldItem>
+                <FormFieldItem label="13. Block" id="block">
+                  <Select disabled={!isAllowed} onValueChange={(v) => updateField('block', v)} value={formData.block}>
+                    <SelectTrigger><SelectValue/></SelectTrigger>
+                    <SelectContent>{blockOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+                  </Select>
+                </FormFieldItem>
+                <FormFieldItem label="14. Type Applied For" id="typeAppliedFor">
+                  <Select disabled={!isAllowed} onValueChange={(v) => updateField('typeAppliedFor', v)} value={formData.typeAppliedFor}>
+                    <SelectTrigger><SelectValue/></SelectTrigger>
+                    <SelectContent>
+                      {recommendationTypeOptions.filter(o=>o.value !== 'not_feasible').map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </FormFieldItem>
+                <FormFieldItem label="15. Date of Feasibility" id="dateOfFeasibility"><Input disabled={!isAllowed} type="date" value={formData.dateOfFeasibility} onChange={(e) => updateField('dateOfFeasibility', e.target.value)} /></FormFieldItem>
+             </div>
           </CardContent>
         </Card>
         
