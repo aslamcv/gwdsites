@@ -290,7 +290,7 @@ export default function ServicesRatesCatalog() {
                   type="text"
                   placeholder="Search current and historical technical rates (English or Malayalam)..."
                   className="h-14 pl-12 bg-slate-50 border-slate-200 rounded-2xl text-sm font-medium focus:ring-primary/20 shadow-inner"
-                  value={search}
+                  value={search || ""}
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
@@ -382,7 +382,7 @@ export default function ServicesRatesCatalog() {
                               {isAdmin ? (
                                 <div className="flex-1 flex gap-2">
                                   <Input 
-                                    value={d} 
+                                    value={d || ""} 
                                     onChange={(e) => updateScope(service.id, dIdx, e.target.value)} 
                                     className="h-10 text-xs bg-white border-slate-200" 
                                   />
@@ -442,7 +442,7 @@ export default function ServicesRatesCatalog() {
                                   <td className="px-6 border-r">
                                     {isAdmin ? (
                                       <Input 
-                                        value={item.nameEn} 
+                                        value={item.nameEn || ""} 
                                         onChange={(e) => updateItem(service.id, item.id, 'nameEn', e.target.value)}
                                         className="h-8 text-xs border-slate-200 bg-white"
                                       />
@@ -453,7 +453,7 @@ export default function ServicesRatesCatalog() {
                                   <td className="px-6 border-r">
                                     {isAdmin ? (
                                       <Input 
-                                        value={item.nameMl} 
+                                        value={item.nameMl || ""} 
                                         onChange={(e) => updateItem(service.id, item.id, 'nameMl', e.target.value)}
                                         className="h-8 text-xs font-bold border-slate-200 bg-white"
                                       />
@@ -465,7 +465,7 @@ export default function ServicesRatesCatalog() {
                                     {isAdmin ? (
                                       <Input 
                                         type="number" 
-                                        value={item.rate} 
+                                        value={item.rate ?? 0} 
                                         onChange={(e) => updateItem(service.id, item.id, 'rate', parseFloat(e.target.value) || 0)}
                                         className="h-8 w-24 text-right text-xs font-black text-blue-700 bg-white"
                                       />
@@ -535,7 +535,7 @@ export default function ServicesRatesCatalog() {
                                       <span className="text-[11px] font-bold text-slate-400">{item.nameMl}</span>
                                     </td>
                                     <td className="text-right pr-6 border-r">
-                                      <span className="text-[11px] font-bold text-slate-400">₹{item.rate.toLocaleString('en-IN')}</span>
+                                      <span className="text-[11px] font-bold text-slate-400">₹{item.rate?.toLocaleString('en-IN')}</span>
                                     </td>
                                     <td className="border-r px-2">
                                       {isAdmin ? (
@@ -619,4 +619,3 @@ export default function ServicesRatesCatalog() {
     </div>
   );
 }
-
