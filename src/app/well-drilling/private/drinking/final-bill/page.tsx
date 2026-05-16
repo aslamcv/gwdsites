@@ -105,6 +105,7 @@ function BillContent() {
     const LABEL_PVC_6KG = '140 mm dia 6 kg/cm2 പി. വി.സി. കേയ്സിംഗ് പൈപ്പിന്റെ വില ';
     const LABEL_PVC_10KG = '140 മി.മീ PVC PIPE (10KG/CM²)';
     const LABEL_END_CAP = '140 mm dia ഏന്‍ഡ് ക്യാപ്പിന്റെ വില';
+    const LABEL_CONSTRUCTION_TOTAL = 'കുഴൽകിണർ നിർമ്മാണ പ്രവൃത്തിയുടെ ആകെ ചിലവ് ';
 
     if (isFlushing) {
       const workingHoursStr = report.compressorWorkingHour || '2.5';
@@ -167,18 +168,32 @@ function BillContent() {
         const amt = pvc10Qty * rate;
         rows.push({ label: LABEL_PVC_10KG, qty: `${pvc10Qty} m`, rate: rate, unit: 'm', amount: amt, total: amt });
       }
-      if (pvc6Qty > 0 || pvc10Qty > 0) {
-        const rate = findRate(LABEL_END_CAP);
-        if (rate === null) return { error: true, refDate, missingItem: LABEL_END_CAP };
-        const amt = rate;
-        rows.push({ label: LABEL_END_CAP, qty: '1 No.', rate: rate, unit: 'No.', amount: amt, total: amt });
+      const endCapRate = findRate(LABEL_END_CAP);
+      if (endCapRate !== null) {
+        rows.push({ label: LABEL_END_CAP, qty: '1 No.', rate: endCapRate, unit: 'No.', amount: endCapRate, total: endCapRate });
+      } else {
+         return { error: true, refDate, missingItem: LABEL_END_CAP };
       }
     } else {
         rows.push({ label: LABEL_PVC_6KG, qty: '---', rate: '---', unit: 'm', amount: 0, total: 0, isPlaceholder: true });
         rows.push({ label: LABEL_END_CAP, qty: '---', rate: '---', unit: 'No.', amount: 0, total: 0, isPlaceholder: true });
     }
 
-    const grandTotal = rows.reduce((sum, r) => sum + (r.isPlaceholder ? 0 : r.total), 0);
+    // Calculate subtotal of all technical items
+    const technicalSubTotal = rows.reduce((sum, r) => sum + (r.isPlaceholder ? 0 : r.total), 0);
+    
+    // Add the requested summary row
+    rows.push({
+        label: LABEL_CONSTRUCTION_TOTAL,
+        qty: '---',
+        rate: '---',
+        unit: '',
+        amount: technicalSubTotal,
+        total: technicalSubTotal,
+        isSummary: true
+    });
+
+    const grandTotal = technicalSubTotal; // In this context, the sum of items is the total to be billed
     const remitted = parseFloat(report.remittance || '0');
     const balance = remitted - grandTotal;
 
@@ -298,24 +313,24 @@ function BillContent() {
             <table className="w-full border-collapse border border-black text-center text-[12px]">
               <thead className="bg-slate-50">
                 <tr className="font-bold h-10">
-                  <th className="border border-black p-2 w-12">ക്ര.നം</th>
-                  <th className="border border-black p-2 text-left">ഇനം</th>
-                  <th className="border border-black p-2 w-24">അളവ്</th>
-                  <th className="border border-black p-2 w-24">നിരക്ക്</th>
-                  <th className="border border-black p-2 w-32">ആകെ തുക</th>
+                  <th className="border-r border-black p-2 w-12">ക്ര.നം</th>
+                  <th className="border-r border-black p-2 text-left">ഇനം</th>
+                  <th className="border-r border-black p-2 w-24">അളവ്</th>
+                  <th className="border-r border-black p-2 w-24">നിരക്ക്</th>
+                  <th className="border-r border-black p-2 w-32">ആകെ തുക</th>
                 </tr>
               </thead>
               <tbody>
                 {calc.rows.map((row, i) => (
-                  <tr key={i} className="min-h-[32px]">
-                    <td className="border-r border-black p-2">{i + 1}</td>
+                  <tr key={i} className={cn("min-h-[32px]", row.isSummary && "bg-slate-50 font-black")}>
+                    <td className="border-r border-black p-2">{row.isSummary ? '' : i + 1}</td>
                     <td className="border-r border-black p-2 text-left font-bold relative">
                       {row.label}
                       {row.extraInfo && <span className="block text-[10px] font-normal italic mt-1">{row.extraInfo}</span>}
                     </td>
-                    <td className="border-r border-black p-2 font-bold">{row.isPlaceholder ? '---' : row.qty}</td>
-                    <td className="border-r border-black p-2 font-black">{row.isPlaceholder ? '---' : (typeof row.rate === 'number' ? row.rate.toFixed(2) : row.rate)}</td>
-                    <td className="border-r border-black p-2 font-bold">{row.isPlaceholder ? '---' : (row.amount || row.total).toFixed(2)}</td>
+                    <td className="border-r border-black p-2 font-bold">{row.isPlaceholder || row.isSummary ? '---' : row.qty}</td>
+                    <td className="border-r border-black p-2 font-black">{row.isPlaceholder || row.isSummary ? '---' : (typeof row.rate === 'number' ? row.rate.toFixed(2) : row.rate)}</td>
+                    <td className="border-r border-black p-2 font-bold">₹ {row.isPlaceholder ? '---' : (row.amount || row.total).toFixed(2)}</td>
                   </tr>
                 ))}
                 {Array.from({ length: Math.max(0, 5 - calc.rows.length) }).map((_, idx) => (
