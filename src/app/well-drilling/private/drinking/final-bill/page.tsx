@@ -1,15 +1,17 @@
+
 'use client';
 
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Printer, ArrowLeft } from 'lucide-react';
+import { Printer, ArrowLeft, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { GroundwaterReport } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 function numberToMalayalamWords(num: number): string {
   if (num <= 0) return 'പൂജ്യം രൂപ മാത്രം';
@@ -29,6 +31,14 @@ function BillContent() {
 
   const { data: report, isLoading } = useDoc<GroundwaterReport>(reportRef);
 
+  // Fetch central service rates
+  const ratesRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, 'appSettings', 'service_rates');
+  }, [firestore]);
+
+  const { data: cloudRates, isLoading: isRatesLoading } = useDoc(ratesRef);
+
   const calc = useMemo(() => {
     if (!report) return null;
 
@@ -47,12 +57,32 @@ function BillContent() {
     // Rule 2: Private successful agriculture well -> 50% drilling charge, full material charge
     const isAgriSubsidy = isPrivate && isAgri && !isFlushing && ['low yield', 'medium yield', 'high yield'].includes(yieldStatus);
 
+    // Target Date for rate lookup (Prefer End Date per user request)
+    const targetDate = report.dateOfInvestigation?.split(' - ')[1] || report.reportDate || report.createdAt?.split('T')[0] || '';
+
+    // Technical Rate Lookup Engine
+    const findRate = (pattern: string, fallback: number) => {
+      if (!cloudRates?.services) return fallback;
+      for (const service of cloudRates.services) {
+        for (const item of service.items) {
+          if (item.name.toLowerCase().includes(pattern.toLowerCase())) {
+            const from = item.dateFrom || '0000-00-00';
+            const to = item.dateTo || '9999-99-99';
+            if (targetDate >= from && targetDate <= to) {
+              return item.rate;
+            }
+          }
+        }
+      }
+      return fallback;
+    };
+
     const rates = {
-      drilling: 390,
-      pvc6: 566.56,
-      pvc10: 879.01,
-      endCap: 87.59,
-      flushingMin: 5790.00
+      drilling: findRate(report.borewellSize || 'Drilling', 390),
+      pvc6: findRate('6kg', 566.56),
+      pvc10: findRate('10kg', 879.01),
+      endCap: findRate('End Cap', 87.59),
+      flushingMin: findRate('Flushing', 5790.00)
     };
 
     let rows: any[] = [];
@@ -97,7 +127,6 @@ function BillContent() {
       });
     }
 
-    // In a Dry Well (Private) construction, PVC and End Cap are not charged
     if (!isDryWellPrivate) {
       const pvc6Qty = parseFloat(report.pvc6kg || '0');
       if (pvc6Qty > 0) {
@@ -116,7 +145,6 @@ function BillContent() {
         rows.push({ label: 'End Cap', qty: '1 No.', rate: rates.endCap, unit: 'No.', amount: amt, total: amt });
       }
     } else {
-        // Just for display in the table for Dry Well format
         rows.push({ label: '140 മി.മീ PVC Pipe (6kg/cm²)', qty: '', rate: '', unit: 'm', amount: 0, total: 0, isPlaceholder: true });
         rows.push({ label: 'End Cap', qty: '', rate: '', unit: 'No.', amount: 0, total: 0, isPlaceholder: true });
     }
@@ -134,9 +162,10 @@ function BillContent() {
         isDryWellPrivate, 
         isAgriSubsidy,
         baseDrillingAmt,
-        finalDrillingAmt
+        finalDrillingAmt,
+        targetDate
     };
-  }, [report]);
+  }, [report, cloudRates]);
 
   useEffect(() => {
     if (report) {
@@ -145,7 +174,7 @@ function BillContent() {
     }
   }, [report, calc]);
 
-  if (isLoading) {
+  if (isLoading || isRatesLoading) {
     return (
       <div className="min-h-screen bg-slate-50 p-8 flex flex-col items-center">
         <Skeleton className="h-[1000px] w-full max-w-[850px] bg-white shadow-xl rounded-none" />
@@ -157,17 +186,25 @@ function BillContent() {
 
   return (
     <div className="min-h-screen bg-slate-100 py-4 px-4 pt-12 print:bg-white print:p-0 font-malayalam text-black">
-      <div className="max-w-[210mm] mx-auto mb-2 flex items-center justify-between print:hidden">
-        <Button variant="ghost" asChild className="gap-2 text-slate-600 h-8 text-xs">
-          <Link href="/well-drilling">
-            <ArrowLeft className="h-3 w-3" />
-            Back to Portal
-          </Link>
-        </Button>
-        <Button onClick={() => window.print()} className="gap-2 font-bold bg-primary text-white h-8 text-xs">
-          <Printer className="h-3 w-3" />
-          Print Final Bill
-        </Button>
+      <div className="max-w-[210mm] mx-auto mb-2 flex flex-col gap-4 print:hidden">
+        <div className="flex items-center justify-between">
+            <Button variant="ghost" asChild className="gap-2 text-slate-600 h-8 text-xs">
+              <Link href="/well-drilling">
+                <ArrowLeft className="h-3 w-3" />
+                Back to Portal
+              </Link>
+            </Button>
+            <Button onClick={() => window.print()} className="gap-2 font-bold bg-primary text-white h-8 text-xs">
+              <Printer className="h-3 w-3" />
+              Print Final Bill
+            </Button>
+        </div>
+        <Alert className="bg-blue-50 border-blue-200 py-3">
+            <AlertCircle className="size-4 text-blue-600" />
+            <AlertDescription className="text-[11px] font-bold text-blue-800 uppercase tracking-tight">
+                Billing rates applied based on work completion date: {calc.targetDate}
+            </AlertDescription>
+        </Alert>
       </div>
 
       <div className="bg-white mx-auto w-[210mm] min-h-[297mm] shadow-xl print:shadow-none p-[15mm] flex flex-col text-[13px] leading-tight text-black border border-slate-200 print:border-none overflow-hidden relative">
@@ -188,7 +225,7 @@ function BillContent() {
           <div className="text-center flex-1 pr-4 pl-12">
             <h1 className="text-[18px] font-bold">ഭൂജല വകുപ്പ്, ജില്ലാ ഓഫീസ്, മലപ്പുറം</h1>
             <h2 className="text-[14px] font-bold underline underline-offset-4 decoration-1 uppercase">
-              അന്തിമ ബിൽ (110 മി.മീ.) - {calc.isFlushing ? 'കുഴൽ കിണർ ഫ്ലഷിംഗ്' : 'കുഴൽ കിണർ നിർമ്മാണം'}
+              അന്തിമ ബിൽ ({report.borewellSize || '150 മി.മീ.'}) - {calc.isFlushing ? 'കുഴൽ കിണർ ഫ്ലഷിംഗ്' : 'കുഴൽ കിണർ നിർമ്മാണം'}
             </h2>
           </div>
           <div className="text-right text-[10px] leading-tight font-bold italic w-[180px]">
@@ -207,15 +244,15 @@ function BillContent() {
         <div className="mb-4 text-left">
           <div className="border border-black text-[14px]">
             <div className="grid grid-cols-[200px_1fr] border-b border-black">
-              <div className="border-r border-black p-2 px-4 font-bold bg-slate-50">സൈറ്റിന്റെ പേര്</div>
+              <div className="border-r border-black p-2 px-4 font-bold bg-slate-50 text-[11px] uppercase">സൈറ്റിന്റെ പേര്</div>
               <div className="p-2 px-4 font-bold uppercase">{report.nameOfSite}</div>
             </div>
             <div className="grid grid-cols-[200px_1fr] border-b border-black">
-              <div className="border-r border-black p-2 px-4 font-bold bg-slate-50">പഞ്ചായത്ത് / നഗരസഭ</div>
+              <div className="border-r border-black p-2 px-4 font-bold bg-slate-50 text-[11px] uppercase">പഞ്ചായത്ത് / നഗരസഭ</div>
               <div className="p-2 px-4 font-bold uppercase">{report.lsgd}</div>
             </div>
             <div className="grid grid-cols-[200px_1fr]">
-              <div className="border-r border-black p-2 px-4 font-bold bg-slate-50">വിലാസം</div>
+              <div className="border-r border-black p-2 px-4 font-bold bg-slate-50 text-[11px] uppercase">വിലാസം</div>
               <div className="p-2 px-4 font-bold uppercase truncate">{report.address}</div>
             </div>
           </div>
@@ -284,7 +321,7 @@ function BillContent() {
               </div>
             </div>
             <div className="grid grid-cols-[1fr_140px] border-b border-black">
-              <div className="border-r border-black p-2 px-4 text-right uppercase">Total Amount Remitted :</div>
+              <div className="border-r border-black p-2 px-4 text-right uppercase text-[10px]">Total Amount Remitted :</div>
               <div className="p-2 text-center">₹ {calc.remitted.toFixed(2)}</div>
             </div>
             <div className="grid grid-cols-[1fr_140px] border-b border-black bg-slate-50">
@@ -320,3 +357,4 @@ export default function FinalBillPage() {
     </Suspense>
   );
 }
+
