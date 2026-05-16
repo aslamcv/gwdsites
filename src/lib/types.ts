@@ -159,6 +159,7 @@ export type GroundwaterReport = {
   recommendationOpenwell?: string;
   recommendedToGpSurvey?: boolean;
   gpSurveyLocation?: string;
+  recommendedToPumpingTest?: boolean;
   staffAssignment?: {
     geologicalAssistant?: string | string[];
     geologicalAssistant_ml?: string;

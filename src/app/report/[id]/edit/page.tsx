@@ -98,6 +98,7 @@ const reportSchema = z.object({
   recOpenwellDiameter: z.string().optional(),
   recommendedToGpSurvey: z.boolean().default(false),
   gpSurveyLocation: z.string().optional(),
+  recommendedToPumpingTest: z.boolean().default(false),
 });
 
 type ReportFormValues = z.infer<typeof reportSchema>;
@@ -186,6 +187,7 @@ export default function EditReportPage() {
     recOpenwellDiameter: '',
     recommendedToGpSurvey: false,
     gpSurveyLocation: '',
+    recommendedToPumpingTest: false,
   }), []);
 
   const form = useForm<ReportFormValues>({
@@ -308,6 +310,13 @@ export default function EditReportPage() {
                       <FormItem className="flex flex-row items-center space-x-3 space-y-0">
                         <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
                         <Label className="text-[10px] font-black uppercase text-slate-700 cursor-pointer">RECCOMENDED TO GP SURVEY</Label>
+                      </FormItem>
+                    )} />
+
+                    <FormField control={form.control} name="recommendedToPumpingTest" render={({ field }) => (
+                      <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                        <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                        <Label className="text-[10px] font-black uppercase text-slate-700 cursor-pointer">RECCOMENDED TO PUMPING TEST</Label>
                       </FormItem>
                     )} />
                     

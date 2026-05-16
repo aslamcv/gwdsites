@@ -209,6 +209,7 @@ function UnifiedGeologicalSurveyContent() {
     recommendationOpenwell: '',
     recommendedToGpSurvey: false,
     gpSurveyLocation: '',
+    recommendedToPumpingTest: false,
     staffAssignment: {
         hydrogeologist: [],
         juniorHydrogeologist: [],
@@ -487,6 +488,20 @@ function UnifiedGeologicalSurveyContent() {
                       RECCOMENDED TO GP SURVEY
                     </label>
                   </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="recommendedToPumpingTest" 
+                      checked={formData.recommendedToPumpingTest || false} 
+                      onCheckedChange={(checked) => updateField('recommendedToPumpingTest', !!checked)} 
+                    />
+                    <label
+                      htmlFor="recommendedToPumpingTest"
+                      className="text-[10px] font-black uppercase text-slate-700 leading-none cursor-pointer"
+                    >
+                      RECCOMENDED TO PUMPING TEST
+                    </label>
+                  </div>
                   
                   <div className={cn("space-y-2 transition-all duration-300", !formData.recommendedToGpSurvey && "opacity-20 pointer-events-none")}>
                     <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Location Details for GP Survey</Label>
@@ -518,7 +533,7 @@ function UnifiedGeologicalSurveyContent() {
           <div className="flex items-center gap-6">
             <Logo />
             <div className="flex flex-col">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] leading-none mb-1">GEOLOGICAL SURVEY</span>
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] leading-none mb-1">GEOLOGICAL SURVEY</span>
               <span className="text-sm font-black text-slate-900 leading-none uppercase tracking-tight">
                 {formData.fileNo || 'NEW TECHNICAL RECORD'}
               </span>

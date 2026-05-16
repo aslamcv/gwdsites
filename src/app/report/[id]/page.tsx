@@ -219,9 +219,17 @@ function ReportContent({ id }: { id: string }) {
         </div>
 
         {report.recommendedToGpSurvey && (
-          <div className="border-[3px] border-black p-4 mb-8">
-            <p className="text-[12px] font-bold text-center">
+          <div className="border-[3px] border-black p-4 mb-4">
+            <p className="text-[12px] font-bold text-center uppercase">
               recommended to GP survey - ({report.gpSurveyLocation || 'As per site observations'})
+            </p>
+          </div>
+        )}
+
+        {report.recommendedToPumpingTest && (
+          <div className="border-[3px] border-black p-4 mb-4">
+            <p className="text-[12px] font-bold text-center uppercase">
+              recommended to pumping test
             </p>
           </div>
         )}
