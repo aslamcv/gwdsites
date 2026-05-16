@@ -54,23 +54,45 @@ function BillContent() {
     const isDryWellPrivate = isPrivate && isDryWell && !isFlushing;
     const isAgriSubsidy = isPrivate && isAgri && !isFlushing && ['low yield', 'medium yield', 'high yield'].includes(yieldStatus);
 
-    // Target Date for rate lookup: Prioritize End Date (completion), then Bill Date, then Creation Date
-    const dateParts = report.dateOfInvestigation?.split(' - ') || [];
-    const targetDate = (dateParts[1] || report.reportDate || report.createdAt?.split('T')[0] || '').trim();
+    // HELPER: Normalize date for reliable comparison (handles YYYY-MM-DD and DD-MM-YYYY)
+    const normalizeDate = (d: string) => {
+      if (!d) return '';
+      const trimmed = d.trim();
+      // If already YYYY-MM-DD
+      if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+      // If DD-MM-YYYY or DD/MM/YYYY
+      const parts = trimmed.split(/[-/]/);
+      if (parts.length === 3) {
+        if (parts[2].length === 4) { // Year is at end
+            return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+        }
+        if (parts[0].length === 4) { // Year is at start but maybe missing pads
+            return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+        }
+      }
+      return trimmed;
+    };
+
+    // Target Date for rate lookup: Prioritize End Date (completion)
+    const dateOfInvestigation = report.dateOfInvestigation || '';
+    const dateParts = dateOfInvestigation.split(/\s*[–-]\s*/);
+    
+    // User requirement: Priority is the "End Date (Opt)"
+    const rawTargetDate = (dateParts[1] || dateParts[0] || report.reportDate || report.createdAt?.split('T')[0] || '').trim();
+    const targetDate = normalizeDate(rawTargetDate);
 
     const findRate = (keywords: string[], fallback: number) => {
       if (!cloudRates?.services) return fallback;
       
-      const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
-      const normalizedKeywords = keywords.map(kw => normalize(kw));
+      const normalizeKeyword = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const normalizedKeywords = keywords.map(kw => normalizeKeyword(kw));
 
-      // Step 1: Find best matches by keyword and date
       let bestMatchRate = null;
       let latestStartDate = '0000-00-00';
 
       for (const service of cloudRates.services) {
         for (const item of service.items) {
-          const normalizedItem = normalize(item.name);
+          const normalizedItem = normalizeKeyword(item.name);
           const isMatch = normalizedKeywords.every(kw => normalizedItem.includes(kw));
           
           if (isMatch) {
@@ -82,7 +104,7 @@ function BillContent() {
               return item.rate;
             }
 
-            // Priority 2: Keep track of the most recent rate for this item if date is outside range
+            // Priority 2: Most recent rate for this item if date is outside specific defined ranges
             if (from > latestStartDate) {
               latestStartDate = from;
               bestMatchRate = item.rate;
@@ -182,7 +204,7 @@ function BillContent() {
         isAgriSubsidy,
         baseDrillingAmt,
         finalDrillingAmt,
-        targetDate
+        targetDate: rawTargetDate // Show the original raw date for user context
     };
   }, [report, cloudRates]);
 
@@ -337,7 +359,7 @@ function BillContent() {
               <div className="p-2 text-center">₹ {calc.remitted.toFixed(2)}</div>
             </div>
             <div className="grid grid-cols-[1fr_140px] border-b border-black bg-slate-50">
-              <div className="border-r border-black p-2 px-4 text-right">അപേക്ഷകന് തിരികെ നൽകേണ്ട തുക :</div>
+              <div className="border-r border-black p-2 px-4 text-right">അപേക്ഷകന് തിриകെ നൽകേണ്ട തുക :</div>
               <div className="p-2 text-center font-black">₹ {calc.balance.toFixed(2)}</div>
             </div>
             <div className="p-2 px-4 text-right italic font-normal text-[11px] leading-tight">
