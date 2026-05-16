@@ -54,11 +54,13 @@ function BillContent() {
     const isDryWellPrivate = isPrivate && isDryWell && !isFlushing;
     const isAgriSubsidy = isPrivate && isAgri && !isFlushing && ['low yield', 'medium yield', 'high yield'].includes(yieldStatus);
 
-    // HELPER: Normalize date for reliable comparison
+    // HELPER: Normalize date for reliable comparison (YYYY-MM-DD)
     const normalizeDate = (d: string) => {
       if (!d) return '';
       const trimmed = d.trim();
+      // Handle YYYY-MM-DD
       if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+      // Handle DD-MM-YYYY or DD/MM/YYYY
       const parts = trimmed.split(/[-/]/);
       if (parts.length === 3) {
         if (parts[2].length === 4) return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
@@ -67,10 +69,9 @@ function BillContent() {
       return trimmed;
     };
 
-    // Reference Date: Strictly use End Date (Opt)
-    const dateOfInvestigation = report.dateOfInvestigation || '';
-    const dateParts = dateOfInvestigation.split(/\s*[–-]\s*/);
-    const rawWorkEndDate = (dateParts[1] || dateParts[0] || report.reportDate || '').trim();
+    // Reference Date: Strictly use End Date (Opt) -> fallback to start or report date if missing
+    // We access report.endDate/startDate directly from the document fields
+    const rawWorkEndDate = (report.endDate || report.startDate || report.reportDate || '').trim();
     const refDate = normalizeDate(rawWorkEndDate);
 
     const findRate = (keywords: string[]) => {
@@ -88,7 +89,7 @@ function BillContent() {
             const from = item.dateFrom || '0000-00-00';
             const to = item.dateTo || '9999-99-99';
             
-            // STRICT Range Match: No fallbacks or caps
+            // STRICT Date Range Matching: refDate >= from AND refDate <= to
             if (refDate >= from && refDate <= to) {
               return item.rate;
             }
@@ -108,7 +109,7 @@ function BillContent() {
       flushingMin: findRate(['Flushing'])
     };
 
-    // Check if required rates are found
+    // Validation: Strict matching - if rate is null, return error context
     if (!isFlushing && rawRates.drilling === null) return { error: true, refDate };
     if (isFlushing && rawRates.flushingMin === null) return { error: true, refDate };
 
@@ -228,7 +229,7 @@ function BillContent() {
             <ShieldAlert className="size-6 text-rose-600" />
             <AlertTitle className="text-sm font-black uppercase tracking-tight ml-2">Rate Configuration Missing</AlertTitle>
             <AlertDescription className="text-xs font-bold text-rose-800 ml-2 mt-2 leading-relaxed">
-              No valid rate found for the selected End Date: <span className="underline">{calc.refDate}</span>. 
+              No valid rate found for the selected End Date (Opt): <span className="underline">{calc.refDate}</span>. 
               <br/>Please update the <strong>Services & Rates Catalog</strong> in the Administration panel to include a validity period for this date.
             </AlertDescription>
           </Alert>
@@ -378,7 +379,7 @@ function BillContent() {
 
           <div className="mt-auto pt-4 border-t border-slate-200 text-[9px] text-muted-foreground flex justify-between uppercase tracking-widest font-sans font-bold">
             <span>GROUND WATER DEPARTMENT DISTRICT OFFICE, MALAPPURAM</span>
-            <span>SYSTEM GENERATED FINAL BILL – TECHNICAL RECORD</span>
+            <span>OFFICIAL TECHNICAL RECORD</span>
           </div>
         </div>
       )}
