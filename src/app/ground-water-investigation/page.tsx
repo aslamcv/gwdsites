@@ -19,7 +19,8 @@ import {
   ShieldAlert, 
   Database, 
   Users, 
-  Calculator
+  Calculator,
+  FileStack
 } from 'lucide-react';
 import Link from 'next/link';
 import { useCollection, useFirestore, useUser, useMemoFirebase, deleteDocumentNonBlocking, useDoc } from '@/firebase';
@@ -66,6 +67,7 @@ import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import { ConsolidatedFeasibilityDialog } from '@/components/investigation/consolidated-feasibility-dialog';
 
 const MASTER_ADMIN_EMAIL = 'gwdmpm@gmail.com';
 
@@ -77,6 +79,7 @@ export default function GroundWaterInvestigationPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [reportToDelete, setReportToDelete] = useState<GroundwaterReport | null>(null);
   const [viewingReport, setViewingReport] = useState<GroundwaterReport | null>(null);
+  const [isConsolidatedDialogOpen, setIsConsolidatedDialogOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -176,49 +179,60 @@ export default function GroundWaterInvestigationPage() {
           <p className="text-slate-500 font-bold text-[10px] uppercase tracking-widest mt-2">Centralized Registry of District Field Surveys</p>
         </div>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button disabled={!canEdit} size="lg" className="h-14 px-8 rounded-2xl bg-[#1e3a8a] hover:bg-blue-900 shadow-xl shadow-blue-900/20 font-black uppercase tracking-widest text-[11px] gap-3">
-              <PlusCircle className="size-5" />
-              NEW TECHNICAL ENTRY
-              <ChevronDown className="size-4 opacity-50" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-[300px] p-2 rounded-[24px] border-slate-200 shadow-2xl bg-white/95 backdrop-blur-xl">
-            <DropdownMenuLabel className="px-4 py-3 text-[10px] font-black uppercase text-slate-400 tracking-widest">Select Category</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => handleNewTechnicalEntry("geological")} className="rounded-xl cursor-pointer p-3 focus:bg-blue-50 group">
-              <div className="flex items-center gap-3 w-full">
-                <div className="p-2 bg-blue-50 rounded-lg group-hover:scale-110 transition-transform"><FileText className="size-4 text-blue-600" /></div>
-                <span className="font-bold text-xs uppercase text-slate-700">Geological Survey</span>
-              </div>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleNewTechnicalEntry("geophysical")} className="rounded-xl cursor-pointer p-3 focus:bg-emerald-50 group">
-              <div className="flex items-center gap-3 w-full">
-                <div className="p-2 bg-emerald-100 rounded-lg group-hover:scale-110 transition-transform"><Calculator className="size-4 text-emerald-600" /></div>
-                <span className="font-bold text-xs uppercase text-slate-700">Geophysical Survey</span>
-              </div>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleNewTechnicalEntry("complaints")} className="rounded-xl cursor-pointer p-3 focus:bg-rose-50 group">
-              <div className="flex items-center gap-3 w-full">
-                <div className="p-2 bg-rose-50 rounded-lg group-hover:scale-110 transition-transform"><ShieldAlert className="size-4 text-rose-600" /></div>
-                <span className="font-bold text-xs uppercase text-slate-700">Complaints</span>
-              </div>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleNewTechnicalEntry("joint")} className="rounded-xl cursor-pointer p-3 focus:bg-purple-50 group">
-              <div className="flex items-center gap-3 w-full">
-                <div className="p-2 bg-purple-50 rounded-lg group-hover:scale-110 transition-transform"><Users className="size-4 text-purple-600" /></div>
-                <span className="font-bold text-xs uppercase text-slate-700">Joint Inspection</span>
-              </div>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleNewTechnicalEntry("nhp")} className="rounded-xl cursor-pointer p-3 focus:bg-cyan-50 group">
-              <div className="flex items-center gap-3 w-full">
-                <div className="p-2 bg-cyan-50 rounded-lg group-hover:scale-110 transition-transform"><Database className="size-4 text-cyan-600" /></div>
-                <span className="font-bold text-xs uppercase text-slate-700">NHP Data</span>
-              </div>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="outline" 
+            onClick={() => setIsConsolidatedDialogOpen(true)}
+            className="h-14 px-6 rounded-2xl border-slate-200 bg-white font-black uppercase tracking-widest text-[10px] gap-2 shadow-sm hover:bg-slate-50"
+          >
+            <FileStack className="size-4 text-primary" />
+            CONSOLIDATED REPORT
+          </Button>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button disabled={!canEdit} size="lg" className="h-14 px-8 rounded-2xl bg-[#1e3a8a] hover:bg-blue-900 shadow-xl shadow-blue-900/20 font-black uppercase tracking-widest text-[11px] gap-3">
+                <PlusCircle className="size-5" />
+                NEW TECHNICAL ENTRY
+                <ChevronDown className="size-4 opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-[300px] p-2 rounded-[24px] border-slate-200 shadow-2xl bg-white/95 backdrop-blur-xl">
+              <DropdownMenuLabel className="px-4 py-3 text-[10px] font-black uppercase text-slate-400 tracking-widest">Select Category</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => handleNewTechnicalEntry("geological")} className="rounded-xl cursor-pointer p-3 focus:bg-blue-50 group">
+                <div className="flex items-center gap-3 w-full">
+                  <div className="p-2 bg-blue-50 rounded-lg group-hover:scale-110 transition-transform"><FileText className="size-4 text-blue-600" /></div>
+                  <span className="font-bold text-xs uppercase text-slate-700">Geological Survey</span>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleNewTechnicalEntry("geophysical")} className="rounded-xl cursor-pointer p-3 focus:bg-emerald-50 group">
+                <div className="flex items-center gap-3 w-full">
+                  <div className="p-2 bg-emerald-100 rounded-lg group-hover:scale-110 transition-transform"><Calculator className="size-4 text-emerald-600" /></div>
+                  <span className="font-bold text-xs uppercase text-slate-700">Geophysical Survey</span>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleNewTechnicalEntry("complaints")} className="rounded-xl cursor-pointer p-3 focus:bg-rose-50 group">
+                <div className="flex items-center gap-3 w-full">
+                  <div className="p-2 bg-rose-50 rounded-lg group-hover:scale-110 transition-transform"><ShieldAlert className="size-4 text-rose-600" /></div>
+                  <span className="font-bold text-xs uppercase text-slate-700">Complaints</span>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleNewTechnicalEntry("joint")} className="rounded-xl cursor-pointer p-3 focus:bg-purple-50 group">
+                <div className="flex items-center gap-3 w-full">
+                  <div className="p-2 bg-purple-50 rounded-lg group-hover:scale-110 transition-transform"><Users className="size-4 text-purple-600" /></div>
+                  <span className="font-bold text-xs uppercase text-slate-700">Joint Inspection</span>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleNewTechnicalEntry("nhp")} className="rounded-xl cursor-pointer p-3 focus:bg-cyan-50 group">
+                <div className="flex items-center gap-3 w-full">
+                  <div className="p-2 bg-cyan-50 rounded-lg group-hover:scale-110 transition-transform"><Database className="size-4 text-cyan-600" /></div>
+                  <span className="font-bold text-xs uppercase text-slate-700">NHP Data</span>
+                </div>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       <Card className="border-none shadow-sm ring-1 ring-slate-200 rounded-[24px] overflow-hidden bg-white/80 backdrop-blur-md p-4">
@@ -387,6 +401,11 @@ export default function GroundWaterInvestigationPage() {
             </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ConsolidatedFeasibilityDialog 
+        isOpen={isConsolidatedDialogOpen} 
+        onOpenChange={setIsConsolidatedDialogOpen} 
+      />
     </div>
   );
 }
