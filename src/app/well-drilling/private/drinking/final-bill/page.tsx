@@ -73,7 +73,6 @@ function BillContent() {
     const findRate = (searchLabel: string) => {
       if (!cloudRates?.services || !refDate) return null;
       
-      // Normalization keeps numbers, English letters, and Malayalam Unicode range
       const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9\u0D00-\u0D7F]/g, ''); 
       const target = normalize(searchLabel);
 
@@ -82,7 +81,6 @@ function BillContent() {
           const catalogItemNameMl = normalize(item.nameMl || '');
           const catalogItemNameEn = normalize(item.nameEn || '');
           
-          // Technical matching: check both language fields
           if (catalogItemNameMl.includes(target) || target.includes(catalogItemNameMl) || 
               catalogItemNameEn.includes(target) || target.includes(catalogItemNameEn)) {
             const from = item.dateFrom || '0000-00-00';
@@ -97,9 +95,9 @@ function BillContent() {
     };
 
     let rows: any[] = [];
-    let finalDrillingAmt = 0;
+    let drillingAmtFull = 0;
+    let materialsAmtFull = 0;
     
-    // Updated Labels matching official nomenclature
     const LABEL_DRILLING = '110 mm dia കുഴല്‍കിണര്‍ ഡ്രില്ലിംഗ് ചാര്‍ജ് ';
     const LABEL_FLUSHING = 'ഫ്ലഷിംഗ് നടത്തിയ ആകെ ആഴം';
     const LABEL_PVC_6KG = '140 mm dia 6 kg/cm2 പി. വി.സി. കേയ്സിംഗ് പൈപ്പിന്റെ വില ';
@@ -117,17 +115,16 @@ function BillContent() {
       const hourlyRate = baseRate / 2.5;
       const flushingCharge = hours > 2.5 ? (hourlyRate * hours) : baseRate;
 
+      drillingAmtFull = flushingCharge;
       rows.push({ 
         label: LABEL_FLUSHING, 
         qty: `${report.totalDepth || '0'} m`, 
         rate: flushingCharge, 
         unit: 'Lump Sum',
-        isSpecial: true,
         extraInfo: `(Compressor working time: ${workingHoursStr})`,
         amount: flushingCharge,
         total: flushingCharge
       });
-      finalDrillingAmt = flushingCharge;
     } else {
       const drillingQty = parseFloat(report.totalDepth || '0');
       const baseRate = findRate(LABEL_DRILLING);
@@ -135,21 +132,15 @@ function BillContent() {
       if (baseRate === null) return { error: true, refDate, missingItem: LABEL_DRILLING };
       
       const baseDrillingAmt = drillingQty * baseRate;
-      finalDrillingAmt = baseDrillingAmt;
+      drillingAmtFull = baseDrillingAmt;
       
-      if (isDryWellPrivate) {
-          finalDrillingAmt = Math.ceil(baseDrillingAmt * 0.25);
-      } else if (isAgriSubsidy) {
-          finalDrillingAmt = Math.ceil(baseDrillingAmt * 0.5);
-      }
-
       rows.push({ 
         label: LABEL_DRILLING, 
         qty: `${drillingQty} m`, 
         rate: baseRate, 
         unit: 'm',
         amount: baseDrillingAmt,
-        total: finalDrillingAmt 
+        total: baseDrillingAmt 
       });
     }
 
@@ -159,6 +150,7 @@ function BillContent() {
         const rate = findRate(LABEL_PVC_6KG);
         if (rate === null) return { error: true, refDate, missingItem: LABEL_PVC_6KG };
         const amt = pvc6Qty * rate;
+        materialsAmtFull += amt;
         rows.push({ label: LABEL_PVC_6KG, qty: `${pvc6Qty} m`, rate: rate, unit: 'm', amount: amt, total: amt });
       }
       const pvc10Qty = parseFloat(report.pvc10kg || '0');
@@ -166,10 +158,12 @@ function BillContent() {
         const rate = findRate(LABEL_PVC_10KG);
         if (rate === null) return { error: true, refDate, missingItem: LABEL_PVC_10KG };
         const amt = pvc10Qty * rate;
+        materialsAmtFull += amt;
         rows.push({ label: LABEL_PVC_10KG, qty: `${pvc10Qty} m`, rate: rate, unit: 'm', amount: amt, total: amt });
       }
       const endCapRate = findRate(LABEL_END_CAP);
       if (endCapRate !== null) {
+        materialsAmtFull += endCapRate;
         rows.push({ label: LABEL_END_CAP, qty: '1 No.', rate: endCapRate, unit: 'No.', amount: endCapRate, total: endCapRate });
       } else {
          return { error: true, refDate, missingItem: LABEL_END_CAP };
@@ -179,33 +173,40 @@ function BillContent() {
         rows.push({ label: LABEL_END_CAP, qty: '---', rate: '---', unit: 'No.', amount: 0, total: 0, isPlaceholder: true });
     }
 
-    // Calculate subtotal of all technical items
-    const technicalSubTotal = rows.reduce((sum, r) => sum + (r.isPlaceholder ? 0 : r.total), 0);
+    // Gross Construction Total (Rounded to next higher integer)
+    const grossSum = drillingAmtFull + materialsAmtFull;
+    const constructionTotal = Math.ceil(grossSum);
     
-    // Add the requested summary row
     rows.push({
         label: LABEL_CONSTRUCTION_TOTAL,
         qty: '---',
         rate: '---',
         unit: '',
-        amount: technicalSubTotal,
-        total: technicalSubTotal,
+        amount: constructionTotal,
+        total: constructionTotal,
         isSummary: true
     });
 
-    const grandTotal = technicalSubTotal; // In this context, the sum of items is the total to be billed
+    // Billable Amount Logic (What the department actually receives)
+    let billableDrillingAmt = drillingAmtFull;
+    if (isDryWellPrivate) {
+      billableDrillingAmt = Math.ceil(drillingAmtFull * 0.25);
+    } else if (isAgriSubsidy) {
+      billableDrillingAmt = Math.ceil(drillingAmtFull * 0.5);
+    }
+
+    const billableTotal = billableDrillingAmt + (isDryWellPrivate ? 0 : materialsAmtFull);
     const remitted = parseFloat(report.remittance || '0');
-    const balance = remitted - grandTotal;
+    const balance = remitted - billableTotal;
 
     return { 
         rows, 
-        grandTotal, 
+        billableTotal, 
         remitted, 
         balance, 
         isFlushing, 
         isDryWellPrivate, 
         isAgriSubsidy,
-        finalDrillingAmt,
         refDate
     };
   }, [report, cloudRates]);
@@ -322,7 +323,7 @@ function BillContent() {
               </thead>
               <tbody>
                 {calc.rows.map((row, i) => (
-                  <tr key={i} className={cn("min-h-[32px]", row.isSummary && "bg-slate-50 font-black")}>
+                  <tr key={i} className={cn("min-h-[32px]", row.isSummary && "bg-slate-50 font-black border-t-2 border-black")}>
                     <td className="border-r border-black p-2">{row.isSummary ? '' : i + 1}</td>
                     <td className="border-r border-black p-2 text-left font-bold relative">
                       {row.label}
@@ -330,15 +331,15 @@ function BillContent() {
                     </td>
                     <td className="border-r border-black p-2 font-bold">{row.isPlaceholder || row.isSummary ? '---' : row.qty}</td>
                     <td className="border-r border-black p-2 font-black">{row.isPlaceholder || row.isSummary ? '---' : (typeof row.rate === 'number' ? row.rate.toFixed(2) : row.rate)}</td>
-                    <td className="border-r border-black p-2 font-bold">₹ {row.isPlaceholder ? '---' : (row.amount || row.total).toFixed(2)}</td>
+                    <td className="border-r border-black p-2 font-bold">₹ {(row.amount || row.total).toFixed(2)}</td>
                   </tr>
                 ))}
                 {Array.from({ length: Math.max(0, 5 - calc.rows.length) }).map((_, idx) => (
                   <tr key={`empty-${idx}`} className="h-8">
-                    <td className="border-border p-2"></td>
-                    <td className="border-border p-2"></td>
-                    <td className="border-border p-2"></td>
-                    <td className="border-border p-2"></td>
+                    <td className="border-border p-2 border-r border-black"></td>
+                    <td className="border-border p-2 border-r border-black"></td>
+                    <td className="border-border p-2 border-r border-black"></td>
+                    <td className="border-border p-2 border-r border-black"></td>
                     <td className="border-border p-2"></td>
                   </tr>
                 ))}
@@ -356,7 +357,7 @@ function BillContent() {
                       }
                   </span>
                   <div className="text-right font-mono text-[13px]">
-                    <p>= {calc.finalDrillingAmt.toFixed(2)}/-</p>
+                    <p>= {calc.billableTotal.toFixed(2)}/-</p>
                   </div>
               </div>
             </div>
@@ -367,7 +368,7 @@ function BillContent() {
               <div className="grid grid-cols-[1fr_140px] border-b border-black">
                 <div className="border-r border-black p-2 px-4 text-right font-medium">മൊത്തം തുക :</div>
                 <div className="p-2 text-center">
-                  ₹ {calc.grandTotal.toFixed(2)}
+                  ₹ {calc.billableTotal.toFixed(2)}
                 </div>
               </div>
               <div className="grid grid-cols-[1fr_140px] border-b border-black">
