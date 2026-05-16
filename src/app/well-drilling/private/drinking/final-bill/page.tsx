@@ -58,9 +58,7 @@ function BillContent() {
     const normalizeDate = (d: string) => {
       if (!d) return '';
       const trimmed = d.trim();
-      // Handle YYYY-MM-DD
       if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
-      // Handle DD-MM-YYYY or DD/MM/YYYY
       const parts = trimmed.split(/[-/]/);
       if (parts.length === 3) {
         if (parts[2].length === 4) return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
@@ -69,27 +67,24 @@ function BillContent() {
       return trimmed;
     };
 
-    // Reference Date: Strictly use End Date (Opt) -> fallback to start or report date if missing
-    // We access report.endDate/startDate directly from the document fields
     const rawWorkEndDate = (report.endDate || report.startDate || report.reportDate || '').trim();
     const refDate = normalizeDate(rawWorkEndDate);
 
-    const findRate = (keywords: string[]) => {
+    const findRate = (searchLabel: string) => {
       if (!cloudRates?.services || !refDate) return null;
       
-      const normalizeKeyword = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
-      const normalizedKeywords = keywords.map(kw => normalizeKeyword(kw));
+      // Normalization keeps numbers, English letters, and Malayalam Unicode range
+      const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9\u0D00-\u0D7F]/g, ''); 
+      const target = normalize(searchLabel);
 
       for (const service of cloudRates.services) {
         for (const item of service.items) {
-          const normalizedItemName = normalizeKeyword(item.name);
-          const isMatch = normalizedKeywords.every(kw => normalizedItemName.includes(kw));
+          const catalogItemName = normalize(item.name);
           
-          if (isMatch) {
+          // Technical matching: label must be part of catalog name or vice-versa
+          if (catalogItemName.includes(target) || target.includes(catalogItemName)) {
             const from = item.dateFrom || '0000-00-00';
             const to = item.dateTo || '9999-99-99';
-            
-            // STRICT Date Range Matching: refDate >= from AND refDate <= to
             if (refDate >= from && refDate <= to) {
               return item.rate;
             }
@@ -99,32 +94,28 @@ function BillContent() {
       return null;
     };
 
-    const diameter = (report.borewellSize || '').match(/\d+/)?.[0] || '150';
-
-    const rawRates = {
-      drilling: findRate([diameter, 'Drilling']),
-      pvc6: findRate(['6kg']),
-      pvc10: findRate(['10kg']),
-      endCap: findRate(['End Cap']),
-      flushingMin: findRate(['Flushing'])
-    };
-
-    // Validation: Strict matching - if rate is null, return error context
-    if (!isFlushing && rawRates.drilling === null) return { error: true, refDate };
-    if (isFlushing && rawRates.flushingMin === null) return { error: true, refDate };
-
     let rows: any[] = [];
     let finalDrillingAmt = 0;
     
+    // Labels matching the Catalog strings exactly
+    const LABEL_DRILLING = 'ഡ്രില്ലിംഗ് നടത്തിയ ആകെ ആഴം';
+    const LABEL_FLUSHING = 'ഫ്ലഷിംഗ് നടത്തിയ ആകെ ആഴം';
+    const LABEL_PVC_6KG = '140 മി.മീ PVC PIPE (6KG/CM²)';
+    const LABEL_PVC_10KG = '140 മി.മീ PVC PIPE (10KG/CM²)';
+    const LABEL_END_CAP = 'END CAP';
+
     if (isFlushing) {
       const workingHoursStr = report.compressorWorkingHour || '2.5';
       const hours = parseFloat(workingHoursStr.replace(/[^0-9.]/g, '')) || 2.5;
-      const baseRate = rawRates.flushingMin!;
+      const baseRate = findRate(LABEL_FLUSHING);
+      
+      if (baseRate === null) return { error: true, refDate, missingItem: LABEL_FLUSHING };
+      
       const hourlyRate = baseRate / 2.5;
       const flushingCharge = hours > 2.5 ? (hourlyRate * hours) : baseRate;
 
       rows.push({ 
-        label: 'ഫ്ലഷിംഗ് നടത്തിയ ആകെ ആഴം', 
+        label: LABEL_FLUSHING, 
         qty: `${report.totalDepth || '0'} m`, 
         rate: flushingCharge, 
         unit: 'Lump Sum',
@@ -136,7 +127,10 @@ function BillContent() {
       finalDrillingAmt = flushingCharge;
     } else {
       const drillingQty = parseFloat(report.totalDepth || '0');
-      const baseRate = rawRates.drilling!;
+      const baseRate = findRate(LABEL_DRILLING);
+      
+      if (baseRate === null) return { error: true, refDate, missingItem: LABEL_DRILLING };
+      
       const baseDrillingAmt = drillingQty * baseRate;
       finalDrillingAmt = baseDrillingAmt;
       
@@ -147,7 +141,7 @@ function BillContent() {
       }
 
       rows.push({ 
-        label: 'ഡ്രില്ലിംഗ് നടത്തിയ ആകെ ആഴം', 
+        label: LABEL_DRILLING, 
         qty: `${drillingQty} m`, 
         rate: baseRate, 
         unit: 'm',
@@ -159,24 +153,27 @@ function BillContent() {
     if (!isDryWellPrivate) {
       const pvc6Qty = parseFloat(report.pvc6kg || '0');
       if (pvc6Qty > 0) {
-        if (rawRates.pvc6 === null) return { error: true, refDate };
-        const amt = pvc6Qty * rawRates.pvc6;
-        rows.push({ label: '140 മി.മീ PVC Pipe (6kg/cm²)', qty: `${pvc6Qty} m`, rate: rawRates.pvc6, unit: 'm', amount: amt, total: amt });
+        const rate = findRate(LABEL_PVC_6KG);
+        if (rate === null) return { error: true, refDate, missingItem: LABEL_PVC_6KG };
+        const amt = pvc6Qty * rate;
+        rows.push({ label: LABEL_PVC_6KG, qty: `${pvc6Qty} m`, rate: rate, unit: 'm', amount: amt, total: amt });
       }
       const pvc10Qty = parseFloat(report.pvc10kg || '0');
       if (pvc10Qty > 0) {
-        if (rawRates.pvc10 === null) return { error: true, refDate };
-        const amt = pvc10Qty * rawRates.pvc10;
-        rows.push({ label: '140 മി.മീ PVC Pipe (10kg/cm²)', qty: `${pvc10Qty} m`, rate: rawRates.pvc10, unit: 'm', amount: amt, total: amt });
+        const rate = findRate(LABEL_PVC_10KG);
+        if (rate === null) return { error: true, refDate, missingItem: LABEL_PVC_10KG };
+        const amt = pvc10Qty * rate;
+        rows.push({ label: LABEL_PVC_10KG, qty: `${pvc10Qty} m`, rate: rate, unit: 'm', amount: amt, total: amt });
       }
       if (pvc6Qty > 0 || pvc10Qty > 0) {
-        if (rawRates.endCap === null) return { error: true, refDate };
-        const amt = rawRates.endCap;
-        rows.push({ label: 'End Cap', qty: '1 No.', rate: rawRates.endCap, unit: 'No.', amount: amt, total: amt });
+        const rate = findRate(LABEL_END_CAP);
+        if (rate === null) return { error: true, refDate, missingItem: LABEL_END_CAP };
+        const amt = rate;
+        rows.push({ label: LABEL_END_CAP, qty: '1 No.', rate: rate, unit: 'No.', amount: amt, total: amt });
       }
     } else {
-        rows.push({ label: '140 മി.മീ PVC Pipe (6kg/cm²)', qty: '---', rate: '---', unit: 'm', amount: 0, total: 0, isPlaceholder: true });
-        rows.push({ label: 'End Cap', qty: '---', rate: '---', unit: 'No.', amount: 0, total: 0, isPlaceholder: true });
+        rows.push({ label: LABEL_PVC_6KG, qty: '---', rate: '---', unit: 'm', amount: 0, total: 0, isPlaceholder: true });
+        rows.push({ label: LABEL_END_CAP, qty: '---', rate: '---', unit: 'No.', amount: 0, total: 0, isPlaceholder: true });
     }
 
     const grandTotal = rows.reduce((sum, r) => sum + (r.isPlaceholder ? 0 : r.total), 0);
@@ -229,7 +226,7 @@ function BillContent() {
             <ShieldAlert className="size-6 text-rose-600" />
             <AlertTitle className="text-sm font-black uppercase tracking-tight ml-2">Rate Configuration Missing</AlertTitle>
             <AlertDescription className="text-xs font-bold text-rose-800 ml-2 mt-2 leading-relaxed">
-              No valid rate found for the selected End Date (Opt): <span className="underline">{calc.refDate}</span>. 
+              No valid rate found for the technical item: <span className="underline">{calc.missingItem}</span> on date: <span className="underline">{calc.refDate}</span>. 
               <br/>Please update the <strong>Services & Rates Catalog</strong> in the Administration panel to include a validity period for this date.
             </AlertDescription>
           </Alert>
@@ -309,23 +306,23 @@ function BillContent() {
               <tbody>
                 {calc.rows.map((row, i) => (
                   <tr key={i} className="min-h-[32px]">
-                    <td className="border border-black p-2">{i + 1}</td>
-                    <td className="border border-black p-2 text-left font-bold relative">
+                    <td className="border-r border-black p-2">{i + 1}</td>
+                    <td className="border-r border-black p-2 text-left font-bold relative">
                       {row.label}
                       {row.extraInfo && <span className="block text-[10px] font-normal italic mt-1">{row.extraInfo}</span>}
                     </td>
-                    <td className="border border-black p-2 font-bold">{row.isPlaceholder ? '---' : row.qty}</td>
-                    <td className="border border-black p-2 font-black">{row.isPlaceholder ? '---' : (typeof row.rate === 'number' ? row.rate.toFixed(2) : row.rate)}</td>
-                    <td className="border border-black p-2 font-bold">{row.isPlaceholder ? '---' : (row.amount || row.total).toFixed(2)}</td>
+                    <td className="border-r border-black p-2 font-bold">{row.isPlaceholder ? '---' : row.qty}</td>
+                    <td className="border-r border-black p-2 font-black">{row.isPlaceholder ? '---' : (typeof row.rate === 'number' ? row.rate.toFixed(2) : row.rate)}</td>
+                    <td className="border-r border-black p-2 font-bold">{row.isPlaceholder ? '---' : (row.amount || row.total).toFixed(2)}</td>
                   </tr>
                 ))}
                 {Array.from({ length: Math.max(0, 5 - calc.rows.length) }).map((_, idx) => (
                   <tr key={`empty-${idx}`} className="h-8">
-                    <td className="border border-black p-2"></td>
-                    <td className="border border-black p-2"></td>
-                    <td className="border border-black p-2"></td>
-                    <td className="border border-black p-2"></td>
-                    <td className="border border-black p-2"></td>
+                    <td className="border-border p-2"></td>
+                    <td className="border-border p-2"></td>
+                    <td className="border-border p-2"></td>
+                    <td className="border-border p-2"></td>
+                    <td className="border-border p-2"></td>
                   </tr>
                 ))}
               </tbody>
