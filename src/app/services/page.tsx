@@ -27,7 +27,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useUser, useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
+import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -529,38 +529,13 @@ export default function ServicesRatesCatalog() {
                                   <tr key={item.id} className="h-11 border-b border-slate-100 last:border-b-0">
                                     <td className="text-center font-bold text-slate-300 text-[10px] border-r">{iIdx + 1}</td>
                                     <td className="px-6 border-r">
-                                      {isAdmin ? (
-                                        <Input 
-                                          value={item.nameEn} 
-                                          onChange={(e) => updateItem(service.id, item.id, 'nameEn', e.target.value)}
-                                          className="h-8 text-xs border-slate-200 bg-white"
-                                        />
-                                      ) : (
-                                        <span className="text-[11px] font-bold text-slate-400 uppercase">{item.nameEn}</span>
-                                      )}
+                                      <span className="text-[11px] font-bold text-slate-400 uppercase">{item.nameEn}</span>
                                     </td>
                                     <td className="px-6 border-r">
-                                      {isAdmin ? (
-                                        <Input 
-                                          value={item.nameMl} 
-                                          onChange={(e) => updateItem(service.id, item.id, 'nameMl', e.target.value)}
-                                          className="h-8 text-xs font-bold border-slate-200 bg-white"
-                                        />
-                                      ) : (
-                                        <span className="text-[11px] font-bold text-slate-400">{item.nameMl}</span>
-                                      )}
+                                      <span className="text-[11px] font-bold text-slate-400">{item.nameMl}</span>
                                     </td>
                                     <td className="text-right pr-6 border-r">
-                                      {isAdmin ? (
-                                        <Input 
-                                          type="number" 
-                                          value={item.rate} 
-                                          onChange={(e) => updateItem(service.id, item.id, 'rate', parseFloat(e.target.value) || 0)}
-                                          className="h-8 w-24 text-right text-xs font-black text-slate-400 bg-white"
-                                        />
-                                      ) : (
-                                        <span className="text-[11px] font-bold text-slate-400">₹{item.rate.toLocaleString('en-IN')}</span>
-                                      )}
+                                      <span className="text-[11px] font-bold text-slate-400">₹{item.rate.toLocaleString('en-IN')}</span>
                                     </td>
                                     <td className="border-r px-2">
                                       {isAdmin ? (
@@ -644,3 +619,4 @@ export default function ServicesRatesCatalog() {
     </div>
   );
 }
+
