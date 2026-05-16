@@ -528,11 +528,64 @@ export default function ServicesRatesCatalog() {
                                 {previousItems.map((item: any, iIdx: number) => (
                                   <tr key={item.id} className="h-11 border-b border-slate-100 last:border-b-0">
                                     <td className="text-center font-bold text-slate-300 text-[10px] border-r">{iIdx + 1}</td>
-                                    <td className="px-6 border-r text-[11px] font-bold text-slate-400 uppercase">{item.nameEn}</td>
-                                    <td className="px-6 border-r text-[11px] font-bold text-slate-400">{item.nameMl}</td>
-                                    <td className="text-right pr-6 border-r text-[11px] font-bold text-slate-400">₹{item.rate.toLocaleString('en-IN')}</td>
-                                    <td className="border-r px-2 text-center text-[9px] font-medium text-slate-400">{item.dateFrom}</td>
-                                    <td className="border-r px-2 text-center text-[9px] font-medium text-slate-400">{item.dateTo}</td>
+                                    <td className="px-6 border-r">
+                                      {isAdmin ? (
+                                        <Input 
+                                          value={item.nameEn} 
+                                          onChange={(e) => updateItem(service.id, item.id, 'nameEn', e.target.value)}
+                                          className="h-8 text-xs border-slate-200 bg-white"
+                                        />
+                                      ) : (
+                                        <span className="text-[11px] font-bold text-slate-400 uppercase">{item.nameEn}</span>
+                                      )}
+                                    </td>
+                                    <td className="px-6 border-r">
+                                      {isAdmin ? (
+                                        <Input 
+                                          value={item.nameMl} 
+                                          onChange={(e) => updateItem(service.id, item.id, 'nameMl', e.target.value)}
+                                          className="h-8 text-xs font-bold border-slate-200 bg-white"
+                                        />
+                                      ) : (
+                                        <span className="text-[11px] font-bold text-slate-400">{item.nameMl}</span>
+                                      )}
+                                    </td>
+                                    <td className="text-right pr-6 border-r">
+                                      {isAdmin ? (
+                                        <Input 
+                                          type="number" 
+                                          value={item.rate} 
+                                          onChange={(e) => updateItem(service.id, item.id, 'rate', parseFloat(e.target.value) || 0)}
+                                          className="h-8 w-24 text-right text-xs font-black text-slate-400 bg-white"
+                                        />
+                                      ) : (
+                                        <span className="text-[11px] font-bold text-slate-400">₹{item.rate.toLocaleString('en-IN')}</span>
+                                      )}
+                                    </td>
+                                    <td className="border-r px-2">
+                                      {isAdmin ? (
+                                        <Input 
+                                          type="date" 
+                                          value={item.dateFrom || ''} 
+                                          onChange={(e) => updateItem(service.id, item.id, 'dateFrom', e.target.value)} 
+                                          className="h-8 text-[9px] px-1 border-slate-200 bg-white" 
+                                        />
+                                      ) : (
+                                        <span className="text-center block text-[9px] font-medium text-slate-400">{item.dateFrom}</span>
+                                      )}
+                                    </td>
+                                    <td className="border-r px-2">
+                                      {isAdmin ? (
+                                        <Input 
+                                          type="date" 
+                                          value={item.dateTo || ''} 
+                                          onChange={(e) => updateItem(service.id, item.id, 'dateTo', e.target.value)} 
+                                          className="h-8 text-[9px] px-1 border-slate-200 bg-white" 
+                                        />
+                                      ) : (
+                                        <span className="text-center block text-[9px] font-medium text-slate-400">{item.dateTo}</span>
+                                      )}
+                                    </td>
                                     {isAdmin && (
                                       <td className="px-2 text-center">
                                         <div className="flex items-center justify-center gap-1">
