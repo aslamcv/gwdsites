@@ -10,7 +10,6 @@ import { doc } from 'firebase/firestore';
 import type { GroundwaterReport } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 function numberToMalayalamWords(num: number): string {
   if (num <= 0) return 'പൂജ്യം രൂപ മാത്രം';
@@ -80,7 +79,6 @@ function BillContent() {
           const catalogItemNameMl = normalizeStr(item.nameMl || '');
           const catalogItemNameEn = normalizeStr(item.nameEn || '');
           
-          // CRITICAL: Use EXACT matching on normalized technical labels
           if (catalogItemNameMl === target || catalogItemNameEn === target) {
             const from = item.dateFrom || '0000-00-00';
             const to = item.dateTo || '9999-99-99';
@@ -172,7 +170,6 @@ function BillContent() {
         rows.push({ label: LABEL_END_CAP, qty: '---', rate: '---', unit: 'No.', amount: 0, total: 0, isPlaceholder: true });
     }
 
-    // Gross Construction Total (Rounded to next higher integer)
     const grossSum = drillingAmtFull + materialsAmtFull;
     const constructionTotal = Math.ceil(grossSum);
     
@@ -186,7 +183,6 @@ function BillContent() {
         isSummary: true
     });
 
-    // Billable Amount Logic (What the department actually receives)
     let billableDrillingAmt = drillingAmtFull;
     if (isDryWellPrivate) {
       billableDrillingAmt = Math.ceil(drillingAmtFull * 0.25);
@@ -194,7 +190,7 @@ function BillContent() {
       billableDrillingAmt = Math.ceil(drillingAmtFull * 0.5);
     }
 
-    const billableTotal = billableDrillingAmt + (isDryWellPrivate ? 0 : materialsAmtFull);
+    const billableTotal = Math.ceil(billableDrillingAmt + (isDryWellPrivate ? 0 : materialsAmtFull));
     const remitted = parseFloat(report.remittance || '0');
     const balance = remitted - billableTotal;
 
@@ -312,7 +308,7 @@ function BillContent() {
           <div className="mb-4 text-left">
             <table className="w-full border-collapse border border-black text-center text-[12px]">
               <thead className="bg-slate-50">
-                <tr className="font-bold h-10">
+                <tr className="font-bold h-10 border-b border-black">
                   <th className="border-r border-black p-2 w-12">ക്ര.നം</th>
                   <th className="border-r border-black p-2 text-left">ഇനം</th>
                   <th className="border-r border-black p-2 w-24">അളവ്</th>
@@ -322,7 +318,7 @@ function BillContent() {
               </thead>
               <tbody>
                 {calc.rows.map((row, i) => (
-                  <tr key={i} className={cn("min-h-[32px]", row.isSummary && "bg-slate-50 font-black border-t border-black")}>
+                  <tr key={i} className={cn("min-h-[32px]", i === 0 && "border-t border-black", row.isSummary && "bg-slate-50 font-black border-t border-black")}>
                     <td className="border-r border-black p-2">{row.isSummary ? '' : i + 1}</td>
                     <td className="border-r border-black p-2 text-left font-bold relative">
                       {row.label}
@@ -355,7 +351,7 @@ function BillContent() {
                           : "ഡ്രില്ലിംഗ് ചാർജ്ജ് സബ് സിഡി തുക( 50%)"
                       }
                   </span>
-                  <div className="text-right font-mono text-[13px]">
+                  <div className={cn("text-right font-mono text-[13px]", calc.isAgriSubsidy && "text-red-600")}>
                     <p>= {calc.billableTotal.toFixed(2)}/-</p>
                   </div>
               </div>
