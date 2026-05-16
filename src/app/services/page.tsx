@@ -53,7 +53,7 @@ const INITIAL_SERVICES_DATA = [
     id: "ds",
     title: "Drilling Services",
     items: [
-      { id: "ds-1", name: "110 mm Borewell Drilling", rate: 390, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "ds-1", name: "110 mm Borewell Drilling", rate: 300, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
       { id: "ds-2", name: "150 mm Borewell Drilling", rate: 665, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
       { id: "ds-3", name: "200 mm Tubewell Construction", rate: 2980, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
       { id: "ds-4", name: "Overburden Drilling (Casing)", rate: 450, dateFrom: '2024-04-01', dateTo: '2025-03-31' },

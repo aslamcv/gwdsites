@@ -47,7 +47,7 @@ function BillContent() {
                        report.category?.toLowerCase().includes('flushing');
 
     const yieldStatus = (report.remarks || '').toLowerCase().trim();
-    const isDryWell = yieldStatus === 'dry well' || yieldStatus === 'dry';
+    const isDryWell = yieldStatus === 'dry well' || yieldStatus === 'dry' || yieldStatus === 'collapsed well' || yieldStatus === 'collapsed';
     const isPrivate = report.sector?.toLowerCase() === 'private';
     const isAgri = (report.subCategory || report.category)?.toLowerCase() === 'agriculture';
 
@@ -57,10 +57,6 @@ function BillContent() {
     // Target Date for rate lookup (Prefer End Date)
     const targetDate = report.dateOfInvestigation?.split(' - ')[1] || report.reportDate || report.createdAt?.split('T')[0] || '';
 
-    /**
-     * Resilient Rate Lookup Engine
-     * Handles diameter extraction and ignores formatting differences (110mm vs 110 mm)
-     */
     const findRate = (keywords: string[], fallback: number) => {
       if (!cloudRates?.services) return fallback;
       
@@ -70,7 +66,6 @@ function BillContent() {
       for (const service of cloudRates.services) {
         for (const item of service.items) {
           const normalizedItem = normalize(item.name);
-          // Match if ALL keywords are found in the normalized item name
           const isMatch = normalizedKeywords.every(kw => normalizedItem.includes(kw));
           
           if (isMatch) {
@@ -85,11 +80,10 @@ function BillContent() {
       return fallback;
     };
 
-    // Extract diameter number for precision (e.g. "110" from "110mm (4.5\")")
     const diameter = (report.borewellSize || '').match(/\d+/)?.[0] || '150';
 
     const rates = {
-      drilling: findRate([diameter, 'Drilling'], 390),
+      drilling: findRate([diameter, 'Drilling'], 300),
       pvc6: findRate(['6kg'], 566.56),
       pvc10: findRate(['10kg'], 879.01),
       endCap: findRate(['End Cap'], 87.59),
