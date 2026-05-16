@@ -4,14 +4,14 @@
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Printer, ArrowLeft, AlertCircle } from 'lucide-react';
+import { Printer, ArrowLeft, AlertCircle, ShieldAlert } from 'lucide-react';
 import Link from 'next/link';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { GroundwaterReport } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 function numberToMalayalamWords(num: number): string {
   if (num <= 0) return 'പൂജ്യം രൂപ മാത്രം';
@@ -67,79 +67,60 @@ function BillContent() {
       return trimmed;
     };
 
-    // Determine the raw end date of work
+    // Reference Date: Strictly use End Date (Opt)
     const dateOfInvestigation = report.dateOfInvestigation || '';
     const dateParts = dateOfInvestigation.split(/\s*[–-]\s*/);
-    const rawWorkDate = (dateParts[1] || dateParts[0] || report.reportDate || '').trim();
-    const workDateNormalized = normalizeDate(rawWorkDate);
+    const rawWorkEndDate = (dateParts[1] || dateParts[0] || report.reportDate || '').trim();
+    const refDate = normalizeDate(rawWorkEndDate);
 
-    // Determine the latest available date in the catalog to handle future dates
-    let maxCatalogDate = '0000-00-00';
-    if (cloudRates?.services) {
-      cloudRates.services.forEach((s: any) => s.items.forEach((i: any) => {
-        if (i.dateTo && i.dateTo > maxCatalogDate && i.dateTo !== '9999-99-99') maxCatalogDate = i.dateTo;
-      }));
-    }
-
-    // Capping Logic: If work is in the future relative to catalog, use the catalog's end date
-    const effectiveLookupDate = (workDateNormalized > maxCatalogDate && maxCatalogDate !== '0000-00-00') 
-      ? maxCatalogDate 
-      : workDateNormalized;
-
-    const findRate = (keywords: string[], fallback: number) => {
-      if (!cloudRates?.services) return fallback;
+    const findRate = (keywords: string[]) => {
+      if (!cloudRates?.services || !refDate) return null;
       
       const normalizeKeyword = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
       const normalizedKeywords = keywords.map(kw => normalizeKeyword(kw));
 
-      let bestMatchRate = null;
-      let latestStartDate = '0000-00-00';
-
       for (const service of cloudRates.services) {
         for (const item of service.items) {
-          const normalizedItem = normalizeKeyword(item.name);
-          const isMatch = normalizedKeywords.every(kw => normalizedItem.includes(kw));
+          const normalizedItemName = normalizeKeyword(item.name);
+          const isMatch = normalizedKeywords.every(kw => normalizedItemName.includes(kw));
           
           if (isMatch) {
             const from = item.dateFrom || '0000-00-00';
             const to = item.dateTo || '9999-99-99';
             
-            // Exact fiscal range match
-            if (effectiveLookupDate >= from && effectiveLookupDate <= to) {
+            // STRICT Range Match: No fallbacks or caps
+            if (refDate >= from && refDate <= to) {
               return item.rate;
-            }
-
-            // Fallback to most recent rate for this technical item
-            if (from > latestStartDate) {
-              latestStartDate = from;
-              bestMatchRate = item.rate;
             }
           }
         }
       }
-      
-      return bestMatchRate !== null ? bestMatchRate : fallback;
+      return null;
     };
 
     const diameter = (report.borewellSize || '').match(/\d+/)?.[0] || '150';
 
-    const rates = {
-      drilling: findRate([diameter, 'Drilling'], 300),
-      pvc6: findRate(['6kg'], 566.56),
-      pvc10: findRate(['10kg'], 879.01),
-      endCap: findRate(['End Cap'], 87.59),
-      flushingMin: findRate(['Flushing'], 5790.00)
+    const rawRates = {
+      drilling: findRate([diameter, 'Drilling']),
+      pvc6: findRate(['6kg']),
+      pvc10: findRate(['10kg']),
+      endCap: findRate(['End Cap']),
+      flushingMin: findRate(['Flushing'])
     };
 
+    // Check if required rates are found
+    if (!isFlushing && rawRates.drilling === null) return { error: true, refDate };
+    if (isFlushing && rawRates.flushingMin === null) return { error: true, refDate };
+
     let rows: any[] = [];
-    let baseDrillingAmt = 0;
     let finalDrillingAmt = 0;
     
     if (isFlushing) {
       const workingHoursStr = report.compressorWorkingHour || '2.5';
       const hours = parseFloat(workingHoursStr.replace(/[^0-9.]/g, '')) || 2.5;
-      const hourlyRate = rates.flushingMin / 2.5;
-      const flushingCharge = hours > 2.5 ? (hourlyRate * hours) : rates.flushingMin;
+      const baseRate = rawRates.flushingMin!;
+      const hourlyRate = baseRate / 2.5;
+      const flushingCharge = hours > 2.5 ? (hourlyRate * hours) : baseRate;
 
       rows.push({ 
         label: 'ഫ്ലഷിംഗ് നടത്തിയ ആകെ ആഴം', 
@@ -154,7 +135,8 @@ function BillContent() {
       finalDrillingAmt = flushingCharge;
     } else {
       const drillingQty = parseFloat(report.totalDepth || '0');
-      baseDrillingAmt = drillingQty * rates.drilling;
+      const baseRate = rawRates.drilling!;
+      const baseDrillingAmt = drillingQty * baseRate;
       finalDrillingAmt = baseDrillingAmt;
       
       if (isDryWellPrivate) {
@@ -166,7 +148,7 @@ function BillContent() {
       rows.push({ 
         label: 'ഡ്രില്ലിംഗ് നടത്തിയ ആകെ ആഴം', 
         qty: `${drillingQty} m`, 
-        rate: rates.drilling, 
+        rate: baseRate, 
         unit: 'm',
         amount: baseDrillingAmt,
         total: finalDrillingAmt 
@@ -176,17 +158,20 @@ function BillContent() {
     if (!isDryWellPrivate) {
       const pvc6Qty = parseFloat(report.pvc6kg || '0');
       if (pvc6Qty > 0) {
-        const amt = pvc6Qty * rates.pvc6;
-        rows.push({ label: '140 മി.മീ PVC Pipe (6kg/cm²)', qty: `${pvc6Qty} m`, rate: rates.pvc6, unit: 'm', amount: amt, total: amt });
+        if (rawRates.pvc6 === null) return { error: true, refDate };
+        const amt = pvc6Qty * rawRates.pvc6;
+        rows.push({ label: '140 മി.മീ PVC Pipe (6kg/cm²)', qty: `${pvc6Qty} m`, rate: rawRates.pvc6, unit: 'm', amount: amt, total: amt });
       }
       const pvc10Qty = parseFloat(report.pvc10kg || '0');
       if (pvc10Qty > 0) {
-        const amt = pvc10Qty * rates.pvc10;
-        rows.push({ label: '140 മി.മീ PVC Pipe (10kg/cm²)', qty: `${pvc10Qty} m`, rate: rates.pvc10, unit: 'm', amount: amt, total: amt });
+        if (rawRates.pvc10 === null) return { error: true, refDate };
+        const amt = pvc10Qty * rawRates.pvc10;
+        rows.push({ label: '140 മി.മീ PVC Pipe (10kg/cm²)', qty: `${pvc10Qty} m`, rate: rawRates.pvc10, unit: 'm', amount: amt, total: amt });
       }
       if (pvc6Qty > 0 || pvc10Qty > 0) {
-        const amt = rates.endCap;
-        rows.push({ label: 'End Cap', qty: '1 No.', rate: rates.endCap, unit: 'No.', amount: amt, total: amt });
+        if (rawRates.endCap === null) return { error: true, refDate };
+        const amt = rawRates.endCap;
+        rows.push({ label: 'End Cap', qty: '1 No.', rate: rawRates.endCap, unit: 'No.', amount: amt, total: amt });
       }
     } else {
         rows.push({ label: '140 മി.മീ PVC Pipe (6kg/cm²)', qty: '---', rate: '---', unit: 'm', amount: 0, total: 0, isPlaceholder: true });
@@ -205,9 +190,8 @@ function BillContent() {
         isFlushing, 
         isDryWellPrivate, 
         isAgriSubsidy,
-        baseDrillingAmt,
         finalDrillingAmt,
-        effectiveLookupDate
+        refDate
     };
   }, [report, cloudRates]);
 
@@ -231,158 +215,173 @@ function BillContent() {
                 Back to Portal
               </Link>
             </Button>
-            <Button onClick={() => window.print()} className="gap-2 font-bold bg-[#1e3a8a] text-white h-8 text-xs px-6 rounded-lg">
-              <Printer className="h-3 w-3" />
-              Print Final Bill
-            </Button>
+            {!calc.error && (
+              <Button onClick={() => window.print()} className="gap-2 font-bold bg-[#1e3a8a] text-white h-8 text-xs px-6 rounded-lg">
+                <Printer className="h-3 w-3" />
+                Print Final Bill
+              </Button>
+            )}
         </div>
-        <Alert className="bg-blue-50 border-blue-200 py-3 rounded-xl">
-            <AlertCircle className="size-4 text-blue-600" />
-            <AlertDescription className="text-[11px] font-black text-blue-800 uppercase tracking-tight">
-                BILLING RATES APPLIED BASED ON EFFECTIVE TECHNICAL DATE: {calc.effectiveLookupDate}
+        
+        {calc.error ? (
+          <Alert variant="destructive" className="bg-rose-50 border-rose-200 py-6 rounded-2xl animate-in fade-in zoom-in duration-300">
+            <ShieldAlert className="size-6 text-rose-600" />
+            <AlertTitle className="text-sm font-black uppercase tracking-tight ml-2">Rate Configuration Missing</AlertTitle>
+            <AlertDescription className="text-xs font-bold text-rose-800 ml-2 mt-2 leading-relaxed">
+              No valid rate found for the selected End Date: <span className="underline">{calc.refDate}</span>. 
+              <br/>Please update the <strong>Services & Rates Catalog</strong> in the Administration panel to include a validity period for this date.
             </AlertDescription>
-        </Alert>
+          </Alert>
+        ) : (
+          <Alert className="bg-blue-50 border-blue-200 py-3 rounded-xl">
+              <AlertCircle className="size-4 text-blue-600" />
+              <AlertDescription className="text-[11px] font-black text-blue-800 uppercase tracking-tight">
+                  Rate applied based on End Date (Opt): {calc.refDate}
+              </AlertDescription>
+          </Alert>
+        )}
       </div>
 
-      <div className="bg-white mx-auto w-[210mm] min-h-[297mm] shadow-xl print:shadow-none p-[15mm] flex flex-col text-[13px] leading-tight text-black border border-slate-200 print:border-none overflow-hidden relative">
-        
-        <div className="absolute top-10 left-10 text-left uppercase">
-          <p className="text-[12px] font-black text-black leading-none">
-            ({report.wellNumber || 'WELL NUMBER'})
-          </p>
-        </div>
-
-        <div className="absolute top-10 right-10 text-right uppercase">
-          <p className="text-[12px] font-bold text-black leading-none">
-            {(report.sector || 'PRIVATE').toUpperCase()}/{(report.subCategory || report.category || (calc.isFlushing ? 'FLUSHING' : 'DRILLING')).toUpperCase()}
-          </p>
-        </div>
-
-        <div className="flex justify-between items-start mb-4">
-          <div className="text-center flex-1 pr-4 pl-12">
-            <h1 className="text-[18px] font-bold">ഭൂജല വകുപ്പ്, ജില്ലാ ഓഫീസ്, മലപ്പുറം</h1>
-            <h2 className="text-[14px] font-bold underline underline-offset-4 decoration-1 uppercase">
-              അന്തിമ ബിൽ ({report.borewellSize || '150 മി.മീ.'}) - {calc.isFlushing ? 'കുഴൽ കിണർ ഫ്ലഷിംഗ്' : 'കുഴൽ കിണർ നിർമ്മാണം'}
-            </h2>
+      {!calc.error && (
+        <div className="bg-white mx-auto w-[210mm] min-h-[297mm] shadow-xl print:shadow-none p-[15mm] flex flex-col text-[13px] leading-tight text-black border border-slate-200 print:border-none overflow-hidden relative">
+          
+          <div className="absolute top-10 left-10 text-left uppercase">
+            <p className="text-[12px] font-black text-black leading-none">
+              ({report.wellNumber || 'WELL NUMBER'})
+            </p>
           </div>
-          <div className="text-right text-[10px] leading-tight font-bold italic w-[180px]">
-            <p>District Office</p>
-            <p>Ground Water Department,</p>
-            <p>B1-block, Civil Station,</p>
-            <p>Malappuram - 676505</p>
+
+          <div className="absolute top-10 right-10 text-right uppercase">
+            <p className="text-[12px] font-bold text-black leading-none">
+              {(report.sector || 'PRIVATE').toUpperCase()}/{(report.subCategory || report.category || (calc.isFlushing ? 'FLUSHING' : 'DRILLING')).toUpperCase()}
+            </p>
           </div>
-        </div>
 
-        <div className="grid grid-cols-2 border border-black mb-4 text-[14px] text-left">
-          <div className="border-r border-black p-2 px-4">ഫയൽ നമ്പർ: <span className="font-bold ml-2">{report.fileNo}</span></div>
-          <div className="p-2 px-4 text-right">തീയതി: <span className="font-bold ml-2">{report.reportDate}</span></div>
-        </div>
-
-        <div className="mb-4 text-left">
-          <div className="border border-black text-[14px]">
-            <div className="grid grid-cols-[200px_1fr] border-b border-black">
-              <div className="border-r border-black p-2 px-4 font-bold bg-slate-50 text-[11px] uppercase">സൈറ്റിന്റെ പേര്</div>
-              <div className="p-2 px-4 font-bold uppercase">{report.nameOfSite}</div>
+          <div className="flex justify-between items-start mb-4">
+            <div className="text-center flex-1 pr-4 pl-12">
+              <h1 className="text-[18px] font-bold">ഭൂജല വകുപ്പ്, ജില്ലാ ഓഫീസ്, മലപ്പുറം</h1>
+              <h2 className="text-[14px] font-bold underline underline-offset-4 decoration-1 uppercase">
+                അന്തിമ ബിൽ ({report.borewellSize || '150 മി.മീ.'}) - {calc.isFlushing ? 'കുഴൽ കിണർ ഫ്ലഷിംഗ്' : 'കുഴൽ കിണർ നിർമ്മാണം'}
+              </h2>
             </div>
-            <div className="grid grid-cols-[200px_1fr] border-b border-black">
-              <div className="border-r border-black p-2 px-4 font-bold bg-slate-50 text-[11px] uppercase">പഞ്ചായത്ത് / നഗരസഭ</div>
-              <div className="p-2 px-4 font-bold uppercase">{report.lsgd}</div>
-            </div>
-            <div className="grid grid-cols-[200px_1fr]">
-              <div className="border-r border-black p-2 px-4 font-bold bg-slate-50 text-[11px] uppercase">വിലാസം</div>
-              <div className="p-2 px-4 font-bold uppercase truncate">{report.address}</div>
+            <div className="text-right text-[10px] leading-tight font-bold italic w-[180px]">
+              <p>District Office</p>
+              <p>Ground Water Department,</p>
+              <p>B1-block, Civil Station,</p>
+              <p>Malappuram - 676505</p>
             </div>
           </div>
-        </div>
 
-        <div className="mb-4 text-left">
-          <table className="w-full border-collapse border border-black text-center text-[12px]">
-            <thead className="bg-slate-50">
-              <tr className="font-bold h-10">
-                <th className="border border-black p-2 w-12">ക്ര.നം</th>
-                <th className="border border-black p-2 text-left">ഇനം</th>
-                <th className="border border-black p-2 w-24">അളവ്</th>
-                <th className="border border-black p-2 w-24">നിരക്ക്</th>
-                <th className="border border-black p-2 w-32">ആകെ തുക</th>
-              </tr>
-            </thead>
-            <tbody>
-              {calc.rows.map((row, i) => (
-                <tr key={i} className="min-h-[32px]">
-                  <td className="border border-black p-2">{i + 1}</td>
-                  <td className="border border-black p-2 text-left font-bold relative">
-                    {row.label}
-                    {row.extraInfo && <span className="block text-[10px] font-normal italic mt-1">{row.extraInfo}</span>}
-                  </td>
-                  <td className="border border-black p-2 font-bold">{row.isPlaceholder ? '---' : row.qty}</td>
-                  <td className="border border-black p-2 font-black">{row.isPlaceholder ? '---' : (typeof row.rate === 'number' ? row.rate.toFixed(2) : row.rate)}</td>
-                  <td className="border border-black p-2 font-bold">{row.isPlaceholder ? '---' : (row.amount || row.total).toFixed(2)}</td>
-                </tr>
-              ))}
-              {Array.from({ length: Math.max(0, 5 - calc.rows.length) }).map((_, idx) => (
-                <tr key={`empty-${idx}`} className="h-8">
-                  <td className="border border-black p-2"></td>
-                  <td className="border border-black p-2"></td>
-                  <td className="border border-black p-2"></td>
-                  <td className="border border-black p-2"></td>
-                  <td className="border border-black p-2"></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {(calc.isDryWellPrivate || calc.isAgriSubsidy) && (
-          <div className="mb-4 p-4 border-x border-b border-black text-left font-bold text-[11.5px] leading-tight">
-             <div className="flex justify-between items-start">
-                <span className={cn("max-w-[400px]", calc.isAgriSubsidy && "text-red-600")}>
-                    {calc.isDryWellPrivate 
-                        ? "കുഴൽ കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് വകുപ്പിന് ലഭിക്കേണ്ട തുക (ഡ്രില്ലിംഗ് ചാർജിന്റെ 25%):"
-                        : "ഡ്രില്ലിംഗ് ചാർജ്ജ് സബ് സിഡി തുക( 50%)"
-                    }
-                </span>
-                <div className="text-right font-mono text-[13px]">
-                  {calc.isAgriSubsidy && <p>= {calc.baseDrillingAmt.toFixed(2)} / 2</p>}
-                  <p className={cn(calc.isAgriSubsidy && "border-t border-black mt-1 font-black")}>= {calc.finalDrillingAmt.toFixed(2)}/-</p>
-                </div>
-             </div>
+          <div className="grid grid-cols-2 border border-black mb-4 text-[14px] text-left">
+            <div className="border-r border-black p-2 px-4">ഫയൽ നമ്പർ: <span className="font-bold ml-2">{report.fileNo}</span></div>
+            <div className="p-2 px-4 text-right">തീയതി: <span className="font-bold ml-2">{report.reportDate}</span></div>
           </div>
-        )}
 
-        <div className="flex justify-end mb-6 text-left">
-          <div className="w-[400px] border border-black font-bold text-[14px]">
-            <div className="grid grid-cols-[1fr_140px] border-b border-black">
-              <div className="border-r border-black p-2 px-4 text-right font-medium">മൊത്തം തുക :</div>
-              <div className="p-2 text-center">
-                ₹ {calc.grandTotal.toFixed(2)}
+          <div className="mb-4 text-left">
+            <div className="border border-black text-[14px]">
+              <div className="grid grid-cols-[200px_1fr] border-b border-black">
+                <div className="border-r border-black p-2 px-4 font-bold bg-slate-50 text-[11px] uppercase">സൈറ്റിന്റെ പേര്</div>
+                <div className="p-2 px-4 font-bold uppercase">{report.nameOfSite}</div>
+              </div>
+              <div className="grid grid-cols-[200px_1fr] border-b border-black">
+                <div className="border-r border-black p-2 px-4 font-bold bg-slate-50 text-[11px] uppercase">പഞ്ചായത്ത് / നഗരസഭ</div>
+                <div className="p-2 px-4 font-bold uppercase">{report.lsgd}</div>
+              </div>
+              <div className="grid grid-cols-[200px_1fr]">
+                <div className="border-r border-black p-2 px-4 font-bold bg-slate-50 text-[11px] uppercase">വിലാസം</div>
+                <div className="p-2 px-4 font-bold uppercase truncate">{report.address}</div>
               </div>
             </div>
-            <div className="grid grid-cols-[1fr_140px] border-b border-black">
-              <div className="border-r border-black p-2 px-4 text-right uppercase text-[10px]">Total Amount Remitted :</div>
-              <div className="p-2 text-center font-black">₹ {calc.remitted.toFixed(2)}</div>
+          </div>
+
+          <div className="mb-4 text-left">
+            <table className="w-full border-collapse border border-black text-center text-[12px]">
+              <thead className="bg-slate-50">
+                <tr className="font-bold h-10">
+                  <th className="border border-black p-2 w-12">ക്ര.നം</th>
+                  <th className="border border-black p-2 text-left">ഇനം</th>
+                  <th className="border border-black p-2 w-24">അളവ്</th>
+                  <th className="border border-black p-2 w-24">നിരക്ക്</th>
+                  <th className="border border-black p-2 w-32">ആകെ തുക</th>
+                </tr>
+              </thead>
+              <tbody>
+                {calc.rows.map((row, i) => (
+                  <tr key={i} className="min-h-[32px]">
+                    <td className="border border-black p-2">{i + 1}</td>
+                    <td className="border border-black p-2 text-left font-bold relative">
+                      {row.label}
+                      {row.extraInfo && <span className="block text-[10px] font-normal italic mt-1">{row.extraInfo}</span>}
+                    </td>
+                    <td className="border border-black p-2 font-bold">{row.isPlaceholder ? '---' : row.qty}</td>
+                    <td className="border border-black p-2 font-black">{row.isPlaceholder ? '---' : (typeof row.rate === 'number' ? row.rate.toFixed(2) : row.rate)}</td>
+                    <td className="border border-black p-2 font-bold">{row.isPlaceholder ? '---' : (row.amount || row.total).toFixed(2)}</td>
+                  </tr>
+                ))}
+                {Array.from({ length: Math.max(0, 5 - calc.rows.length) }).map((_, idx) => (
+                  <tr key={`empty-${idx}`} className="h-8">
+                    <td className="border border-black p-2"></td>
+                    <td className="border border-black p-2"></td>
+                    <td className="border border-black p-2"></td>
+                    <td className="border border-black p-2"></td>
+                    <td className="border border-black p-2"></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {(calc.isDryWellPrivate || calc.isAgriSubsidy) && (
+            <div className="mb-4 p-4 border-x border-b border-black text-left font-bold text-[11.5px] leading-tight">
+              <div className="flex justify-between items-start">
+                  <span className={cn("max-w-[400px]", calc.isAgriSubsidy && "text-red-600")}>
+                      {calc.isDryWellPrivate 
+                          ? "കുഴൽ കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് വകുപ്പിന് ലഭിക്കേണ്ട തുക (ഡ്രില്ലിംഗ് ചാർജിന്റെ 25%):"
+                          : "ഡ്രില്ലിംഗ് ചാർജ്ജ് സബ് സിഡി തുക( 50%)"
+                      }
+                  </span>
+                  <div className="text-right font-mono text-[13px]">
+                    <p>= {calc.finalDrillingAmt.toFixed(2)}/-</p>
+                  </div>
+              </div>
             </div>
-            <div className="grid grid-cols-[1fr_140px] border-b border-black bg-slate-50">
-              <div className="border-r border-black p-2 px-4 text-right">അപേക്ഷകന് തിരികെ നൽകേണ്ട തുക :</div>
-              <div className="p-2 text-center font-black text-primary">₹ {calc.balance.toFixed(2)}</div>
-            </div>
-            <div className="p-2 px-4 text-right italic font-normal text-[11px] leading-tight">
-              {numberToMalayalamWords(calc.balance)}
+          )}
+
+          <div className="flex justify-end mb-6 text-left">
+            <div className="w-[400px] border border-black font-bold text-[14px]">
+              <div className="grid grid-cols-[1fr_140px] border-b border-black">
+                <div className="border-r border-black p-2 px-4 text-right font-medium">മൊത്തം തുക :</div>
+                <div className="p-2 text-center">
+                  ₹ {calc.grandTotal.toFixed(2)}
+                </div>
+              </div>
+              <div className="grid grid-cols-[1fr_140px] border-b border-black">
+                <div className="border-r border-black p-2 px-4 text-right uppercase text-[10px]">Total Amount Remitted :</div>
+                <div className="p-2 text-center font-black">₹ {calc.remitted.toFixed(2)}</div>
+              </div>
+              <div className="grid grid-cols-[1fr_140px] border-b border-black bg-slate-50">
+                <div className="border-r border-black p-2 px-4 text-right">അപേക്ഷകന് തിരികെ നൽകേണ്ട തുക :</div>
+                <div className="p-2 text-center font-black text-primary">₹ {calc.balance.toFixed(2)}</div>
+              </div>
+              <div className="p-2 px-4 text-right italic font-normal text-[11px] leading-tight">
+                {numberToMalayalamWords(calc.balance)}
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="flex flex-col items-end pt-6 text-left">
-          <div className="text-center min-w-[200px]">
-            <div className="h-20 w-full"></div>
-            <p className="font-bold text-[14px] uppercase border-t border-black pt-1">ജില്ലാ ഓഫീസർ</p>
+          <div className="flex flex-col items-end pt-6 text-left">
+            <div className="text-center min-w-[200px]">
+              <div className="h-20 w-full"></div>
+              <p className="font-bold text-[14px] uppercase border-t border-black pt-1">ജില്ലാ ഓഫീസർ</p>
+            </div>
+          </div>
+
+          <div className="mt-auto pt-4 border-t border-slate-200 text-[9px] text-muted-foreground flex justify-between uppercase tracking-widest font-sans font-bold">
+            <span>GROUND WATER DEPARTMENT DISTRICT OFFICE, MALAPPURAM</span>
+            <span>SYSTEM GENERATED FINAL BILL – TECHNICAL RECORD</span>
           </div>
         </div>
-
-        <div className="mt-auto pt-4 border-t border-slate-200 text-[9px] text-muted-foreground flex justify-between uppercase tracking-widest font-sans font-bold">
-          <span>GROUND WATER DEPARTMENT DISTRICT OFFICE, MALAPPURAM</span>
-          <span>SYSTEM GENERATED FINAL BILL – TECHNICAL RECORD</span>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
