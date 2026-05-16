@@ -57,6 +57,9 @@ const INITIAL_SERVICES_DATA = [
       { id: "ds-2", name: "150 mm Borewell Drilling", rate: 665, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
       { id: "ds-3", name: "200 mm Tubewell Construction", rate: 2980, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
       { id: "ds-4", name: "Overburden Drilling (Casing)", rate: 450, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "ds-5", name: "140mm PVC Casing (6kg)", rate: 566.56, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "ds-6", name: "140mm PVC Casing (10kg)", rate: 879.01, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "ds-7", name: "End Cap (Technical Fitting)", rate: 87.59, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
     ],
     description: [
       "Construction of bore wells and tube wells using specialized departmental rigs.",
@@ -71,6 +74,7 @@ const INITIAL_SERVICES_DATA = [
       { id: "yt-1", name: "Step Drawdown Test (SDT)", rate: 7490, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
       { id: "yt-2", name: "Constant Discharge Test (CDT)", rate: 12500, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
       { id: "yt-3", name: "Well Logging / Depth Profiling", rate: 14475, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "yt-4", name: "Borewell Flushing (Minimum Charge)", rate: 5790, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
     ],
     description: [
       "Determining the sustainable yield and recovery parameters of the well.",

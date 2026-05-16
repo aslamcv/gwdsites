@@ -54,8 +54,9 @@ function BillContent() {
     const isDryWellPrivate = isPrivate && isDryWell && !isFlushing;
     const isAgriSubsidy = isPrivate && isAgri && !isFlushing && ['low yield', 'medium yield', 'high yield'].includes(yieldStatus);
 
-    // Target Date for rate lookup (Use Bill Date/reportDate as primary anchor)
-    const targetDate = report.reportDate || report.dateOfInvestigation?.split(' - ')[1] || report.createdAt?.split('T')[0] || '';
+    // Target Date for rate lookup: Prioritize End Date (completion), then Bill Date, then Creation Date
+    const dateParts = report.dateOfInvestigation?.split(' - ') || [];
+    const targetDate = (dateParts[1] || report.reportDate || report.createdAt?.split('T')[0] || '').trim();
 
     const findRate = (keywords: string[], fallback: number) => {
       if (!cloudRates?.services) return fallback;
@@ -63,8 +64,9 @@ function BillContent() {
       const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
       const normalizedKeywords = keywords.map(kw => normalize(kw));
 
-      let mostRecentRate = null;
-      let latestDateFound = '0000-00-00';
+      // Step 1: Find best matches by keyword and date
+      let bestMatchRate = null;
+      let latestStartDate = '0000-00-00';
 
       for (const service of cloudRates.services) {
         for (const item of service.items) {
@@ -80,17 +82,16 @@ function BillContent() {
               return item.rate;
             }
 
-            // Priority 2: Keep track of the most recent rate in the catalog for this item
-            if (from > latestDateFound) {
-              latestDateFound = from;
-              mostRecentRate = item.rate;
+            // Priority 2: Keep track of the most recent rate for this item if date is outside range
+            if (from > latestStartDate) {
+              latestStartDate = from;
+              bestMatchRate = item.rate;
             }
           }
         }
       }
       
-      // Return the most recent rate found in catalog, or hardcoded fallback if none
-      return mostRecentRate !== null ? mostRecentRate : fallback;
+      return bestMatchRate !== null ? bestMatchRate : fallback;
     };
 
     const diameter = (report.borewellSize || '').match(/\d+/)?.[0] || '150';
@@ -185,13 +186,6 @@ function BillContent() {
     };
   }, [report, cloudRates]);
 
-  useEffect(() => {
-    if (report) {
-      const prefix = calc?.isFlushing ? 'Final-Bill-Flushing' : 'Final-Bill';
-      document.title = `${prefix}-${report.fileNo || report.id.slice(0,6)}`;
-    }
-  }, [report, calc]);
-
   if (isLoading || isRatesLoading) {
     return (
       <div className="min-h-screen bg-slate-50 p-8 flex flex-col items-center">
@@ -220,7 +214,7 @@ function BillContent() {
         <Alert className="bg-blue-50 border-blue-200 py-3">
             <AlertCircle className="size-4 text-blue-600" />
             <AlertDescription className="text-[11px] font-bold text-blue-800 uppercase tracking-tight">
-                BILLING RATES APPLIED BASED ON DOCUMENT DATE: {calc.targetDate}
+                BILLING RATES APPLIED BASED ON WORK COMPLETION DATE: {calc.targetDate}
             </AlertDescription>
         </Alert>
       </div>
