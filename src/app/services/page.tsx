@@ -103,7 +103,20 @@ export default function ServicesRatesCatalog() {
 
   useEffect(() => {
     if (cloudSettings?.services) {
-      setLocalServices(cloudSettings.services);
+      // Ensure that any new categories added to INITIAL_SERVICES_DATA (like 'gst')
+      // are merged into the local state if they are missing from cloud settings.
+      const cloudData = cloudSettings.services;
+      const missingFromCloud = INITIAL_SERVICES_DATA.filter(
+        initial => !cloudData.some((c: any) => c.id === initial.id)
+      );
+      
+      if (missingFromCloud.length > 0) {
+        setLocalServices([...cloudData, ...missingFromCloud]);
+        // Mark as dirty so user can save the newly added sections to cloud
+        setIsDirty(true);
+      } else {
+        setLocalServices(cloudData);
+      }
     } else if (!isCloudLoading) {
       setLocalServices(INITIAL_SERVICES_DATA);
     }
