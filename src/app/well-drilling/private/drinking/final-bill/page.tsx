@@ -1,9 +1,10 @@
+
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useMemo } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Printer, ArrowLeft, AlertCircle, ShieldAlert } from 'lucide-react';
+import { Printer, ArrowLeft, AlertCircle, ShieldAlert, FileOutput, Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Link from 'next/link';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
@@ -11,6 +12,7 @@ import { doc } from 'firebase/firestore';
 import type { GroundwaterReport } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { PDFDocument } from 'pdf-lib';
 
 function numberToMalayalamWords(num: number): string {
   if (num <= 0) return 'പൂജ്യം രൂപ മാത്രം';
@@ -38,6 +40,7 @@ function BillContent() {
   const searchParams = useSearchParams();
   const firestore = useFirestore();
   const id = searchParams.get('id');
+  const [isPdfLoading, setIsPdfLoading] = useState(false);
   
   const reportRef = useMemoFirebase(() => {
     if (!firestore || !id) return null;
@@ -191,6 +194,60 @@ function BillContent() {
     };
   }, [report, cloudRates]);
 
+  const handleFillPdf = async () => {
+    if (!report || !calc) return;
+    setIsPdfLoading(true);
+    
+    try {
+      const url = '/final-bill.pdf';
+      const existingPdfBytes = await fetch(url).then(res => res.arrayBuffer());
+      const pdfDoc = await PDFDocument.load(existingPdfBytes);
+      const form = pdfDoc.getForm();
+
+      // Mapping Logic: Adjusted to match standard fillable PDF naming patterns
+      // You can rename these keys if your PDF fields use specific names
+      const mapping = {
+        'file_no': report.fileNo,
+        'well_no': report.wellNumber,
+        'date': formatTechnicalDate(report.reportDate),
+        'site_name': report.nameOfSite,
+        'lsgd': report.lsgd,
+        'address': report.address,
+        'total_depth': report.totalDepth,
+        'overburden': report.overburden,
+        'pvc_6kg': report.pvc6kg,
+        'pvc_10kg': report.pvc10kg,
+        'discharge': report.discharge,
+        'swl': report.waterLevel,
+        'total_cost': calc.constructionTotal.toString(),
+        'remittance': calc.remitted.toString(),
+        'balance': calc.balance.toString(),
+        'balance_words': numberToMalayalamWords(calc.balance)
+      };
+
+      Object.entries(mapping).forEach(([fieldName, value]) => {
+        try {
+          const field = form.getTextField(fieldName);
+          if (field) field.setText(String(value || ''));
+        } catch (e) {
+          // If field doesn't exist, we skip it
+          console.warn(`PDF Field "${fieldName}" not found in template.`);
+        }
+      });
+
+      const pdfBytes = await pdfDoc.save();
+      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const pdfUrl = URL.createObjectURL(blob);
+      window.open(pdfUrl, '_blank');
+      
+    } catch (error) {
+      console.error("Error filling PDF:", error);
+      alert("Error generating PDF. Please ensure public/final-bill.pdf exists.");
+    } finally {
+      setIsPdfLoading(false);
+    }
+  };
+
   if (isLoading || isRatesLoading) {
     return (
       <div className="min-h-screen bg-slate-50 p-8 flex flex-col items-center">
@@ -211,12 +268,18 @@ function BillContent() {
                 Back to Portal
               </Link>
             </Button>
-            {!calc.error && (
-              <Button onClick={() => window.print()} className="gap-2 font-bold bg-[#1e3a8a] text-white h-8 text-xs px-6 rounded-lg">
-                <Printer className="h-3 w-3" />
-                Print Final Bill
+            <div className="flex items-center gap-3">
+              <Button onClick={handleFillPdf} disabled={isPdfLoading} variant="outline" className="gap-2 font-bold border-blue-200 text-blue-700 h-8 text-xs px-6 bg-blue-50 hover:bg-blue-100">
+                {isPdfLoading ? <Loader2 className="size-3 animate-spin" /> : <FileOutput className="size-3" />}
+                OPEN AS FILLABLE PDF
               </Button>
-            )}
+              {!calc.error && (
+                <Button onClick={() => window.print()} className="gap-2 font-bold bg-[#1e3a8a] text-white h-8 text-xs px-6 rounded-lg">
+                  <Printer className="h-3 w-3" />
+                  Print Report
+                </Button>
+              )}
+            </div>
         </div>
         
         {calc.error && (
