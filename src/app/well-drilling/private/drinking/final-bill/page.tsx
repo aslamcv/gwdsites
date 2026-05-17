@@ -13,6 +13,7 @@ import type { GroundwaterReport } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { PDFDocument } from 'pdf-lib';
+import { format } from 'date-fns';
 
 function numberToMalayalamWords(num: number): string {
   if (num <= 0) return 'പൂജ്യം രൂപ മാത്രം';
@@ -200,13 +201,15 @@ function BillContent() {
     
     try {
       const url = '/final-bill.pdf';
-      const existingPdfBytes = await fetch(url).then(res => res.arrayBuffer());
+      const existingPdfBytes = await fetch(url).then(res => {
+        if (!res.ok) throw new Error('PDF template (final-bill.pdf) not found in public folder');
+        return res.arrayBuffer();
+      });
+      
       const pdfDoc = await PDFDocument.load(existingPdfBytes);
       const form = pdfDoc.getForm();
 
-      // Mapping Logic: Adjusted to match standard fillable PDF naming patterns
-      // You can rename these keys if your PDF fields use specific names
-      const mapping = {
+      const mapping: Record<string, string | undefined> = {
         'file_no': report.fileNo,
         'well_no': report.wellNumber,
         'date': formatTechnicalDate(report.reportDate),
@@ -227,11 +230,15 @@ function BillContent() {
 
       Object.entries(mapping).forEach(([fieldName, value]) => {
         try {
-          const field = form.getTextField(fieldName);
-          if (field) field.setText(String(value || ''));
+          const field = form.getTextField(fieldName) || 
+                        form.getTextField(fieldName.toUpperCase()) ||
+                        form.getTextField(fieldName.replace(/_/g, ' '));
+          
+          if (field) {
+            field.setText(String(value || ''));
+          }
         } catch (e) {
-          // If field doesn't exist, we skip it
-          console.warn(`PDF Field "${fieldName}" not found in template.`);
+          // Field not found in PDF, silent continue
         }
       });
 
@@ -240,9 +247,18 @@ function BillContent() {
       const pdfUrl = URL.createObjectURL(blob);
       window.open(pdfUrl, '_blank');
       
-    } catch (error) {
+      toast({
+        title: "PDF Pre-filled",
+        description: "Official final bill opened in a new tab.",
+      });
+      
+    } catch (error: any) {
       console.error("Error filling PDF:", error);
-      alert("Error generating PDF. Please ensure public/final-bill.pdf exists.");
+      toast({
+        variant: "destructive",
+        title: "PDF Generation Failed",
+        description: error.message || "Could not process the template.",
+      });
     } finally {
       setIsPdfLoading(false);
     }
@@ -283,7 +299,7 @@ function BillContent() {
         </div>
         
         {calc.error && (
-          <Alert variant="destructive" className="bg-rose-50 border-rose-200 py-6 rounded-2xl animate-in fade-in zoom-in duration-300">
+          <Alert variant="destructive" className="bg-rose-50 border-rose-200 py-6 rounded-2xl">
             <ShieldAlert className="size-6 text-rose-600" />
             <AlertTitle className="text-sm font-black uppercase tracking-tight ml-2">Rate Configuration Missing</AlertTitle>
             <AlertDescription className="text-xs font-bold text-rose-800 ml-2 mt-2 leading-relaxed">
@@ -370,7 +386,7 @@ function BillContent() {
           </div>
 
           <div className="mb-4 p-4 border border-black text-left font-bold text-[11.5px] leading-tight space-y-4">
-              <div className="flex justify-between items-center gap-4">
+              <div className="flex justify-between items-center gap-4 border-b border-black pb-2 mb-2">
                   <span className="flex-1 uppercase text-[10px] tracking-tight">കുഴൽകിണർ നിർമ്മാണ പ്രവൃത്തിയുടെ ആകെ ചിലവ് :</span>
                   <div className="text-right font-mono text-[13px] shrink-0 min-w-[140px]">
                     <p>= {calc.constructionTotal.toFixed(2)} /-</p>
