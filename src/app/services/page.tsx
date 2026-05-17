@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect, useTransition } from 'react';
@@ -76,11 +75,11 @@ const INITIAL_SERVICES_DATA = [
   },
   {
     id: "gst",
-    title: "GST",
+    title: "GST Configurations",
     items: [
-      { id: "gst-1", nameEn: "Standard Service GST", nameMl: "സ്റ്റാൻഡേർഡ് സർവീസ് ജിഎസ്ടി", gstPercentage: 18, conditions: "Applicable for all technical services", dateFrom: '2024-04-01', dateTo: '' },
+      { id: "gst-1", nameEn: "Standard Technical GST", nameMl: "സാധാരണ സാങ്കേതിക ജിഎസ്ടി", gstPercentage: 18, conditions: "Applicable on all technical survey and construction charges.", dateFrom: '2024-04-01', dateTo: '' },
     ],
-    description: ["Goods and Services Tax configurations for departmental works as per government norms."],
+    description: ["Goods and Services Tax percentages for departmental technical works as per latest Government orders."],
   },
 ];
 
@@ -232,10 +231,6 @@ export default function ServicesRatesCatalog() {
     });
     setLocalServices(updated);
     setIsDirty(true);
-    toast({
-      title: "Item Duplicated",
-      description: "A copy has been created in the active section.",
-    });
   };
 
   const updateScope = (serviceId: string, scopeIdx: number, value: string) => {
