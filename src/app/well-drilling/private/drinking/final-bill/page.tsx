@@ -17,13 +17,10 @@ import { format } from 'date-fns';
 
 function numberToMalayalamWords(num: number): string {
   if (num <= 0) return 'പൂജ്യം രൂപ മാത്രം';
-  const rounded = Math.round(num);
+  const rounded = Math.round(Math.abs(num));
   return `${rounded.toLocaleString('en-IN')} രൂപ (അക്ഷരത്തിൽ)`;
 }
 
-/**
- * Helper to format date from YYYY-MM-DD to DD-MM-YYYY
- */
 const formatTechnicalDate = (dateStr: string) => {
   if (!dateStr) return '';
   const trimmed = dateStr.trim();
@@ -32,7 +29,7 @@ const formatTechnicalDate = (dateStr: string) => {
     if (parts[0].length === 4) {
       return `${parts[2]}-${parts[1]}-${parts[0]}`;
     }
-    return trimmed;
+    return `${parts[0]}-${parts[1]}-${parts[2]}`;
   }
   return dateStr;
 };
@@ -72,31 +69,17 @@ function BillContent() {
     const isDryWellPrivate = isPrivate && isDryWell && !isFlushing;
     const isAgriSubsidy = isPrivate && isAgri && !isFlushing && ['low yield', 'medium yield', 'high yield'].includes(yieldStatus);
 
-    const normalizeDateString = (d: string) => {
-      if (!d) return '';
-      const trimmed = d.trim();
-      if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
-      const parts = trimmed.split(/[-/]/);
-      if (parts.length === 3) {
-        if (parts[2].length === 4) return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-        if (parts[0].length === 4) return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
-      }
-      return trimmed;
-    };
-
     const rawWorkEndDate = (report.endDate || report.startDate || report.reportDate || '').trim();
-    const refDate = normalizeDateString(rawWorkEndDate);
+    const refDate = (rawWorkEndDate.includes('-') && rawWorkEndDate.split('-')[0].length === 4) ? rawWorkEndDate : format(new Date(), 'yyyy-MM-dd');
 
     const findRate = (searchLabel: string) => {
-      if (!cloudRates?.services || !refDate) return null;
-      const normalizeStr = (s: string) => s.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9\u0D00-\u0D7F]/g, ''); 
+      if (!cloudRates?.services) return null;
+      const normalizeStr = (s: string) => (s || '').toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9\u0D00-\u0D7F]/g, ''); 
       const target = normalizeStr(searchLabel);
 
       for (const service of cloudRates.services) {
         for (const item of service.items) {
-          const catalogItemNameMl = normalizeStr(item.nameMl || '');
-          const catalogItemNameEn = normalizeStr(item.nameEn || '');
-          if (catalogItemNameMl === target || catalogItemNameEn === target) {
+          if (normalizeStr(item.nameMl) === target || normalizeStr(item.nameEn) === target) {
             const from = item.dateFrom || '0000-00-00';
             const to = item.dateTo || '9999-99-99';
             if (refDate >= from && refDate <= to) return item.rate;
@@ -107,335 +90,262 @@ function BillContent() {
     };
 
     let rows: any[] = [];
-    let originalDrillingAmt = 0;
-    let materialsAmtFull = 0;
+    let grossConstructionTotal = 0;
+    let drillingComponentTotal = 0;
     
-    const LABEL_DRILLING = '110 mm dia കുഴല്‍കിണര്‍ ഡ്രില്ലിംഗ് ചാര്‍ജ് ';
+    const LABEL_DRILLING = '110 മില്ലിമീറ്റർ വ്യാസമുള്ള കുഴൽക്കിണറിന്റെ ഡ്രില്ലിംഗ് ചാർജ്ജ്';
     const LABEL_FLUSHING = 'ഫ്ലഷിംഗ് നടത്തിയ ആകെ ആഴം';
-    const LABEL_PVC_6KG = '140 mm dia 6 kg/cm2 പി. വി.സി. കേയ്സിംഗ് പൈപ്പിന്റെ വില ';
-    const LABEL_PVC_10KG = '140 മി.മീ PVC PIPE (10KG/CM²)';
-    const LABEL_END_CAP = '140 mm dia ഏന്‍ഡ് ക്യാപ്പിന്റെ വില';
+    const LABEL_PVC_6KG = '140 മില്ലിമീറ്റർ വ്യാസമുള്ള 6 കി.ഗ്രാം / ച. സെ. മി. പിവിസി കെയ്‌സിംഗ് പൈപ്പിന്റെ വില';
+    const LABEL_PVC_10KG = '140 മില്ലിമീറ്റർ വ്യാസമുള്ള 10 കി.ഗ്രാം / ച. സെ. മി. പിവിസി കെയ്‌സിംഗ് പൈപ്പിന്റെ വില';
+    const LABEL_END_CAP = '140 മില്ലിമീറ്റർ വ്യാസമുള്ള പിവിസി കുഴൽക്കിണർ അടപ്പിന്റെ വില';
+
+    const processItem = (label: string, qty: number, isDrilling: boolean = false) => {
+        const rate = findRate(label);
+        if (rate === null) return { error: true, label };
+        const baseAmt = qty * rate;
+        const gst = baseAmt * 0.18;
+        const total = baseAmt + gst;
+        
+        rows.push({ 
+            label, 
+            qty: isDrilling && isFlushing ? report.compressorWorkingHour : `${qty} m`, 
+            rate, 
+            amount: baseAmt, 
+            gst, 
+            total 
+        });
+        
+        grossConstructionTotal += total;
+        if (isDrilling) drillingComponentTotal += total;
+        return { error: false };
+    };
 
     if (isFlushing) {
-      const workingHoursStr = report.compressorWorkingHour || '2.5';
-      const hours = parseFloat(workingHoursStr.replace(/[^0-9.]/g, '')) || 2.5;
-      const baseRate = findRate(LABEL_FLUSHING);
-      if (baseRate === null) return { error: true, refDate, missingItem: LABEL_FLUSHING };
-      const hourlyRate = baseRate / 2.5;
-      const flushingCharge = hours > 2.5 ? (hourlyRate * hours) : baseRate;
-      originalDrillingAmt = flushingCharge;
-      rows.push({ label: LABEL_FLUSHING, qty: `${report.totalDepth || '0'} m`, rate: flushingCharge, unit: 'Lump Sum', amount: flushingCharge });
+      const hours = parseFloat((report.compressorWorkingHour || '2.5').replace(/[^0-9.]/g, '')) || 2.5;
+      const res = processItem(LABEL_FLUSHING, hours, true);
+      if (res.error) return { error: true, refDate, missingItem: res.label };
     } else {
-      const drillingQty = parseFloat(report.totalDepth || '0');
-      const baseRate = findRate(LABEL_DRILLING);
-      if (baseRate === null) return { error: true, refDate, missingItem: LABEL_DRILLING };
-      const baseDrillingAmt = drillingQty * baseRate;
-      originalDrillingAmt = baseDrillingAmt;
-      rows.push({ label: LABEL_DRILLING, qty: `${drillingQty} m`, rate: baseRate, unit: 'm', amount: baseDrillingAmt });
+      const res = processItem(LABEL_DRILLING, parseFloat(report.totalDepth || '0'), true);
+      if (res.error) return { error: true, refDate, missingItem: res.label };
     }
 
     if (!isDryWellPrivate) {
-      const pvc6Qty = parseFloat(report.pvc6kg || '0');
-      if (pvc6Qty > 0) {
-        const rate = findRate(LABEL_PVC_6KG);
-        if (rate === null) return { error: true, refDate, missingItem: LABEL_PVC_6KG };
-        const amt = pvc6Qty * rate;
-        materialsAmtFull += amt;
-        rows.push({ label: LABEL_PVC_6KG, qty: `${pvc6Qty} m`, rate: rate, unit: 'm', amount: amt });
+      const pvc6 = parseFloat(report.pvc6kg || '0');
+      if (pvc6 > 0) {
+        const res = processItem(LABEL_PVC_6KG, pvc6);
+        if (res.error) return { error: true, refDate, missingItem: res.label };
       }
-      const pvc10Qty = parseFloat(report.pvc10kg || '0');
-      if (pvc10Qty > 0) {
-        const rate = findRate(LABEL_PVC_10KG);
-        if (rate === null) return { error: true, refDate, missingItem: LABEL_PVC_10KG };
-        const amt = pvc10Qty * rate;
-        materialsAmtFull += amt;
-        rows.push({ label: LABEL_PVC_10KG, qty: `${pvc10Qty} m`, rate: rate, unit: 'm', amount: amt });
+      const pvc10 = parseFloat(report.pvc10kg || '0');
+      if (pvc10 > 0) {
+        const res = processItem(LABEL_PVC_10KG, pvc10);
+        if (res.error) return { error: true, refDate, missingItem: res.label };
       }
-      const endCapRate = findRate(LABEL_END_CAP);
-      if (endCapRate !== null) {
-        materialsAmtFull += endCapRate;
-        rows.push({ label: LABEL_END_CAP, qty: '1 No.', rate: endCapRate, unit: 'No.', amount: endCapRate });
-      } else {
-         return { error: true, refDate, missingItem: LABEL_END_CAP };
-      }
+      const res = processItem(LABEL_END_CAP, 1);
+      if (res.error) return { error: true, refDate, missingItem: res.label };
     }
 
-    const constructionTotal = Math.ceil(originalDrillingAmt + materialsAmtFull);
+    const roundedGross = Math.ceil(grossConstructionTotal);
     
-    let billableDrillingAmt = originalDrillingAmt;
-    let subsidyLabel = '';
     let subsidyAmount = 0;
-    
+    let subsidyLabel = '';
     if (isDryWellPrivate) {
-      subsidyAmount = Math.ceil(originalDrillingAmt * 0.75);
-      billableDrillingAmt = originalDrillingAmt - subsidyAmount;
+      subsidyAmount = Math.ceil(drillingComponentTotal * 0.75);
       subsidyLabel = 'കുഴൽ കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് വകുപ്പിന് ലഭിക്കേണ്ട തുക (ഡ്രില്ലിംഗ് ചാർജിന്റെ 25%)';
     } else if (isAgriSubsidy) {
-      subsidyAmount = Math.ceil(originalDrillingAmt * 0.5);
-      billableDrillingAmt = originalDrillingAmt - subsidyAmount;
-      subsidyLabel = 'ഡ്രില്ലിംഗ് ചാർജ്ജ് സബ് സിഡി തുക( 50%)';
+      subsidyAmount = Math.ceil(drillingComponentTotal * 0.5);
+      subsidyLabel = 'നാമമാത്ര / ചെറുകിട കർഷകർക്കുള്ള ധനസഹായം - ഡ്രില്ലിംഗ് ചാർജിന്റെ 50%';
     }
 
-    const billableTotal = Math.ceil(billableDrillingAmt + (isDryWellPrivate ? 0 : materialsAmtFull));
+    const netPayable = roundedGross - (isDryWellPrivate || isAgriSubsidy ? subsidyAmount : 0);
     const remitted = parseFloat(report.remittance || '0');
-    const balance = remitted - billableTotal;
+    const balance = remitted - netPayable;
 
     return { 
         rows, 
-        constructionTotal,
-        billableTotal, 
+        roundedGross,
+        subsidyAmount,
+        subsidyLabel,
+        netPayable,
         remitted, 
         balance, 
-        isFlushing, 
-        isDryWellPrivate, 
+        refDate,
         isAgriSubsidy,
-        subsidyLabel,
-        subsidyAmount,
-        refDate
+        isDryWellPrivate
     };
   }, [report, cloudRates]);
 
   const handleFillPdf = async () => {
     if (!report || !calc) return;
     setIsPdfLoading(true);
-    
     try {
-      const url = '/final-bill.pdf';
-      const existingPdfBytes = await fetch(url).then(res => {
-        if (!res.ok) throw new Error('PDF template (final-bill.pdf) not found in public folder');
-        return res.arrayBuffer();
-      });
-      
+      const existingPdfBytes = await fetch('/final-bill.pdf').then(res => res.arrayBuffer());
       const pdfDoc = await PDFDocument.load(existingPdfBytes);
       const form = pdfDoc.getForm();
 
       const mapping: Record<string, string | undefined> = {
         'file_no': report.fileNo,
-        'well_no': report.wellNumber,
         'date': formatTechnicalDate(report.reportDate),
         'site_name': report.nameOfSite,
         'lsgd': report.lsgd,
         'address': report.address,
-        'total_depth': report.totalDepth,
-        'overburden': report.overburden,
-        'pvc_6kg': report.pvc6kg,
-        'pvc_10kg': report.pvc10kg,
-        'discharge': report.discharge,
-        'swl': report.waterLevel,
-        'total_cost': calc.constructionTotal.toString(),
+        'status': report.remarks,
+        'total_cost': calc.roundedGross.toString(),
         'remittance': calc.remitted.toString(),
         'balance': calc.balance.toString(),
         'balance_words': numberToMalayalamWords(calc.balance)
       };
 
-      Object.entries(mapping).forEach(([fieldName, value]) => {
-        try {
-          const field = form.getTextField(fieldName) || 
-                        form.getTextField(fieldName.toUpperCase()) ||
-                        form.getTextField(fieldName.replace(/_/g, ' '));
-          
-          if (field) {
-            field.setText(String(value || ''));
-          }
-        } catch (e) {
-          // Field not found in PDF, silent continue
-        }
+      Object.entries(mapping).forEach(([field, val]) => {
+        try { form.getTextField(field)?.setText(String(val || '')); } catch(e) {}
       });
 
       const pdfBytes = await pdfDoc.save();
       const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-      const pdfUrl = URL.createObjectURL(blob);
-      window.open(pdfUrl, '_blank');
-      
-      toast({
-        title: "PDF Pre-filled",
-        description: "Official final bill opened in a new tab.",
-      });
-      
-    } catch (error: any) {
-      console.error("Error filling PDF:", error);
-      toast({
-        variant: "destructive",
-        title: "PDF Generation Failed",
-        description: error.message || "Could not process the template.",
-      });
-    } finally {
-      setIsPdfLoading(false);
-    }
+      window.open(URL.createObjectURL(blob), '_blank');
+    } catch (e) {
+      toast({ variant: "destructive", title: "PDF Error", description: "Could not fill the template." });
+    } finally { setIsPdfLoading(false); }
   };
 
-  if (isLoading || isRatesLoading) {
-    return (
-      <div className="min-h-screen bg-slate-50 p-8 flex flex-col items-center">
-        <Skeleton className="h-[1000px] w-full max-w-[800px] bg-white shadow-xl rounded-none" />
-      </div>
-    );
-  }
-
+  if (isLoading || isRatesLoading) return <div className="p-12 flex justify-center"><Skeleton className="h-[800px] w-full max-w-[800px]" /></div>;
   if (!report || !calc) return null;
 
   return (
     <div className="min-h-screen bg-slate-100 py-4 px-4 pt-12 print:bg-white print:p-0 font-malayalam text-black">
-      <div className="max-w-[210mm] mx-auto mb-2 flex flex-col gap-4 print:hidden">
+      <div className="max-w-[210mm] mx-auto mb-4 flex flex-col gap-4 print:hidden">
         <div className="flex items-center justify-between">
             <Button variant="ghost" asChild className="gap-2 text-slate-600 h-8 text-xs">
-              <Link href="/well-drilling">
-                <ArrowLeft className="h-3 w-3" />
-                Back to Portal
-              </Link>
+              <Link href="/well-drilling"><ArrowLeft className="h-3 w-3" /> Back to Portal</Link>
             </Button>
             <div className="flex items-center gap-3">
-              <Button onClick={handleFillPdf} disabled={isPdfLoading} variant="outline" className="gap-2 font-bold border-blue-200 text-blue-700 h-8 text-xs px-6 bg-blue-50 hover:bg-blue-100">
+              <Button onClick={handleFillPdf} disabled={isPdfLoading} variant="outline" className="gap-2 font-bold border-blue-200 text-blue-700 h-8 text-xs px-6 bg-blue-50">
                 {isPdfLoading ? <Loader2 className="size-3 animate-spin" /> : <FileOutput className="size-3" />}
                 OPEN AS FILLABLE PDF
               </Button>
-              {!calc.error && (
-                <Button onClick={() => window.print()} className="gap-2 font-bold bg-[#1e3a8a] text-white h-8 text-xs px-6 rounded-lg">
-                  <Printer className="h-3 w-3" />
-                  Print Report
-                </Button>
-              )}
+              {!calc.error && <Button onClick={() => window.print()} className="gap-2 font-bold bg-[#1e3a8a] text-white h-8 text-xs px-6 rounded-lg"><Printer className="h-3 w-3" /> Print Preview</Button>}
             </div>
         </div>
-        
         {calc.error && (
           <Alert variant="destructive" className="bg-rose-50 border-rose-200 py-6 rounded-2xl">
             <ShieldAlert className="size-6 text-rose-600" />
             <AlertTitle className="text-sm font-black uppercase tracking-tight ml-2">Rate Configuration Missing</AlertTitle>
             <AlertDescription className="text-xs font-bold text-rose-800 ml-2 mt-2 leading-relaxed">
-              No valid rate found for the technical item: <span className="underline">{calc.missingItem}</span> on date: <span className="underline">{calc.refDate}</span>. 
-              <br/>Please update the <strong>Services & Rates Catalog</strong>.
+              No valid rate found for technical item on date: <span className="underline">{calc.refDate}</span>.
             </AlertDescription>
           </Alert>
         )}
       </div>
 
       {!calc.error && (
-        <div className="bg-white mx-auto w-[210mm] min-h-[297mm] shadow-xl print:shadow-none p-[15mm] flex flex-col text-[13px] leading-tight text-black border border-slate-200 print:border-none overflow-hidden relative">
+        <div className="bg-white mx-auto w-[210mm] min-h-[297mm] shadow-xl print:shadow-none p-[12mm] flex flex-col text-[12px] leading-tight text-black border border-slate-200 print:border-none relative">
           
-          <div className="absolute top-10 left-10 text-left uppercase">
-            <p className="text-[12px] font-black text-black leading-none">
-              ({report.wellNumber || 'WELL NUMBER'})
-            </p>
-          </div>
-
-          <div className="absolute top-10 right-10 text-right uppercase">
-            <p className="text-[12px] font-bold text-black leading-none">
-              {(report.sector || 'PRIVATE').toUpperCase()}/{(report.subCategory || report.category || (calc.isFlushing ? 'FLUSHING' : 'DRILLING')).toUpperCase()}
-            </p>
-          </div>
-
-          <div className="flex justify-between items-start mb-4">
-            <div className="text-center flex-1 pr-4 pl-12">
-              <h1 className="text-[18px] font-bold">ഭൂജല വകുപ്പ്, ജില്ലാ ഓഫീസ്, മലപ്പുറം</h1>
-              <h2 className="text-[14px] font-bold underline underline-offset-4 decoration-1 uppercase">
-                അന്തിമ ബിൽ ({report.borewellSize || '150 മി.മീ.'}) - {calc.isFlushing ? 'കുഴൽ കിണർ ഫ്ലഷിംഗ്' : 'കുഴൽ കിണർ നിർമ്മാണം'}
-              </h2>
+          <div className="flex justify-between items-start mb-6">
+            <div className="flex-1">
+                <h1 className="text-[16px] font-bold">ഭൂജല വകുപ്പ്, ജില്ലാ ഓഫീസ്, മലപ്പുറം</h1>
+                <h2 className="text-[12px] font-bold uppercase mt-1">ബോർവെൽ നിർമ്മാണം - അന്തിമ ബിൽ (110 മി.മീ.)</h2>
             </div>
-            <div className="text-right text-[10px] leading-tight font-bold italic w-[180px]">
+            <div className="text-right text-[10px] leading-tight font-bold w-[220px]">
               <p>District Office</p>
               <p>Ground Water Department,</p>
-              <p>Civil Station, Malappuram</p>
+              <p>B1-block, Civil Station, Malappuram -676505</p>
+              <p className="text-[8px] mt-1">Email: gwdmpm@gmail.com, 04832731450</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 border border-black mb-4 text-[14px] text-left">
-            <div className="border-r border-black p-2 px-4">ഫയൽ നമ്പർ: <span className="font-bold ml-2">{report.fileNo}</span></div>
-            <div className="p-2 px-4 text-right">തീയതി: <span className="font-bold ml-2">{formatTechnicalDate(report.reportDate)}</span></div>
+          <div className="grid grid-cols-2 border border-black mb-6 text-[13px] text-left">
+            <div className="border-r border-black p-2 px-4 flex justify-between"><span>ഫയൽ നമ്പർ:</span> <span className="font-bold">{report.fileNo}</span></div>
+            <div className="p-2 px-4 flex justify-between"><span>തീയതി:</span> <span className="font-bold">{formatTechnicalDate(report.reportDate)}</span></div>
           </div>
 
-          <div className="mb-4 text-left border border-black text-[14px]">
-            <div className="grid grid-cols-[200px_1fr] border-b border-black">
-              <div className="border-r border-black p-2 px-4 font-bold bg-slate-50 text-[11px] uppercase">സൈറ്റിന്റെ പേര്</div>
-              <div className="p-2 px-4 font-bold uppercase">{report.nameOfSite}</div>
-            </div>
-            <div className="grid grid-cols-[200px_1fr] border-b border-black">
-              <div className="border-r border-black p-2 px-4 font-bold bg-slate-50 text-[11px] uppercase">പഞ്ചായത്ത് / നഗരസഭ</div>
-              <div className="p-2 px-4 font-bold uppercase">{report.lsgd}</div>
-            </div>
-            <div className="grid grid-cols-[200px_1fr]">
-              <div className="border-r border-black p-2 px-4 font-bold bg-slate-50 text-[11px] uppercase">വിലാസം</div>
-              <div className="p-2 px-4 font-bold uppercase truncate">{report.address}</div>
-            </div>
+          <div className="mb-6 border border-black text-[11px] text-left">
+            <div className="p-1.5 px-4 font-bold bg-slate-50 border-b border-black uppercase tracking-widest text-[9px]">ഉപഭോക്തൃ വിവരങ്ങൾ</div>
+            {[
+                { l: 'സൈറ്റിന്റെ പേര്', v: report.nameOfSite },
+                { l: 'പഞ്ചായത്ത്/നഗരസഭ', v: report.lsgd },
+                { l: 'നിയമസഭ മണ്ഡലം', v: report.assembly },
+                { l: 'വിലാസം', v: report.address },
+                { l: 'കുഴൽ കിണറിന്റെ നിലവിലെ സ്ഥിതി', v: report.remarks },
+            ].map((row, i) => (
+                <div key={i} className="grid grid-cols-[200px_1fr] border-b border-black last:border-b-0">
+                    <div className="border-r border-black p-2 px-4 font-medium">{row.l}</div>
+                    <div className="p-2 px-4 font-bold uppercase truncate">{row.v}</div>
+                </div>
+            ))}
           </div>
 
-          <div className="mb-4 text-left">
-            <table className="w-full border-collapse border border-black text-center text-[12px]">
+          <div className="mb-6">
+            <div className="p-1 px-4 font-bold uppercase tracking-widest text-[9px] mb-2 text-left">പ്രവൃത്തി വിവരങ്ങൾ</div>
+            <table className="w-full border-collapse border border-black text-center text-[10px]">
               <thead className="bg-slate-50 border-b border-black">
                 <tr className="font-bold h-10">
-                  <th className="border-r border-black p-2 w-12">ക്ര.നം</th>
-                  <th className="border-r border-black p-2 text-left">ഇനം</th>
-                  <th className="border-r border-black p-2 w-24">അളവ്</th>
-                  <th className="border-r border-black p-2 w-24">നിരക്ക്</th>
-                  <th className="border-r border-black p-2 w-32">മൊത്തം തുക</th>
+                  <th className="border-r border-black p-1 w-10">ക്രമ നമ്പർ</th>
+                  <th className="border-r border-black p-1 text-left px-3">ഇനം</th>
+                  <th className="border-r border-black p-1 w-20">അളവ്</th>
+                  <th className="border-r border-black p-1 w-20">നിരക്ക്</th>
+                  <th className="border-r border-black p-1 w-24">തുക</th>
+                  <th className="border-r border-black p-1 w-16">GST 18%</th>
+                  <th className="p-1 w-28">ആകെ തുക</th>
                 </tr>
               </thead>
               <tbody>
-                <tr className="h-0.5 border-t border-black"><td colSpan={5} className="p-0"></td></tr>
                 {calc.rows.map((row, i) => (
-                  <tr key={i} className="h-8 border-b border-black last:border-b-0">
-                    <td className="border-r border-black p-2">{i + 1}</td>
-                    <td className="border-r border-black p-2 text-left font-bold">{row.label}</td>
-                    <td className="border-r border-black p-2 font-bold">{row.qty}</td>
-                    <td className="border-r border-black p-2 font-black">{row.rate.toFixed(2)}</td>
-                    <td className="border-r border-black p-2 font-bold">₹ {row.amount.toFixed(2)}</td>
+                  <tr key={i} className="h-9 border-b border-black last:border-b-0">
+                    <td className="border-r border-black">{i + 1}</td>
+                    <td className="border-r border-black text-left px-3 font-medium uppercase text-[9px]">{row.label}</td>
+                    <td className="border-r border-black font-bold">{row.qty}</td>
+                    <td className="border-r border-black">{row.rate.toFixed(2)}</td>
+                    <td className="border-r border-black">₹{row.amount.toFixed(2)}</td>
+                    <td className="border-r border-black">₹{row.gst.toFixed(2)}</td>
+                    <td className="font-bold">₹{row.total.toFixed(2)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
 
-          <div className="mb-4 p-4 border border-black text-left font-bold text-[11.5px] leading-tight space-y-4">
-              <div className="flex justify-between items-center gap-4 border-b border-black pb-2 mb-2">
-                  <span className="flex-1 uppercase text-[10px] tracking-tight">കുഴൽകിണർ നിർമ്മാണ പ്രവൃത്തിയുടെ ആകെ ചിലവ് :</span>
-                  <div className="text-right font-mono text-[13px] shrink-0 min-w-[140px]">
-                    <p>= {calc.constructionTotal.toFixed(2)} /-</p>
-                  </div>
+          <div className="border border-black text-left font-bold text-[11px] leading-tight">
+              <div className="flex justify-between items-center p-3 border-b border-black">
+                  <span>കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിയുടെ ആകെ ചിലവ് :</span>
+                  <span className="font-black text-[13px]">₹ {calc.roundedGross.toFixed(2)}</span>
               </div>
 
-              {(calc.isDryWellPrivate || calc.isAgriSubsidy) && (
-                <div className="flex justify-between items-start gap-4 text-red-600">
-                    <span className="flex-1 leading-normal uppercase text-[10px] tracking-tight">{calc.subsidyLabel} :</span>
-                    <div className="text-right font-mono text-[13px] shrink-0 min-w-[140px]">
-                      <p>= {calc.subsidyAmount.toFixed(2)} /-</p>
+              {(calc.isAgriSubsidy || calc.isDryWellPrivate) && (
+                <>
+                    <div className="flex justify-between items-center p-3 border-b border-black text-red-600 bg-red-50/20">
+                        <span className="flex-1 uppercase text-[10px] tracking-tight">{calc.subsidyLabel} :</span>
+                        <span className="font-black text-[13px]">₹ {calc.subsidyAmount.toFixed(2)}</span>
                     </div>
-                </div>
+                    <div className="flex justify-between items-center p-3 border-b border-black text-[#1e3a8a] bg-blue-50/10">
+                        <span>കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക :</span>
+                        <span className="font-black text-[14px]">₹ {calc.netPayable.toFixed(2)}</span>
+                    </div>
+                </>
               )}
 
-              <div className="flex justify-between items-center gap-4 pt-2 border-t border-dotted border-black">
-                  <span className="flex-1 uppercase text-[10px] font-black tracking-widest text-primary">കുഴൽകിണർ നിർമ്മാണ പ്രവൃത്തിയുടെ ആകെ ചിലവ് :</span>
-                  <div className="text-right font-mono text-[13px] shrink-0 min-w-[140px] font-black text-primary">
-                    <p>= {calc.billableTotal.toFixed(2)} /-</p>
+              <div className="flex justify-between items-center p-3 border-b border-black bg-slate-50">
+                  <span className="text-slate-500 uppercase text-[10px]">അപേക്ഷകൻ മുൻകൂറായി അടച്ചിട്ടുള്ള തുക :</span>
+                  <span className="font-black">₹ {calc.remitted.toFixed(2)}</span>
+              </div>
+
+              <div className="flex justify-between items-center p-3 bg-white">
+                  <span className="text-[#1e3a8a] font-black uppercase text-[11px]">അപേക്ഷകന് തിരികെ ലഭിക്കുന്ന തുക :</span>
+                  <div className="text-right">
+                    <p className="font-black text-[16px] text-[#1e3a8a]">₹ {calc.balance.toFixed(2)}</p>
+                    <p className="text-[9px] italic font-normal text-slate-500 mt-1">{numberToMalayalamWords(calc.balance)}</p>
                   </div>
               </div>
           </div>
 
-          <div className="flex justify-end mb-6 text-left">
-            <div className="w-[400px] border border-black font-bold text-[13.5px]">
-              <div className="grid grid-cols-[1fr_140px] border-b border-black">
-                <div className="border-r border-black p-2 px-4 text-right uppercase text-[9px] tracking-widest text-slate-500">Total Amount Remitted :</div>
-                <div className="p-2 text-center font-black">₹ {calc.remitted.toFixed(2)}</div>
-              </div>
-              <div className="grid grid-cols-[1fr_140px] border-b border-black bg-slate-50">
-                <div className="border-r border-black p-2 px-4 text-right">അപേക്ഷകന് തിരികെ നൽകേണ്ട തുക :</div>
-                <div className="p-2 text-center font-black text-primary">₹ {calc.balance.toFixed(2)}</div>
-              </div>
-              <div className="p-2 px-4 text-right italic font-normal text-[11px] leading-tight">
-                {numberToMalayalamWords(calc.balance)}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col items-end pt-12 text-left">
+          <div className="mt-auto flex flex-col items-end pt-16">
             <div className="text-center min-w-[200px]">
-              <div className="h-20 w-full"></div>
+              <div className="h-16"></div>
               <p className="font-bold text-[14px] uppercase border-t border-black pt-1">ജില്ലാ ഓഫീസർ</p>
             </div>
           </div>
 
-          <div className="mt-auto pt-4 border-t border-slate-200 text-[9px] text-muted-foreground flex justify-between uppercase tracking-widest font-sans font-bold">
-            <span>GROUND WATER DEPARTMENT DISTRICT OFFICE, MALAPPURAM</span>
-            <span>OFFICIAL TECHNICAL RECORD</span>
+          <div className="mt-8 pt-2 border-t border-slate-200 text-[8px] text-muted-foreground flex justify-between uppercase tracking-widest font-sans font-black">
+            <span>GROUND WATER DEPARTMENT MALAPPURAM</span>
+            <span>OFFICIAL FINAL BILL RECORD - FORM GWD-FB-110</span>
           </div>
         </div>
       )}

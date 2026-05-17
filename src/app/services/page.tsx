@@ -49,13 +49,10 @@ const INITIAL_SERVICES_DATA = [
     id: "ds",
     title: "Drilling Services",
     items: [
-      { id: "ds-1", nameEn: "110 mm Borewell Drilling", nameMl: "110 mm dia കുഴല്‍കിണര്‍ ഡ്രില്ലിംഗ് ചാര്‍ജ് ", rate: 390, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
-      { id: "ds-2", nameEn: "150 mm Borewell Drilling", nameMl: "150 mm dia കുഴല്‍കിണര്‍ ഡ്രില്ലിംഗ് ചാര്‍ജ് ", rate: 665, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
-      { id: "ds-3", nameEn: "200 mm Tubewell Construction", nameMl: "200 മി.മീ ട്യൂബ് വെൽ നിർമ്മാണം", rate: 2980, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
-      { id: "ds-4", nameEn: "Overburden Drilling (Casing)", nameMl: "ഓവർബർഡൻ ഡ്രില്ലിംഗ് (കേസിംഗ്)", rate: 450, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
-      { id: "ds-5", nameEn: "140mm PVC Casing (6kg)", nameMl: "140 mm dia 6 kg/cm2 പി. വി.സി. കേയ്സിംഗ് പൈപ്പിന്റെ വില ", rate: 566.56, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
-      { id: "ds-6", nameEn: "140mm PVC Casing (10kg)", nameMl: "140 മി.മീ PVC PIPE (10KG/CM²)", rate: 879.01, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
-      { id: "ds-7", nameEn: "End Cap (Technical Fitting)", nameMl: "140 mm dia ഏന്‍ഡ് ക്യാപ്പിന്റെ വില", rate: 87.59, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "ds-1", nameEn: "110 mm Borewell Drilling", nameMl: "110 മില്ലിമീറ്റർ വ്യാസമുള്ള കുഴൽക്കിണറിന്റെ ഡ്രില്ലിംഗ് ചാർജ്ജ്", rate: 390, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "ds-2", nameEn: "140mm PVC Casing (6kg)", nameMl: "140 മില്ലിമീറ്റർ വ്യാസമുള്ള 6 കി.ഗ്രാം / ച. സെ. മി. പിവിസി കെയ്‌സിംഗ് പൈപ്പിന്റെ വില", rate: 566.56, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "ds-3", nameEn: "140mm PVC Casing (10kg)", nameMl: "140 മില്ലിമീറ്റർ വ്യാസമുള്ള 10 കി.ഗ്രാം / ച. സെ. മി. പിവിസി കെയ്‌സിംഗ് പൈപ്പിന്റെ വില", rate: 879.01, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "ds-4", nameEn: "End Cap (Technical Fitting)", nameMl: "140 മില്ലിമീറ്റർ വ്യാസമുള്ള പിവിസി കുഴൽക്കിണർ അടപ്പിന്റെ വില", rate: 87.59, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
     ],
     description: [
       "Construction of bore wells and tube wells using specialized departmental rigs.",
@@ -68,9 +65,7 @@ const INITIAL_SERVICES_DATA = [
     title: "Yield Testing (Pumping Test)",
     items: [
       { id: "yt-1", nameEn: "Step Drawdown Test (SDT)", nameMl: "സ്റ്റെപ്പ് ഡ്രോഡൗൺ ടെസ്റ്റ് (SDT)", rate: 7490, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
-      { id: "yt-2", nameEn: "Constant Discharge Test (CDT)", nameMl: "കോൺസ്റ്റന്റ് ഡിസ്ചാർജ് ടെസ്റ്റ് (CDT)", rate: 12500, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
-      { id: "yt-3", nameEn: "Well Logging / Depth Profiling", nameMl: "വെൽ ലോഗിംഗ്", rate: 14475, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
-      { id: "yt-4", nameEn: "Borewell Flushing", nameMl: "ഫ്ലഷിംഗ് നടത്തിയ ആകെ ആഴം", rate: 5790, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "yt-2", nameEn: "Borewell Flushing", nameMl: "ഫ്ലഷിംഗ് നടത്തിയ ആകെ ആഴം", rate: 5790, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
     ],
     description: [
       "Determining the sustainable yield and recovery parameters of the well.",
