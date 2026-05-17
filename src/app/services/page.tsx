@@ -16,7 +16,8 @@ import {
   History,
   CheckCircle2,
   Copy,
-  Info
+  Info,
+  Percent
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -49,10 +50,10 @@ const INITIAL_SERVICES_DATA = [
     id: "ds",
     title: "Drilling Services",
     items: [
-      { id: "ds-1", nameEn: "110 mm Borewell Drilling", nameMl: "110 മില്ലിമീറ്റർ വ്യാസമുള്ള കുഴൽക്കിണറിന്റെ ഡ്രില്ലിംഗ് ചാർജ്ജ്", rate: 390, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
-      { id: "ds-2", nameEn: "140mm PVC Casing (6kg)", nameMl: "140 മില്ലിമീറ്റർ വ്യാസമുള്ള 6 കി.ഗ്രാം / ച. സെ. മി. പിവിസി കെയ്‌സിംഗ് പൈപ്പിന്റെ വില", rate: 566.56, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
-      { id: "ds-3", nameEn: "140mm PVC Casing (10kg)", nameMl: "140 മില്ലിമീറ്റർ വ്യാസമുള്ള 10 കി.ഗ്രാം / ച. സെ. മി. പിവിസി കെയ്‌സിംഗ് പൈപ്പിന്റെ വില", rate: 879.01, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
-      { id: "ds-4", nameEn: "End Cap (Technical Fitting)", nameMl: "140 മില്ലിമീറ്റർ വ്യാസമുള്ള പിവിസി കുഴൽക്കിണർ അടപ്പിന്റെ വില", rate: 87.59, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "ds-1", nameEn: "110 mm dia കുഴല്‍കിണര്‍ ഡ്രില്ലിംഗ് ചാര്‍ജ് ", nameMl: "110 മില്ലിമീറ്റർ വ്യാസമുള്ള കുഴൽക്കിണറിന്റെ ഡ്രില്ലിംഗ് ചാർജ്ജ്", rate: 390, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "ds-2", nameEn: "140 mm dia 6 kg/cm2 പി. വി.സി. കേയ്സിംഗ് പൈപ്പിന്റെ വില ", nameMl: "140 മില്ലിമീറ്റർ വ്യാസമുള്ള 6 കി.ഗ്രാം / ച. സെ. മി. പിവിസി കെയ്‌സിംഗ് പൈപ്പിന്റെ വില", rate: 566.56, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "ds-3", nameEn: "140 mm dia 10 kg/cm2 പി. വി.സി. കേയ്സിംഗ് പൈപ്പിന്റെ വില ", nameMl: "140 മില്ലിമീറ്റർ വ്യാസമുള്ള 10 കി.ഗ്രാം / ച. സെ. മി. പിവിസി കെയ്‌സിംഗ് പൈപ്പിന്റെ വില", rate: 879.01, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "ds-4", nameEn: "140 mm dia ഏന്‍ഡ് ക്യാപ്പിന്റെ വില", nameMl: "140 മില്ലിമീറ്റർ വ്യാസമുള്ള പിവിസി കുഴൽക്കിണർ അടപ്പിന്റെ വില", rate: 87.59, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
     ],
     description: [
       "Construction of bore wells and tube wells using specialized departmental rigs.",
@@ -72,6 +73,14 @@ const INITIAL_SERVICES_DATA = [
       "Analysis of drawdown data to recommend safe pumping rates.",
       "Mandatory for large-scale infrastructure and public water schemes.",
     ],
+  },
+  {
+    id: "gst",
+    title: "GST",
+    items: [
+      { id: "gst-1", nameEn: "Standard Service GST", nameMl: "സ്റ്റാൻഡേർഡ് സർവീസ് ജിഎസ്ടി", gstPercentage: 18, conditions: "Applicable for all technical services", dateFrom: '2024-04-01', dateTo: '' },
+    ],
+    description: ["Goods and Services Tax configurations for departmental works as per government norms."],
   },
 ];
 
@@ -183,14 +192,28 @@ export default function ServicesRatesCatalog() {
     if (serviceIdx === -1) return;
 
     const newId = `item-${Date.now()}`;
-    updated[serviceIdx].items.push({ 
+    const baseItem: any = { 
       id: newId, 
-      nameEn: "NEW TECHNICAL ITEM (EN)", 
-      nameMl: "പുതിയ ഐറ്റം (ML)",
-      rate: 0,
       dateFrom: new Date().toISOString().split('T')[0],
       dateTo: ''
-    });
+    };
+
+    if (serviceId === 'gst') {
+      updated[serviceIdx].items.push({ 
+        ...baseItem,
+        nameEn: "NEW GST ITEM (EN)", 
+        nameMl: "പുതിയ ജിഎസ്ടി ഐറ്റം (ML)",
+        gstPercentage: 18,
+        conditions: "As per departmental norms"
+      });
+    } else {
+      updated[serviceIdx].items.push({ 
+        ...baseItem,
+        nameEn: "NEW TECHNICAL ITEM (EN)", 
+        nameMl: "പുതിയ ഐറ്റം (ML)",
+        rate: 0
+      });
+    }
     setLocalServices(updated);
     setIsDirty(true);
   };
@@ -301,6 +324,7 @@ export default function ServicesRatesCatalog() {
             filteredServices.map((service, sIdx) => {
               const activeItems = service.items.filter((i: any) => isItemActive(i));
               const previousItems = service.items.filter((i: any) => !isItemActive(i));
+              const isGstSection = service.id === 'gst';
 
               return (
                 <div
@@ -323,7 +347,7 @@ export default function ServicesRatesCatalog() {
                         "size-10 rounded-xl flex items-center justify-center transition-all",
                         openIndex === sIdx ? "bg-[#1e3a8a] text-white scale-110 shadow-lg shadow-blue-900/20" : "bg-slate-100 text-slate-400 group-hover:bg-slate-200"
                       )}>
-                        <IndianRupee className="h-5 w-5" />
+                        {isGstSection ? <Percent className="h-5 w-5" /> : <IndianRupee className="h-5 w-5" />}
                       </div>
                       <h2 className={cn(
                         "font-black text-lg uppercase tracking-tight",
@@ -401,7 +425,7 @@ export default function ServicesRatesCatalog() {
                         <div className="flex items-center justify-between px-2">
                           <div className="flex items-center gap-2">
                             <CheckCircle2 className="size-4 text-emerald-500" />
-                            <span className="text-[10px] font-black uppercase text-emerald-600 tracking-[0.2em]">Active Technical Rates</span>
+                            <span className="text-[10px] font-black uppercase text-emerald-600 tracking-[0.2em]">Active Technical {isGstSection ? 'GST' : 'Rates'}</span>
                           </div>
                           {isAdmin && (
                             <Button 
@@ -409,7 +433,7 @@ export default function ServicesRatesCatalog() {
                               size="sm" 
                               className="h-10 px-6 text-[10px] font-black uppercase tracking-widest gap-2 bg-[#1e3a8a] text-white rounded-xl shadow-lg shadow-blue-900/10 hover:bg-blue-900"
                             >
-                              <PlusCircle className="size-4" /> ADD TECHNICAL ITEM
+                              <PlusCircle className="size-4" /> {isGstSection ? 'ADD GST DATA' : 'ADD TECHNICAL ITEM'}
                             </Button>
                           )}
                         </div>
@@ -418,9 +442,16 @@ export default function ServicesRatesCatalog() {
                             <thead className="bg-slate-50 border-b border-slate-200">
                               <tr className="h-12 text-[9px] font-black uppercase text-slate-500 tracking-widest">
                                 <th className="w-12 text-center border-r">Sl</th>
-                                <th className="px-6 text-left border-r min-w-[200px]">Technical Item (English)</th>
-                                <th className="px-6 text-left border-r min-w-[200px]">Technical Item (Malayalam)</th>
-                                <th className="w-32 text-right pr-6 border-r">Rate (₹)</th>
+                                <th className="px-6 text-left border-r min-w-[150px]">Technical Item (English)</th>
+                                <th className="px-6 text-left border-r min-w-[150px]">Technical Item (Malayalam)</th>
+                                {isGstSection ? (
+                                  <>
+                                    <th className="w-24 text-center border-r">GST %</th>
+                                    <th className="px-6 text-left border-r min-w-[150px]">Conditions</th>
+                                  </>
+                                ) : (
+                                  <th className="w-32 text-right pr-6 border-r">Rate (₹)</th>
+                                )}
                                 <th className="w-32 text-center border-r">From</th>
                                 <th className="w-32 text-center border-r">To</th>
                                 {isAdmin && <th className="w-24">Actions</th>}
@@ -452,18 +483,46 @@ export default function ServicesRatesCatalog() {
                                       <span className="text-slate-700 font-bold text-xs">{item.nameMl}</span>
                                     )}
                                   </td>
-                                  <td className="text-right pr-6 border-r">
-                                    {isAdmin ? (
-                                      <Input 
-                                        type="number" 
-                                        value={item.rate ?? 0} 
-                                        onChange={(e) => updateItem(service.id, item.id, 'rate', parseFloat(e.target.value) || 0)}
-                                        className="h-8 w-24 text-right text-xs font-black text-blue-700 bg-white"
-                                      />
-                                    ) : (
-                                      <span className="font-black text-[#1e3a8a] text-xs">₹{item.rate.toLocaleString('en-IN')}</span>
-                                    )}
-                                  </td>
+                                  {isGstSection ? (
+                                    <>
+                                      <td className="w-24 text-center border-r">
+                                        {isAdmin ? (
+                                          <Input 
+                                            type="number" 
+                                            value={item.gstPercentage ?? 0} 
+                                            onChange={(e) => updateItem(service.id, item.id, 'gstPercentage', parseInt(e.target.value) || 0)}
+                                            className="h-8 w-16 text-center text-xs font-black text-blue-700 bg-white mx-auto"
+                                          />
+                                        ) : (
+                                          <span className="font-black text-[#1e3a8a] text-xs">{item.gstPercentage}%</span>
+                                        )}
+                                      </td>
+                                      <td className="px-6 border-r">
+                                        {isAdmin ? (
+                                          <Input 
+                                            value={item.conditions || ""} 
+                                            onChange={(e) => updateItem(service.id, item.id, 'conditions', e.target.value)}
+                                            className="h-8 text-xs border-slate-200 bg-white"
+                                          />
+                                        ) : (
+                                          <span className="text-slate-500 font-medium text-xs italic">{item.conditions}</span>
+                                        )}
+                                      </td>
+                                    </>
+                                  ) : (
+                                    <td className="text-right pr-6 border-r">
+                                      {isAdmin ? (
+                                        <Input 
+                                          type="number" 
+                                          value={item.rate ?? 0} 
+                                          onChange={(e) => updateItem(service.id, item.id, 'rate', parseFloat(e.target.value) || 0)}
+                                          className="h-8 w-24 text-right text-xs font-black text-blue-700 bg-white"
+                                        />
+                                      ) : (
+                                        <span className="font-black text-[#1e3a8a] text-xs">₹{item.rate.toLocaleString('en-IN')}</span>
+                                      )}
+                                    </td>
+                                  )}
                                   <td className="border-r px-2">
                                      {isAdmin ? (
                                        <Input type="date" value={item.dateFrom || ''} onChange={(e) => updateItem(service.id, item.id, 'dateFrom', e.target.value)} className="h-8 text-[9px] px-1 border-slate-200" />
@@ -488,7 +547,7 @@ export default function ServicesRatesCatalog() {
                                   )}
                                 </tr>
                               )) : (
-                                <tr className="h-20"><td colSpan={isAdmin ? 7 : 6} className="text-center italic text-slate-400 text-xs uppercase">No active items for this category</td></tr>
+                                <tr className="h-20"><td colSpan={isAdmin ? (isGstSection ? 8 : 7) : (isGstSection ? 7 : 6)} className="text-center italic text-slate-400 text-xs uppercase">No active items for this category</td></tr>
                               )}
                             </tbody>
                           </table>
@@ -500,16 +559,23 @@ export default function ServicesRatesCatalog() {
                         <div className="space-y-4 pt-8 border-t border-dashed border-slate-200 opacity-70 grayscale">
                           <div className="flex items-center gap-2 px-2">
                             <History className="size-4 text-slate-400" />
-                            <span className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Previous Technical Rates (Historical Archive)</span>
+                            <span className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Previous Technical {isGstSection ? 'GST' : 'Rates'} (Historical Archive)</span>
                           </div>
                           <div className="border border-slate-200 rounded-[28px] overflow-hidden bg-white">
                             <table className="w-full border-collapse">
                               <thead className="bg-slate-50 border-b border-slate-200">
                                 <tr className="h-10 text-[9px] font-black uppercase text-slate-400 tracking-widest">
                                   <th className="w-12 text-center border-r">Sl</th>
-                                  <th className="px-6 text-left border-r min-w-[200px]">Technical Item (English)</th>
-                                  <th className="px-6 text-left border-r min-w-[200px]">Technical Item (Malayalam)</th>
-                                  <th className="w-32 text-right pr-6 border-r">Expired Rate</th>
+                                  <th className="px-6 text-left border-r min-w-[150px]">Technical Item (English)</th>
+                                  <th className="px-6 text-left border-r min-w-[150px]">Technical Item (Malayalam)</th>
+                                  {isGstSection ? (
+                                    <>
+                                      <th className="w-24 text-center border-r">GST %</th>
+                                      <th className="px-6 text-left border-r min-w-[150px]">Conditions</th>
+                                    </>
+                                  ) : (
+                                    <th className="w-32 text-right pr-6 border-r">Expired Rate</th>
+                                  )}
                                   <th className="w-32 text-center border-r">From</th>
                                   <th className="w-32 text-center border-r">To</th>
                                   {isAdmin && <th className="w-24">Actions</th>}
@@ -525,9 +591,16 @@ export default function ServicesRatesCatalog() {
                                     <td className="px-6 border-r">
                                       <span className="text-[11px] font-bold text-slate-400">{item.nameMl}</span>
                                     </td>
-                                    <td className="text-right pr-6 border-r">
-                                      <span className="text-[11px] font-bold text-slate-400">₹{item.rate?.toLocaleString('en-IN')}</span>
-                                    </td>
+                                    {isGstSection ? (
+                                      <>
+                                        <td className="w-24 text-center border-r text-slate-400 font-bold text-[11px]">{item.gstPercentage}%</td>
+                                        <td className="px-6 border-r text-slate-400 text-[11px] italic">{item.conditions}</td>
+                                      </>
+                                    ) : (
+                                      <td className="text-right pr-6 border-r">
+                                        <span className="text-[11px] font-bold text-slate-400">₹{item.rate?.toLocaleString('en-IN')}</span>
+                                      </td>
+                                    )}
                                     <td className="border-r px-2">
                                       {isAdmin ? (
                                         <Input 
