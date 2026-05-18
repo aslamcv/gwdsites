@@ -77,7 +77,7 @@ const INITIAL_SERVICES_DATA = [
     title: "GST Configurations",
     items: [
       { id: "gst-1", nameEn: "Drilling GST Exempt", nameMl: "110 മില്ലിമീറ്റർ വ്യാസമുള്ള കുഴൽക്കിണറിന്റെ ഡ്രില്ലിംഗ് ചാർജ്ജ്", gstPercentage: 0, conditions: "As per departmental order", dateFrom: '2024-04-01', dateTo: '2027-03-31' },
-      { id: "gst-2", nameEn: "140mm Pipe GST", nameMl: "140 മില്ലിമീറ്റർ വ്യാസമുള്ള 10 കി.ഗ്രാം / ച. സെ. മീ. പിവിസി കെയ്‌സിംഗ് പൈപ്പിന്റെ വില", gstPercentage: 18, conditions: "(110 മില്ലീമീറ്റർ വ്യാസമുള്ള കുഴൽകിണറിന്റെ ഡ്രില്ലിംഗ് ചാർജ്+ 140 മില്ലീമീറ്റർ വ്യാസമുള്ള 10 കി.ഗ്രാം /ച. സെ. മീ. പിവിസി കെയ്സിംഗ് പൈപ്പിന്റെ വില + 140 മില്ലീമീറ്റർ വ്യാസമുള്ള പിവിസി കുഴൽകിണർ അടപ്പിന്റെ വില) > Rs. 5000", dateFrom: '2024-04-01', dateTo: '2027-03-31' },
+      { id: "gst-2", nameEn: "140mm Pipe GST", nameMl: "140 മില്ലിമീറ്റർ വ്യാസമുള്ള 10 കി.ഗ്രാം / ച. സെ. മീ. പിവിസി കെയ്‌സിംഗ് പൈപ്പിന്റെ വില", gstPercentage: 18, conditions: "(140 മില്ലീമീറ്റർ വ്യാസമുള്ള 6 കി.ഗ്രാം /ച. സെ. മീ. പിവിസി കെയ്സിംഗ് പൈപ്പിന്റെ വില + 140 മില്ലീമീറ്റർ വ്യാസമുള്ള 10 കി.ഗ്രാം /ച. സെ. മീ. പിവിസി കെയ്സിംഗ് പൈപ്പിന്റെ വില + 140 മില്ലീമീറ്റർ വ്യാസമുള്ള പിവിസി കുഴൽകിണർ അടപ്പിന്റെ വില) > Rs. 5000", dateFrom: '2024-04-01', dateTo: '2027-03-31' },
     ],
     description: ["Goods and Services Tax percentages for departmental technical works as per latest Government orders."],
   },

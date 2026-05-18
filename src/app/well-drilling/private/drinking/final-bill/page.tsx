@@ -54,7 +54,7 @@ function BillContent() {
     return doc(firestore, 'appSettings', 'service_rates');
   }, [firestore]);
 
-  const { data: cloudRates, isLoading: isRatesLoading } = useDoc(ratesRef);
+  const { data: cloudRates, isLoading: isRatesLoading } = useDoc(settingsRef);
 
   const data = useMemo(() => {
     if (report) {
@@ -127,13 +127,12 @@ function BillContent() {
     const LABEL_PVC_10KG = '140 മില്ലിമീറ്റർ വ്യാസമുള്ള 10 കി.ഗ്രാം / ച. സെ. മീ. പിവിസി കെയ്‌സിംഗ് പൈപ്പിന്റെ വില';
     const LABEL_END_CAP = '140 മില്ലിമീറ്റർ വ്യാസമുള്ള പിവിസി കുഴൽക്കിണർ അടപ്പിന്റെ വില';
 
-    // GST THRESHOLD CALCULATION
-    // (Drilling Charge + 10kg Casing + End Cap) > 5000
-    const drillingBase = parseFloat(report.totalDepth || '0') * (findRate(LABEL_DRILLING) || 0);
+    // GST THRESHOLD CALCULATION (Instruction: (6kg + 10kg + End Cap) > 5000)
+    const casing6kgBase = parseFloat(report.pvc6kg || '0') * (findRate(LABEL_PVC_6KG) || 0);
     const casing10kgBase = parseFloat(report.pvc10kg || '0') * (findRate(LABEL_PVC_10KG) || 0);
     const endCapBase = (findRate(LABEL_END_CAP) || 0);
     
-    const thresholdSum = drillingBase + casing10kgBase + endCapBase;
+    const thresholdSum = casing6kgBase + casing10kgBase + endCapBase;
     const isGstThresholdMet = thresholdSum > 5000;
 
     let rows: any[] = [];
@@ -146,7 +145,7 @@ function BillContent() {
         const baseAmt = qty * rate;
         
         // SPECIAL GST RULES:
-        // 1. Drilling Charge is always 0% GST
+        // 1. Drilling Charge is always 0% GST (requested)
         // 2. Others are 18% only if thresholdSum > 5000
         let gstPercent = 0;
         if (!isDrilling && isGstThresholdMet) {
@@ -158,7 +157,7 @@ function BillContent() {
         
         rows.push({ 
             label, 
-            qtyStr: isDrilling && isFlushing ? report.compressorWorkingHour : `${qty} m`, 
+            qtyStr: isDrilling && isFlushing ? (report.compressorWorkingHour || '2.5 hrs') : `${qty} m`, 
             rate, 
             amount: baseAmt, 
             gst: gstAmt, 
@@ -242,9 +241,7 @@ function BillContent() {
         'remittance': calc.remitted.toString(),
         'balance': calc.balance.toString(),
         'balance_words': numberToMalayalamWords(calc.balance),
-        'Well Number': data.wellNumber,
         'well_number': data.wellNumber,
-        'sector/sub category': sectorSubCat.toUpperCase(),
         'sector_subcategory': sectorSubCat.toUpperCase()
       };
 
@@ -317,7 +314,7 @@ function BillContent() {
             </p>
           </div>
 
-          <div className="flex justify-between items-start mb-6 pt-8">
+          <div className="flex justify-between items-start mb-6 pt-8 text-left">
             <div className="flex-1">
                 <h1 className="text-[16px] font-bold">ഭൂജല വകുപ്പ്, ജില്ലാ ഓഫീസ്, മലപ്പുറം</h1>
                 <h2 className="text-[12px] font-bold uppercase mt-1">കുഴൽ കിണർ നിർമ്മാണം - അന്തിമ ബിൽ</h2>
@@ -419,7 +416,8 @@ function BillContent() {
           </div>
 
           <div className="mt-auto flex flex-col items-end pt-16">
-            <div className="text-center min-w-[200px]">
+            <div className="text-center min-w-[200px] space-y-1">
+              <p className="font-bold">വിശ്വസ്തതയോടെ,</p>
               <div className="h-16"></div>
               <p className="font-bold text-[14px] uppercase border-t border-black pt-1">ജില്ലാ ഓഫീസർ</p>
             </div>
@@ -435,10 +433,16 @@ function BillContent() {
   );
 }
 
-export default function FinalBillPage() {
+export function FinalBillPage() {
   return (
     <Suspense fallback={<div className="p-12 text-center text-primary font-bold animate-pulse">Preparing Final Bill...</div>}>
       <BillContent />
     </Suspense>
   );
 }
+
+function useMemoFirebase<T>(factory: () => T, deps: any[]): T {
+    return useMemo(factory, deps);
+}
+
+const settingsRef = doc(doc(collection(useFirestore(), 'appSettings'), 'service_rates').firestore, 'appSettings', 'service_rates');
