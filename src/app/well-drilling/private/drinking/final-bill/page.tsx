@@ -1,10 +1,9 @@
-
 'use client';
 
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Printer, ArrowLeft, AlertCircle, ShieldAlert, FileOutput, Loader2 } from 'lucide-react';
+import { Printer, ArrowLeft, ShieldAlert, FileOutput, Loader2, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Link from 'next/link';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
@@ -91,7 +90,7 @@ function BillContent() {
 
     let rows: any[] = [];
     let grossConstructionTotal = 0;
-    let drillingComponentTotal = 0;
+    let drillingItemTotal = 0;
     
     const LABEL_DRILLING = '110 മില്ലിമീറ്റർ വ്യാസമുള്ള കുഴൽക്കിണറിന്റെ ഡ്രില്ലിംഗ് ചാർജ്ജ്';
     const LABEL_FLUSHING = 'ഫ്ലഷിംഗ് നടത്തിയ ആകെ ആഴം';
@@ -108,7 +107,7 @@ function BillContent() {
         
         rows.push({ 
             label, 
-            qty: isDrilling && isFlushing ? report.compressorWorkingHour : `${qty} m`, 
+            qtyStr: isDrilling && isFlushing ? report.compressorWorkingHour : `${qty} m`, 
             rate, 
             amount: baseAmt, 
             gst, 
@@ -116,7 +115,7 @@ function BillContent() {
         });
         
         grossConstructionTotal += total;
-        if (isDrilling) drillingComponentTotal += total;
+        if (isDrilling) drillingItemTotal = total; // Grand total of drilling line (incl GST)
         return { error: false };
     };
 
@@ -147,16 +146,13 @@ function BillContent() {
     const roundedGross = Math.ceil(grossConstructionTotal);
     
     let subsidyAmount = 0;
-    let subsidyLabel = '';
     if (isDryWellPrivate) {
-      subsidyAmount = Math.ceil(drillingComponentTotal * 0.75);
-      subsidyLabel = 'കുഴൽ കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് വകുപ്പിന് ലഭിക്കേണ്ട തുക (ഡ്രില്ലിംഗ് ചാർജിന്റെ 25%)';
+      subsidyAmount = Math.ceil(drillingItemTotal * 0.75);
     } else if (isAgriSubsidy) {
-      subsidyAmount = Math.ceil(drillingComponentTotal * 0.5);
-      subsidyLabel = 'നാമമാത്ര / ചെറുകിട കർഷകർക്കുള്ള ധനസഹായം - ഡ്രില്ലിംഗ് ചാർജിന്റെ 50%';
+      subsidyAmount = Math.ceil(drillingItemTotal * 0.5);
     }
 
-    const netPayable = roundedGross - (isDryWellPrivate || isAgriSubsidy ? subsidyAmount : 0);
+    const netPayable = roundedGross - subsidyAmount;
     const remitted = parseFloat(report.remittance || '0');
     const balance = remitted - netPayable;
 
@@ -164,7 +160,6 @@ function BillContent() {
         rows, 
         roundedGross,
         subsidyAmount,
-        subsidyLabel,
         netPayable,
         remitted, 
         balance, 
@@ -225,13 +220,21 @@ function BillContent() {
               {!calc.error && <Button onClick={() => window.print()} className="gap-2 font-bold bg-[#1e3a8a] text-white h-8 text-xs px-6 rounded-lg"><Printer className="h-3 w-3" /> Print Preview</Button>}
             </div>
         </div>
-        {calc.error && (
+        
+        {calc.error ? (
           <Alert variant="destructive" className="bg-rose-50 border-rose-200 py-6 rounded-2xl">
             <ShieldAlert className="size-6 text-rose-600" />
             <AlertTitle className="text-sm font-black uppercase tracking-tight ml-2">Rate Configuration Missing</AlertTitle>
             <AlertDescription className="text-xs font-bold text-rose-800 ml-2 mt-2 leading-relaxed">
-              No valid rate found for technical item on date: <span className="underline">{calc.refDate}</span>.
+              No valid rate found for technical item: <span className="underline font-black">{calc.missingItem}</span> on date: <span className="underline">{calc.refDate}</span>.
             </AlertDescription>
+          </Alert>
+        ) : (
+          <Alert className="bg-blue-50 border-blue-200 py-3 rounded-xl">
+              <AlertCircle className="size-4 text-blue-600" />
+              <AlertDescription className="text-[11px] font-black text-blue-800 uppercase tracking-tight">
+                  Rate applied based on work period: {calc.refDate} (GST: 18% Fixed)
+              </AlertDescription>
           </Alert>
         )}
       </div>
@@ -288,11 +291,12 @@ function BillContent() {
                 </tr>
               </thead>
               <tbody>
+                <tr className="h-[1px] border-b border-black"><td colSpan={7}></td></tr>
                 {calc.rows.map((row, i) => (
                   <tr key={i} className="h-9 border-b border-black last:border-b-0">
                     <td className="border-r border-black">{i + 1}</td>
-                    <td className="border-r border-black text-left px-3 font-medium uppercase text-[9px]">{row.label}</td>
-                    <td className="border-r border-black font-bold">{row.qty}</td>
+                    <td className="border-r border-black text-left px-3 font-medium uppercase text-[9px] whitespace-normal leading-tight">{row.label}</td>
+                    <td className="border-r border-black font-bold">{row.qtyStr}</td>
                     <td className="border-r border-black">{row.rate.toFixed(2)}</td>
                     <td className="border-r border-black">₹{row.amount.toFixed(2)}</td>
                     <td className="border-r border-black">₹{row.gst.toFixed(2)}</td>
@@ -305,21 +309,29 @@ function BillContent() {
 
           <div className="border border-black text-left font-bold text-[11px] leading-tight">
               <div className="flex justify-between items-center p-3 border-b border-black">
-                  <span>കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിയുടെ ആകെ ചിലവ് :</span>
+                  <span className="max-w-[480px]">കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിയുടെ ആകെ ചിലവ് :</span>
                   <span className="font-black text-[13px]">₹ {calc.roundedGross.toFixed(2)}</span>
               </div>
 
+              {calc.isAgriSubsidy && (
+                <div className="flex justify-between items-center p-3 border-b border-black text-red-600 bg-red-50/20">
+                    <span className="flex-1 uppercase text-[10px] tracking-tight">നാമമാത്ര / ചെറുകിട കർഷകർക്കുള്ള ധനസഹായം - ഡ്രില്ലിംഗ് ചാർജിന്റെ 50% :</span>
+                    <span className="font-black text-[13px]">₹ {calc.subsidyAmount.toFixed(2)}</span>
+                </div>
+              )}
+              
+              {calc.isDryWellPrivate && (
+                <div className="flex justify-between items-center p-3 border-b border-black text-red-600 bg-red-50/20">
+                    <span className="flex-1 uppercase text-[10px] tracking-tight">കുഴൽ കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് വകുപ്പിന് ലഭിക്കേണ്ട തുക (ഡ്രില്ലിംഗ് ചാർജിന്റെ 25%) :</span>
+                    <span className="font-black text-[13px]">₹ {calc.subsidyAmount.toFixed(2)}</span>
+                </div>
+              )}
+
               {(calc.isAgriSubsidy || calc.isDryWellPrivate) && (
-                <>
-                    <div className="flex justify-between items-center p-3 border-b border-black text-red-600 bg-red-50/20">
-                        <span className="flex-1 uppercase text-[10px] tracking-tight">{calc.subsidyLabel} :</span>
-                        <span className="font-black text-[13px]">₹ {calc.subsidyAmount.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 border-b border-black text-[#1e3a8a] bg-blue-50/10">
-                        <span>കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക :</span>
-                        <span className="font-black text-[14px]">₹ {calc.netPayable.toFixed(2)}</span>
-                    </div>
-                </>
+                <div className="flex justify-between items-center p-3 border-b border-black text-[#1e3a8a] bg-blue-50/10">
+                    <span className="max-w-[480px]">കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക :</span>
+                    <span className="font-black text-[14px]">₹ {calc.netPayable.toFixed(2)}</span>
+                </div>
               )}
 
               <div className="flex justify-between items-center p-3 border-b border-black bg-slate-50">

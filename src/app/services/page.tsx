@@ -49,10 +49,10 @@ const INITIAL_SERVICES_DATA = [
     id: "ds",
     title: "Drilling Services",
     items: [
-      { id: "ds-1", nameEn: "110 mm dia കുഴല്‍കിണര്‍ ഡ്രില്ലിംഗ് ചാര്‍ജ് ", nameMl: "110 മില്ലിമീറ്റർ വ്യാസമുള്ള കുഴൽക്കിണറിന്റെ ഡ്രില്ലിംഗ് ചാർജ്ജ്", rate: 390, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
-      { id: "ds-2", nameEn: "140 mm dia 6 kg/cm2 പി. വി.സി. കേയ്സിംഗ് പൈപ്പിന്റെ വില ", nameMl: "140 മില്ലിമീറ്റർ വ്യാസമുള്ള 6 കി.ഗ്രാം / ച. സെ. മി. പിവിസി കെയ്‌സിംഗ് പൈപ്പിന്റെ വില", rate: 566.56, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
-      { id: "ds-3", nameEn: "140 mm dia 10 kg/cm2 പി. വി.സി. കേയ്സിംഗ് പൈപ്പിന്റെ വില ", nameMl: "140 മില്ലിമീറ്റർ വ്യാസമുള്ള 10 കി.ഗ്രാം / ച. സെ. മി. പിവിസി കെയ്‌സിംഗ് പൈപ്പിന്റെ വില", rate: 879.01, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
-      { id: "ds-4", nameEn: "140 mm dia ഏന്‍ഡ് ക്യാപ്പിന്റെ വില", nameMl: "140 മില്ലിമീറ്റർ വ്യാസമുള്ള പിവിസി കുഴൽക്കിണർ അടപ്പിന്റെ വില", rate: 87.59, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "ds-1", nameEn: "110 mm dia drilling charge", nameMl: "110 മില്ലിമീറ്റർ വ്യാസമുള്ള കുഴൽക്കിണറിന്റെ ഡ്രില്ലിംഗ് ചാർജ്ജ്", rate: 390, dateFrom: '2024-04-01', dateTo: '2026-03-31' },
+      { id: "ds-2", nameEn: "140 mm dia 6 kg/cm2 PVC Casing Pipe", nameMl: "140 മില്ലിമീറ്റർ വ്യാസമുള്ള 6 കി.ഗ്രാം / ച. സെ. മി. പിവിസി കെയ്‌സിംഗ് പൈപ്പിന്റെ വില", rate: 566.56, dateFrom: '2024-04-01', dateTo: '2026-03-31' },
+      { id: "ds-3", nameEn: "140 mm dia 10 kg/cm2 PVC Casing Pipe", nameMl: "140 മില്ലിമീറ്റർ വ്യാസമുള്ള 10 കി.ഗ്രാം / ച. സെ. മി. പിവിസി കെയ്‌സിംഗ് പൈപ്പിന്റെ വില", rate: 879.01, dateFrom: '2024-04-01', dateTo: '2026-03-31' },
+      { id: "ds-4", nameEn: "140 mm dia End Cap", nameMl: "140 മില്ലിമീറ്റർ വ്യാസമുള്ള പിവിസി കുഴൽക്കിണർ അടപ്പിന്റെ വില", rate: 87.59, dateFrom: '2024-04-01', dateTo: '2026-03-31' },
     ],
     description: [
       "Construction of bore wells and tube wells using specialized departmental rigs.",
@@ -64,8 +64,8 @@ const INITIAL_SERVICES_DATA = [
     id: "yt",
     title: "Yield Testing (Pumping Test)",
     items: [
-      { id: "yt-1", nameEn: "Step Drawdown Test (SDT)", nameMl: "സ്റ്റെപ്പ് ഡ്രോഡൗൺ ടെസ്റ്റ് (SDT)", rate: 7490, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
-      { id: "yt-2", nameEn: "Borewell Flushing", nameMl: "ഫ്ലഷിംഗ് നടത്തിയ ആകെ ആഴം", rate: 5790, dateFrom: '2024-04-01', dateTo: '2025-03-31' },
+      { id: "yt-1", nameEn: "Step Drawdown Test (SDT)", nameMl: "സ്റ്റെപ്പ് ഡ്രോഡൗൺ ടെസ്റ്റ് (SDT)", rate: 7490, dateFrom: '2024-04-01', dateTo: '2026-03-31' },
+      { id: "yt-2", nameEn: "Borewell Flushing", nameMl: "ഫ്ലഷിംഗ് നടത്തിയ ആകെ ആഴം", rate: 5790, dateFrom: '2024-04-01', dateTo: '2026-03-31' },
     ],
     description: [
       "Determining the sustainable yield and recovery parameters of the well.",
@@ -103,8 +103,6 @@ export default function ServicesRatesCatalog() {
 
   useEffect(() => {
     if (cloudSettings?.services) {
-      // Ensure that any new categories added to INITIAL_SERVICES_DATA (like 'gst')
-      // are merged into the local state if they are missing from cloud settings.
       const cloudData = cloudSettings.services;
       const missingFromCloud = INITIAL_SERVICES_DATA.filter(
         initial => !cloudData.some((c: any) => c.id === initial.id)
@@ -112,7 +110,6 @@ export default function ServicesRatesCatalog() {
       
       if (missingFromCloud.length > 0) {
         setLocalServices([...cloudData, ...missingFromCloud]);
-        // Mark as dirty so user can save the newly added sections to cloud
         setIsDirty(true);
       } else {
         setLocalServices(cloudData);
@@ -287,7 +284,6 @@ export default function ServicesRatesCatalog() {
     <div className="min-h-screen bg-slate-50/50 p-4 sm:p-8 animate-in fade-in duration-700 pb-32">
       <div className="max-w-7xl mx-auto space-y-8">
         
-        {/* OFFICIAL HEADER */}
         <Card className="border-none shadow-xl shadow-slate-200/50 rounded-[32px] overflow-hidden ring-1 ring-slate-200 bg-white">
           <div className="bg-[#1e3a8a] p-8 text-white relative">
             <div className="absolute top-0 right-0 p-10 opacity-5 pointer-events-none"><ShieldCheck className="size-40" /></div>
@@ -326,7 +322,6 @@ export default function ServicesRatesCatalog() {
           </CardContent>
         </Card>
 
-        {/* SERVICES ACCORDION LIST */}
         <div className="space-y-4">
           {filteredServices.length > 0 ? (
             filteredServices.map((service, sIdx) => {
@@ -342,7 +337,6 @@ export default function ServicesRatesCatalog() {
                     openIndex === sIdx ? "shadow-md ring-2 ring-primary/5" : "hover:shadow-md"
                   )}
                 >
-                  {/* CATEGORY HEADER */}
                   <div
                     className={cn(
                       "flex justify-between items-center p-6 cursor-pointer transition-colors",
@@ -376,11 +370,8 @@ export default function ServicesRatesCatalog() {
                     </div>
                   </div>
 
-                  {/* EXPANDABLE CONTENT */}
                   {openIndex === sIdx && (
                     <div className="px-8 pb-8 animate-in slide-in-from-top-2 duration-300 space-y-8">
-                      
-                      {/* SCOPE DESCRIPTION */}
                       <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100">
                         <div className="flex items-center justify-between mb-4">
                           <div className="flex items-center gap-2">
@@ -428,7 +419,6 @@ export default function ServicesRatesCatalog() {
                         </div>
                       </div>
 
-                      {/* ACTIVE RATES SECTION */}
                       <div className="space-y-4">
                         <div className="flex items-center justify-between px-2">
                           <div className="flex items-center gap-2">
@@ -562,7 +552,6 @@ export default function ServicesRatesCatalog() {
                         </div>
                       </div>
 
-                      {/* PREVIOUS RATES SECTION */}
                       {previousItems.length > 0 && (
                         <div className="space-y-4 pt-8 border-t border-dashed border-slate-200 opacity-70 grayscale">
                           <div className="flex items-center gap-2 px-2">
@@ -664,7 +653,6 @@ export default function ServicesRatesCatalog() {
           )}
         </div>
 
-        {/* PERSISTENT ACTION FOOTER (Admin Only) */}
         {isAdmin && isDirty && (
           <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] w-full max-w-4xl px-4 animate-in slide-in-from-bottom-8 duration-500">
             <Card className="rounded-[28px] border-none shadow-2xl ring-2 ring-[#1e3a8a] bg-white p-4">
