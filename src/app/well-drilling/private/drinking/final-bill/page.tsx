@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useSearchParams } from 'next/navigation';
@@ -38,6 +39,7 @@ function BillContent() {
   const firestore = useFirestore();
   const id = searchParams.get('id');
   const [isPdfLoading, setIsPdfLoading] = useState(false);
+  const { toast } = useToast();
   
   const reportRef = useMemoFirebase(() => {
     if (!firestore || !id) return null;
@@ -52,6 +54,35 @@ function BillContent() {
   }, [firestore]);
 
   const { data: cloudRates, isLoading: isRatesLoading } = useDoc(ratesRef);
+
+  const data = useMemo(() => {
+    if (report) {
+      return {
+        fileNo: report.fileNo || '',
+        wellNumber: report.wellNumber || '',
+        borewellSize: report.borewellSize || '',
+        nameOfSite: report.nameOfSite || report.applicantName || '',
+        lsgd: report.lsgd || '',
+        totalDepth: report.totalDepth || '',
+        overburden: report.overburden || '',
+        pvc6kg: report.pvc6kg || '0',
+        pvc10kg: report.pvc10kg || '0',
+        discharge: report.discharge || '0',
+        waterLevel: report.waterLevel || '0',
+        workStart: report.dateOfInvestigation?.split(' - ')[0] || '',
+        workEnd: report.dateOfInvestigation?.split(' - ')[1] || '',
+        remarks: report.remarks || '',
+        observations: report.observations || '',
+        purpose: report.purpose || 'Well Drilling / Private / Drinking',
+        sector: report.sector || 'PRIVATE',
+        category: report.category || 'DRINKING',
+        subCategory: report.subCategory || '',
+        staff: report.staffAssignment || {},
+        reportDate: report.reportDate || ''
+      };
+    }
+    return null;
+  }, [report]);
 
   const calc = useMemo(() => {
     if (!report || !cloudRates) return null;
@@ -115,7 +146,7 @@ function BillContent() {
         });
         
         grossConstructionTotal += total;
-        if (isDrilling) drillingItemTotal = total; // Grand total of drilling line (incl GST)
+        if (isDrilling) drillingItemTotal = total; 
         return { error: false };
     };
 
@@ -170,12 +201,14 @@ function BillContent() {
   }, [report, cloudRates]);
 
   const handleFillPdf = async () => {
-    if (!report || !calc) return;
+    if (!report || !calc || !data) return;
     setIsPdfLoading(true);
     try {
       const existingPdfBytes = await fetch('/final-bill.pdf').then(res => res.arrayBuffer());
       const pdfDoc = await PDFDocument.load(existingPdfBytes);
       const form = pdfDoc.getForm();
+
+      const sectorSubCat = `${data.sector}/${data.subCategory || data.category}`;
 
       const mapping: Record<string, string | undefined> = {
         'file_no': report.fileNo,
@@ -187,23 +220,35 @@ function BillContent() {
         'total_cost': calc.roundedGross.toString(),
         'remittance': calc.remitted.toString(),
         'balance': calc.balance.toString(),
-        'balance_words': numberToMalayalamWords(calc.balance)
+        'balance_words': numberToMalayalamWords(calc.balance),
+        // Requested mappings
+        'Well Number': data.wellNumber,
+        'well_number': data.wellNumber,
+        'sector/sub category': sectorSubCat.toUpperCase(),
+        'sector_subcategory': sectorSubCat.toUpperCase()
       };
 
       Object.entries(mapping).forEach(([field, val]) => {
-        try { form.getTextField(field)?.setText(String(val || '')); } catch(e) {}
+        try { 
+            const textField = form.getTextField(field);
+            if (textField) textField.setText(String(val || '')); 
+        } catch(e) {
+            // Handle if field is missing in template silently or fallback to lower/snake case
+        }
       });
 
       const pdfBytes = await pdfDoc.save();
       const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-      window.open(URL.createObjectURL(blob), '_blank');
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
     } catch (e) {
-      toast({ variant: "destructive", title: "PDF Error", description: "Could not fill the template." });
+      console.error(e);
+      toast({ variant: "destructive", title: "PDF Error", description: "Could not fill the template. Ensure final-bill.pdf exists in public folder." });
     } finally { setIsPdfLoading(false); }
   };
 
   if (isLoading || isRatesLoading) return <div className="p-12 flex justify-center"><Skeleton className="h-[800px] w-full max-w-[800px]" /></div>;
-  if (!report || !calc) return null;
+  if (!report || !calc || !data) return null;
 
   return (
     <div className="min-h-screen bg-slate-100 py-4 px-4 pt-12 print:bg-white print:p-0 font-malayalam text-black">
@@ -233,7 +278,7 @@ function BillContent() {
           <Alert className="bg-blue-50 border-blue-200 py-3 rounded-xl">
               <AlertCircle className="size-4 text-blue-600" />
               <AlertDescription className="text-[11px] font-black text-blue-800 uppercase tracking-tight">
-                  Rate applied based on work period: {calc.refDate} (GST: 18% Fixed)
+                  Rate applied based on technical session date: {calc.refDate}
               </AlertDescription>
           </Alert>
         )}
@@ -268,6 +313,8 @@ function BillContent() {
                 { l: 'നിയമസഭ മണ്ഡലം', v: report.assembly },
                 { l: 'വിലാസം', v: report.address },
                 { l: 'കുഴൽ കിണറിന്റെ നിലവിലെ സ്ഥിതി', v: report.remarks },
+                { l: 'Well Number', v: data.wellNumber },
+                { l: 'Sector / Sub Category', v: `${data.sector} / ${data.subCategory || data.category}` },
             ].map((row, i) => (
                 <div key={i} className="grid grid-cols-[200px_1fr] border-b border-black last:border-b-0">
                     <div className="border-r border-black p-2 px-4 font-medium">{row.l}</div>
@@ -287,7 +334,7 @@ function BillContent() {
                   <th className="border-r border-black p-1 w-20">നിരക്ക്</th>
                   <th className="border-r border-black p-1 w-24">തുക</th>
                   <th className="border-r border-black p-1 w-16">GST 18%</th>
-                  <th className="p-1 w-28">ആകെ തുക</th>
+                  <th className="p-1 w-28">മൊത്തം തുക</th>
                 </tr>
               </thead>
               <tbody>
@@ -322,17 +369,15 @@ function BillContent() {
               
               {calc.isDryWellPrivate && (
                 <div className="flex justify-between items-center p-3 border-b border-black text-red-600 bg-red-50/20">
-                    <span className="flex-1 uppercase text-[10px] tracking-tight">കുഴൽ കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് വകുപ്പിന് ലഭിക്കേണ്ട തുക (ഡ്രില്ലിംഗ് ചാർജിന്റെ 25%) :</span>
-                    <span className="font-black text-[13px]">₹ {calc.subsidyAmount.toFixed(2)}</span>
+                    <span className="flex-1 uppercase text-[10px] tracking-tight whitespace-normal">കുഴൽ കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് വകുപ്പിന് ലഭിക്കേണ്ട തുക (ഡ്രില്ലിംഗ് ചാർജിന്റെ 25%) :</span>
+                    <span className="font-black text-[13px] shrink-0">₹ {calc.subsidyAmount.toFixed(2)}</span>
                 </div>
               )}
 
-              {(calc.isAgriSubsidy || calc.isDryWellPrivate) && (
-                <div className="flex justify-between items-center p-3 border-b border-black text-[#1e3a8a] bg-blue-50/10">
-                    <span className="max-w-[480px]">കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക :</span>
-                    <span className="font-black text-[14px]">₹ {calc.netPayable.toFixed(2)}</span>
-                </div>
-              )}
+              <div className="flex justify-between items-center p-3 border-b border-black text-[#1e3a8a] bg-blue-50/10">
+                  <span className="max-w-[480px]">കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക :</span>
+                  <span className="font-black text-[14px]">₹ {calc.netPayable.toFixed(2)}</span>
+              </div>
 
               <div className="flex justify-between items-center p-3 border-b border-black bg-slate-50">
                   <span className="text-slate-500 uppercase text-[10px]">അപേക്ഷകൻ മുൻകൂറായി അടച്ചിട്ടുള്ള തുക :</span>
@@ -363,6 +408,14 @@ function BillContent() {
       )}
     </div>
   );
+}
+
+function useToast() {
+    const [state, setState] = useState<any>({});
+    return {
+        toast: (props: any) => setState(props),
+        state
+    };
 }
 
 export default function FinalBillPage() {
