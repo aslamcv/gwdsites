@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect, useTransition } from 'react';
@@ -678,14 +677,4 @@ export default function ServicesRatesCatalog() {
       </div>
     </div>
   );
-}
-
-function useLsgdData() {
-  const firestore = useFirestore();
-  const settingsRef = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return doc(firestore, 'appSettings', 'global_data');
-  }, [firestore]);
-  const { data: settings } = useDoc(settingsRef);
-  return { lsgs: settings?.lsgs || [], lsgMappings: settings?.lsgMappings || [] };
 }

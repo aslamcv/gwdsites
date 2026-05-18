@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useSearchParams } from 'next/navigation';
@@ -49,7 +48,7 @@ function BillContent() {
 
   const { data: report, isLoading } = useDoc<GroundwaterReport>(reportRef);
 
-  const ratesRef = useMemoFirebase(() => {
+  const settingsRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return doc(firestore, 'appSettings', 'service_rates');
   }, [firestore]);
@@ -127,7 +126,7 @@ function BillContent() {
     const LABEL_PVC_10KG = '140 മില്ലിമീറ്റർ വ്യാസമുള്ള 10 കി.ഗ്രാം / ച. സെ. മീ. പിവിസി കെയ്‌സിംഗ് പൈപ്പിന്റെ വില';
     const LABEL_END_CAP = '140 മില്ലിമീറ്റർ വ്യാസമുള്ള പിവിസി കുഴൽക്കിണർ അടപ്പിന്റെ വില';
 
-    // GST THRESHOLD CALCULATION (Instruction: (6kg + 10kg + End Cap) > 5000)
+    // GST THRESHOLD CALCULATION: (6kg + 10kg + End Cap) > 5000
     const casing6kgBase = parseFloat(report.pvc6kg || '0') * (findRate(LABEL_PVC_6KG) || 0);
     const casing10kgBase = parseFloat(report.pvc10kg || '0') * (findRate(LABEL_PVC_10KG) || 0);
     const endCapBase = (findRate(LABEL_END_CAP) || 0);
@@ -144,9 +143,6 @@ function BillContent() {
         if (rate === null) return { error: true, label };
         const baseAmt = qty * rate;
         
-        // SPECIAL GST RULES:
-        // 1. Drilling Charge is always 0% GST (requested)
-        // 2. Others are 18% only if thresholdSum > 5000
         let gstPercent = 0;
         if (!isDrilling && isGstThresholdMet) {
             gstPercent = 0.18;
@@ -433,16 +429,10 @@ function BillContent() {
   );
 }
 
-export function FinalBillPage() {
+export default function FinalBillPage() {
   return (
     <Suspense fallback={<div className="p-12 text-center text-primary font-bold animate-pulse">Preparing Final Bill...</div>}>
       <BillContent />
     </Suspense>
   );
 }
-
-function useMemoFirebase<T>(factory: () => T, deps: any[]): T {
-    return useMemo(factory, deps);
-}
-
-const settingsRef = doc(doc(collection(useFirestore(), 'appSettings'), 'service_rates').firestore, 'appSettings', 'service_rates');
