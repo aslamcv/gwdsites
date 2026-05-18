@@ -76,7 +76,7 @@ const INITIAL_SERVICES_DATA = [
     title: "GST Configurations",
     items: [
       { id: "gst-1", nameEn: "Drilling GST Exempt", nameMl: "110 മില്ലിമീറ്റർ വ്യാസമുള്ള കുഴൽക്കിണറിന്റെ ഡ്രില്ലിംഗ് ചാർജ്ജ്", gstPercentage: 0, conditions: "As per departmental order", dateFrom: '2024-04-01', dateTo: '2027-03-31' },
-      { id: "gst-2", nameEn: "Material GST Threshold", nameMl: "Technical Items GST Trigger", gstPercentage: 18, conditions: "(140mm 6kg Pipe + 140mm 10kg Pipe + 140mm End Cap) > Rs. 5000", dateFrom: '2024-04-01', dateTo: '2027-03-31' },
+      { id: "gst-2", nameEn: "Material GST Threshold", nameMl: "Technical Items GST Trigger", gstPercentage: 18, conditions: "(140 മില്ലീമീറ്റർ വ്യാസമുള്ള 6 കി.ഗ്രാം /ച. സെ. മീ. പിവിസി കെയ്സിംഗ് പൈപ്പിന്റെ വില + 140 മില്ലീമീറ്റർ വ്യാസമുള്ള 10 കി.ഗ്രാം /ച. സെ. മീ. പിവിസി കെയ്സിംഗ് പൈപ്പിന്റെ വില + 140 മില്ലീമീറ്റർ വ്യാസമുള്ള പിവിസി കുഴൽകിണർ അടപ്പിന്റെ വില) > Rs. 5000", dateFrom: '2024-04-01', dateTo: '2027-03-31' },
     ],
     description: ["Goods and Services Tax rules for technical materials and drilling operations."],
   },
@@ -592,10 +592,18 @@ export default function ServicesRatesCatalog() {
                                       </td>
                                     )}
                                     <td className="border-r px-2">
-                                      <span className="text-center block text-[9px] font-medium text-slate-400">{item.dateFrom}</span>
+                                      {isAdmin ? (
+                                        <Input type="date" value={item.dateFrom || ''} onChange={(e) => updateItem(service.id, item.id, 'dateFrom', e.target.value)} className="h-8 text-[9px] px-1 border-slate-200" />
+                                      ) : (
+                                        <span className="text-center block text-[9px] font-medium text-slate-400">{item.dateFrom}</span>
+                                      )}
                                     </td>
                                     <td className="border-r px-2">
-                                      <span className="text-center block text-[9px] font-medium text-slate-400">{item.dateTo}</span>
+                                      {isAdmin ? (
+                                        <Input type="date" value={item.dateTo || ''} onChange={(e) => updateItem(service.id, item.id, 'dateTo', e.target.value)} className="h-8 text-[9px] px-1 border-slate-200" />
+                                      ) : (
+                                        <span className="text-center block text-[9px] font-medium text-slate-400">{item.dateTo}</span>
+                                      )}
                                     </td>
                                     {isAdmin && (
                                       <td className="px-2 text-center">
