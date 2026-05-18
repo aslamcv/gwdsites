@@ -12,7 +12,7 @@ import type { GroundwaterReport } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { PDFDocument } from 'pdf-lib';
-import { format } from 'date-fns';
+import { format, parseISO, isValid } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
 function numberToMalayalamWords(num: number): string {
@@ -26,11 +26,17 @@ const formatTechnicalDate = (dateStr: string) => {
   const trimmed = dateStr.trim();
   const parts = trimmed.split(/[-/]/);
   if (parts.length === 3) {
+    // If it's already in DD-MM-YYYY
+    if (parts[0].length <= 2 && parts[2].length === 4) {
+      return `${parts[0]}-${parts[1]}-${parts[2]}`;
+    }
+    // If it's in YYYY-MM-DD
     if (parts[0].length === 4) {
       return `${parts[2]}-${parts[1]}-${parts[0]}`;
     }
-    return `${parts[0]}-${parts[1]}-${parts[2]}`;
   }
+  const date = parseISO(dateStr);
+  if (isValid(date)) return format(date, 'dd-MM-yyyy');
   return dateStr;
 };
 
@@ -126,13 +132,16 @@ function BillContent() {
     const LABEL_PVC_10KG = '140 മില്ലിമീറ്റർ വ്യാസമുള്ള 10 കി.ഗ്രാം / ച. സെ. മീ. പിവിസി കെയ്‌സിംഗ് പൈപ്പിന്റെ വില';
     const LABEL_END_CAP = '140 മില്ലിമീറ്റർ വ്യാസമുള്ള പിവിസി കുഴൽക്കിണർ അടപ്പിന്റെ വില';
 
-    // GST THRESHOLD CALCULATION: (6kg + 10kg + End Cap) > 5000
-    const casing6kgBase = parseFloat(report.pvc6kg || '0') * (findRate(LABEL_PVC_6KG) || 0);
-    const casing10kgBase = parseFloat(report.pvc10kg || '0') * (findRate(LABEL_PVC_10KG) || 0);
-    const endCapBase = (findRate(LABEL_END_CAP) || 0);
+    // MATERIAL TOTAL FOR GST THRESHOLD
+    const rate6kg = findRate(LABEL_PVC_6KG) || 0;
+    const rate10kg = findRate(LABEL_PVC_10KG) || 0;
+    const rateEndCap = findRate(LABEL_END_CAP) || 0;
+
+    const materialBaseTotal = (parseFloat(report.pvc6kg || '0') * rate6kg) + 
+                               (parseFloat(report.pvc10kg || '0') * rate10kg) + 
+                               rateEndCap;
     
-    const thresholdSum = casing6kgBase + casing10kgBase + endCapBase;
-    const isGstThresholdMet = thresholdSum > 5000;
+    const isGstThresholdMet = materialBaseTotal > 5000;
 
     let rows: any[] = [];
     let grossConstructionTotal = 0;
@@ -144,6 +153,7 @@ function BillContent() {
         const baseAmt = qty * rate;
         
         let gstPercent = 0;
+        // 18% GST only if threshold met AND it's not a drilling charge
         if (!isDrilling && isGstThresholdMet) {
             gstPercent = 0.18;
         }
@@ -289,7 +299,7 @@ function BillContent() {
           <Alert className="bg-blue-50 border-blue-200 py-3 rounded-xl">
               <AlertCircle className="size-4 text-blue-600" />
               <AlertDescription className="text-[11px] font-black text-blue-800 uppercase tracking-tight">
-                  {calc.isGstThresholdMet ? "Technical Component Threshold Met (>₹5000): GST 18% Applied." : "Threshold Not Met (≤₹5000): GST 0% Applied."}
+                  {calc.isGstThresholdMet ? "Technical Component Threshold Met (>₹5000): GST 18% Applied to Materials." : "Threshold Not Met (≤₹5000): GST 0% Applied."}
               </AlertDescription>
           </Alert>
         )}
@@ -362,10 +372,10 @@ function BillContent() {
                     <td className="border-r border-black">{i + 1}</td>
                     <td className="border-r border-black text-left px-3 font-medium uppercase text-[9px] leading-tight">{row.label}</td>
                     <td className="border-r border-black font-bold">{row.qtyStr}</td>
-                    <td className="border-r border-black">{row.rate.toFixed(2)}</td>
-                    <td className="border-r border-black">₹{row.amount.toFixed(2)}</td>
-                    <td className="border-r border-black">₹{row.gst.toFixed(2)}</td>
-                    <td className="font-bold">₹{row.total.toFixed(2)}</td>
+                    <td className="border-r border-black">{row.rate?.toFixed(2) ?? '0.00'}</td>
+                    <td className="border-r border-black">₹{row.amount?.toFixed(2) ?? '0.00'}</td>
+                    <td className="border-r border-black">₹{row.gst?.toFixed(2) ?? '0.00'}</td>
+                    <td className="font-bold">₹{row.total?.toFixed(2) ?? '0.00'}</td>
                   </tr>
                 ))}
               </tbody>

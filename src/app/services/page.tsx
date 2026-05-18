@@ -76,9 +76,9 @@ const INITIAL_SERVICES_DATA = [
     title: "GST Configurations",
     items: [
       { id: "gst-1", nameEn: "Drilling GST Exempt", nameMl: "110 മില്ലിമീറ്റർ വ്യാസമുള്ള കുഴൽക്കിണറിന്റെ ഡ്രില്ലിംഗ് ചാർജ്ജ്", gstPercentage: 0, conditions: "As per departmental order", dateFrom: '2024-04-01', dateTo: '2027-03-31' },
-      { id: "gst-2", nameEn: "140mm Pipe GST", nameMl: "140 മില്ലിമീറ്റർ വ്യാസമുള്ള 10 കി.ഗ്രാം / ച. സെ. മീ. പിവിസി കെയ്‌സിംഗ് പൈപ്പിന്റെ വില", gstPercentage: 18, conditions: "(140 മില്ലീമീറ്റർ വ്യാസമുള്ള 6 കി.ഗ്രാം /ച. സെ. മീ. പിവിസി കെയ്സിംഗ് പൈപ്പിന്റെ വില + 140 മില്ലീമീറ്റർ വ്യാസമുള്ള 10 കി.ഗ്രാം /ച. സെ. മീ. പിവിസി കെയ്സിംഗ് പൈപ്പിന്റെ വില + 140 മില്ലീമീറ്റർ വ്യാസമുള്ള പിവിസി കുഴൽകിണർ അടപ്പിന്റെ വില) > Rs. 5000", dateFrom: '2024-04-01', dateTo: '2027-03-31' },
+      { id: "gst-2", nameEn: "Material GST Threshold", nameMl: "Technical Items GST Trigger", gstPercentage: 18, conditions: "(140mm 6kg Pipe + 140mm 10kg Pipe + 140mm End Cap) > Rs. 5000", dateFrom: '2024-04-01', dateTo: '2027-03-31' },
     ],
-    description: ["Goods and Services Tax percentages for departmental technical works as per latest Government orders."],
+    description: ["Goods and Services Tax rules for technical materials and drilling operations."],
   },
 ];
 
@@ -305,18 +305,12 @@ export default function ServicesRatesCatalog() {
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                 <Input
                   type="text"
-                  placeholder="Search current and historical technical rates (English or Malayalam)..."
+                  placeholder="Search technical rates..."
                   className="h-14 pl-12 bg-slate-50 border-slate-200 rounded-2xl text-sm font-medium focus:ring-primary/20 shadow-inner"
                   value={search || ""}
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
-              {!isAdmin && !isAuthLoading && !isProfileLoading && (
-                <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-200 h-10 px-4 gap-2 font-black uppercase text-[9px] tracking-widest shadow-sm">
-                  <CheckCircle2 className="size-3.5" />
-                  TECHNICAL VIEW ACTIVE
-                </Badge>
-              )}
             </div>
           </CardContent>
         </Card>
@@ -555,7 +549,7 @@ export default function ServicesRatesCatalog() {
                         <div className="space-y-4 pt-8 border-t border-dashed border-slate-200 opacity-70 grayscale">
                           <div className="flex items-center gap-2 px-2">
                             <History className="size-4 text-slate-400" />
-                            <span className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Previous Technical {isGstSection ? 'GST' : 'Rates'} (Historical Archive)</span>
+                            <span className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Previous Technical {isGstSection ? 'GST' : 'Rates'}</span>
                           </div>
                           <div className="border border-slate-200 rounded-[28px] overflow-hidden bg-white">
                             <table className="w-full border-collapse">
@@ -598,28 +592,10 @@ export default function ServicesRatesCatalog() {
                                       </td>
                                     )}
                                     <td className="border-r px-2">
-                                      {isAdmin ? (
-                                        <Input 
-                                          type="date" 
-                                          value={item.dateFrom || ''} 
-                                          onChange={(e) => updateItem(service.id, item.id, 'dateFrom', e.target.value)} 
-                                          className="h-8 text-[9px] px-1 border-slate-200 bg-white" 
-                                        />
-                                      ) : (
-                                        <span className="text-center block text-[9px] font-medium text-slate-400">{item.dateFrom}</span>
-                                      )}
+                                      <span className="text-center block text-[9px] font-medium text-slate-400">{item.dateFrom}</span>
                                     </td>
                                     <td className="border-r px-2">
-                                      {isAdmin ? (
-                                        <Input 
-                                          type="date" 
-                                          value={item.dateTo || ''} 
-                                          onChange={(e) => updateItem(service.id, item.id, 'dateTo', e.target.value)} 
-                                          className="h-8 text-[9px] px-1 border-slate-200 bg-white" 
-                                        />
-                                      ) : (
-                                        <span className="text-center block text-[9px] font-medium text-slate-400">{item.dateTo}</span>
-                                      )}
+                                      <span className="text-center block text-[9px] font-medium text-slate-400">{item.dateTo}</span>
                                     </td>
                                     {isAdmin && (
                                       <td className="px-2 text-center">
@@ -647,7 +623,6 @@ export default function ServicesRatesCatalog() {
                 <Search className="h-10 w-10 text-slate-200" />
               </div>
               <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">No results found</h3>
-              <p className="text-slate-400 text-[10px] uppercase font-bold tracking-widest mt-2">Adjust your query or check system technical configurations.</p>
             </div>
           )}
         </div>
