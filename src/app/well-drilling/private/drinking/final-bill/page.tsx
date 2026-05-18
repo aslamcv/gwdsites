@@ -121,29 +121,47 @@ function BillContent() {
       return null;
     };
 
+    const LABEL_DRILLING = '110 മില്ലിമീറ്റർ വ്യാസമുള്ള കുഴൽക്കിണറിന്റെ ഡ്രില്ലിംഗ് ചാർജ്ജ്';
+    const LABEL_FLUSHING = 'ഫ്ലഷിംഗ് നടത്തിയ ആകെ ആഴം';
+    const LABEL_PVC_6KG = '140 മില്ലിമീറ്റർ വ്യാസമുള്ള 6 കി.ഗ്രാം / ച. സെ. മീ. പിവിസി കെയ്‌സിംഗ് പൈപ്പിന്റെ വില';
+    const LABEL_PVC_10KG = '140 മില്ലിമീറ്റർ വ്യാസമുള്ള 10 കി.ഗ്രാം / ച. സെ. മീ. പിവിസി കെയ്‌സിംഗ് പൈപ്പിന്റെ വില';
+    const LABEL_END_CAP = '140 മില്ലിമീറ്റർ വ്യാസമുള്ള പിവിസി കുഴൽക്കിണർ അടപ്പിന്റെ വില';
+
+    // GST THRESHOLD CALCULATION
+    // (Drilling Charge + 10kg Casing + End Cap) > 5000
+    const drillingBase = parseFloat(report.totalDepth || '0') * (findRate(LABEL_DRILLING) || 0);
+    const casing10kgBase = parseFloat(report.pvc10kg || '0') * (findRate(LABEL_PVC_10KG) || 0);
+    const endCapBase = (findRate(LABEL_END_CAP) || 0);
+    
+    const thresholdSum = drillingBase + casing10kgBase + endCapBase;
+    const isGstThresholdMet = thresholdSum > 5000;
+
     let rows: any[] = [];
     let grossConstructionTotal = 0;
     let drillingItemTotal = 0;
-    
-    const LABEL_DRILLING = '110 മില്ലിമീറ്റർ വ്യാസമുള്ള കുഴൽക്കിണറിന്റെ ഡ്രില്ലിംഗ് ചാർജ്ജ്';
-    const LABEL_FLUSHING = 'ഫ്ലഷിംഗ് നടത്തിയ ആകെ ആഴം';
-    const LABEL_PVC_6KG = '140 മില്ലിമീറ്റർ വ്യാസമുള്ള 6 കി.ഗ്രാം / ച. സെ. മി. പിവിസി കെയ്‌സിംഗ് പൈപ്പിന്റെ വില';
-    const LABEL_PVC_10KG = '140 മില്ലിമീറ്റർ വ്യാസമുള്ള 10 കി.ഗ്രാം / ച. സെ. മി. പിവിസി കെയ്‌സിംഗ് പൈപ്പിന്റെ വില';
-    const LABEL_END_CAP = '140 മില്ലിമീറ്റർ വ്യാസമുള്ള പിവിസി കുഴൽക്കിണർ അടപ്പിന്റെ വില';
 
     const processItem = (label: string, qty: number, isDrilling: boolean = false) => {
         const rate = findRate(label);
         if (rate === null) return { error: true, label };
         const baseAmt = qty * rate;
-        const gst = baseAmt * 0.18;
-        const total = baseAmt + gst;
+        
+        // SPECIAL GST RULES:
+        // 1. Drilling Charge is always 0% GST
+        // 2. Others are 18% only if thresholdSum > 5000
+        let gstPercent = 0;
+        if (!isDrilling && isGstThresholdMet) {
+            gstPercent = 0.18;
+        }
+
+        const gstAmt = baseAmt * gstPercent;
+        const total = baseAmt + gstAmt;
         
         rows.push({ 
             label, 
             qtyStr: isDrilling && isFlushing ? report.compressorWorkingHour : `${qty} m`, 
             rate, 
             amount: baseAmt, 
-            gst, 
+            gst: gstAmt, 
             total 
         });
         
@@ -198,7 +216,8 @@ function BillContent() {
         balance, 
         refDate,
         isAgriSubsidy,
-        isDryWellPrivate
+        isDryWellPrivate,
+        isGstThresholdMet
     };
   }, [report, cloudRates]);
 
@@ -233,9 +252,7 @@ function BillContent() {
         try { 
             const textField = form.getTextField(field);
             if (textField) textField.setText(String(val || '')); 
-        } catch(e) {
-            // Field not found or other PDF issue
-        }
+        } catch(e) {}
       });
 
       const pdfBytes = await pdfDoc.save();
@@ -244,7 +261,7 @@ function BillContent() {
       window.open(url, '_blank');
     } catch (e) {
       console.error(e);
-      toast({ variant: "destructive", title: "PDF Error", description: "Could not fill the template. Ensure final-bill.pdf exists in public folder." });
+      toast({ variant: "destructive", title: "PDF Error", description: "Could not fill the template." });
     } finally { setIsPdfLoading(false); }
   };
 
@@ -279,7 +296,7 @@ function BillContent() {
           <Alert className="bg-blue-50 border-blue-200 py-3 rounded-xl">
               <AlertCircle className="size-4 text-blue-600" />
               <AlertDescription className="text-[11px] font-black text-blue-800 uppercase tracking-tight">
-                  Rate applied based on technical session date: {formatTechnicalDate(report.reportDate)}
+                  {calc.isGstThresholdMet ? "Technical Component Threshold Met (>₹5000): GST 18% Applied." : "Threshold Not Met (≤₹5000): GST 0% Applied."}
               </AlertDescription>
           </Alert>
         )}
@@ -288,14 +305,12 @@ function BillContent() {
       {!calc.error && (
         <div className="bg-white mx-auto w-[210mm] min-h-[297mm] shadow-xl print:shadow-none p-[15mm] flex flex-col text-[12px] leading-tight text-black border border-slate-200 print:border-none relative">
           
-          {/* Well Number (Top Left) */}
           <div className="absolute top-[40px] left-[40px] text-left">
             <p className="text-[12px] font-black text-black leading-none">
               ({data.wellNumber || 'WELL NUMBER'})
             </p>
           </div>
 
-          {/* Sector / Sub Category (Top Right) */}
           <div className="absolute top-[40px] right-[40px] text-right uppercase">
             <p className="text-[12px] font-black text-black leading-none">
               {data.sector}/{data.subCategory || data.category}
@@ -305,13 +320,12 @@ function BillContent() {
           <div className="flex justify-between items-start mb-6 pt-8">
             <div className="flex-1">
                 <h1 className="text-[16px] font-bold">ഭൂജല വകുപ്പ്, ജില്ലാ ഓഫീസ്, മലപ്പുറം</h1>
-                <h2 className="text-[12px] font-bold uppercase mt-1">ബോർവെൽ നിർമ്മാണം - അന്തിമ ബിൽ (110 മി.മീ.)</h2>
+                <h2 className="text-[12px] font-bold uppercase mt-1">കുഴൽ കിണർ നിർമ്മാണം - അന്തിമ ബിൽ</h2>
             </div>
             <div className="text-right text-[10px] leading-tight font-bold w-[220px]">
               <p>District Office</p>
               <p>Ground Water Department,</p>
               <p>B1-block, Civil Station, Malappuram -676505</p>
-              <p className="text-[8px] mt-1">Email: gwdmpm@gmail.com, 04832731450</p>
             </div>
           </div>
 
@@ -321,7 +335,6 @@ function BillContent() {
           </div>
 
           <div className="mb-6 border border-black text-[11px] text-left">
-            <div className="p-1.5 px-4 font-bold bg-slate-50 border-b border-black uppercase tracking-widest text-[9px]">ഉപഭോക്തൃ വിവരങ്ങൾ</div>
             {[
                 { l: 'സൈറ്റിന്റെ പേര്', v: report.nameOfSite },
                 { l: 'പഞ്ചായത്ത്/നഗരസഭ', v: report.lsgd },
@@ -337,7 +350,6 @@ function BillContent() {
           </div>
 
           <div className="mb-6">
-            <div className="p-1 px-4 font-bold uppercase tracking-widest text-[9px] mb-2 text-left">പ്രവൃത്തി വിവരങ്ങൾ</div>
             <table className="w-full border-collapse border border-black text-center text-[10px]">
               <thead className="bg-slate-50 border-b border-black">
                 <tr className="font-bold h-10">
@@ -346,7 +358,7 @@ function BillContent() {
                   <th className="border-r border-black p-1 w-20">അളവ്</th>
                   <th className="border-r border-black p-1 w-20">നിരക്ക്</th>
                   <th className="border-r border-black p-1 w-24">തുക</th>
-                  <th className="border-r border-black p-1 w-16">GST 18%</th>
+                  <th className="border-r border-black p-1 w-16">GST</th>
                   <th className="p-1 w-28">മൊത്തം തുക</th>
                 </tr>
               </thead>
@@ -355,7 +367,7 @@ function BillContent() {
                 {calc.rows.map((row, i) => (
                   <tr key={i} className="h-9 border-b border-black last:border-b-0">
                     <td className="border-r border-black">{i + 1}</td>
-                    <td className="border-r border-black text-left px-3 font-medium uppercase text-[9px] whitespace-normal leading-tight">{row.label}</td>
+                    <td className="border-r border-black text-left px-3 font-medium uppercase text-[9px] leading-tight">{row.label}</td>
                     <td className="border-r border-black font-bold">{row.qtyStr}</td>
                     <td className="border-r border-black">{row.rate.toFixed(2)}</td>
                     <td className="border-r border-black">₹{row.amount.toFixed(2)}</td>
@@ -415,7 +427,7 @@ function BillContent() {
 
           <div className="mt-8 pt-2 border-t border-slate-200 text-[8px] text-muted-foreground flex justify-between uppercase tracking-widest font-sans font-black">
             <span>GROUND WATER DEPARTMENT DISTRICT OFFICE, MALAPPURAM</span>
-            <span>OFFICIAL FINAL BILL RECORD - FORM GWD-FB-110</span>
+            <span>OFFICIAL FINAL BILL RECORD</span>
           </div>
         </div>
       )}

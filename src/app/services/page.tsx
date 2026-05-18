@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect, useTransition } from 'react';
@@ -49,15 +50,14 @@ const INITIAL_SERVICES_DATA = [
     id: "ds",
     title: "Drilling Services",
     items: [
-      { id: "ds-1", nameEn: "110 mm dia drilling charge", nameMl: "110 മില്ലിമീറ്റർ വ്യാസമുള്ള കുഴൽക്കിണറിന്റെ ഡ്രില്ലിംഗ് ചാർജ്ജ്", rate: 390, dateFrom: '2024-04-01', dateTo: '2026-03-31' },
-      { id: "ds-2", nameEn: "140 mm dia 6 kg/cm2 PVC Casing Pipe", nameMl: "140 മില്ലിമീറ്റർ വ്യാസമുള്ള 6 കി.ഗ്രാം / ച. സെ. മി. പിവിസി കെയ്‌സിംഗ് പൈപ്പിന്റെ വില", rate: 566.56, dateFrom: '2024-04-01', dateTo: '2026-03-31' },
-      { id: "ds-3", nameEn: "140 mm dia 10 kg/cm2 PVC Casing Pipe", nameMl: "140 മില്ലിമീറ്റർ വ്യാസമുള്ള 10 കി.ഗ്രാം / ച. സെ. മി. പിവിസി കെയ്‌സിംഗ് പൈപ്പിന്റെ വില", rate: 879.01, dateFrom: '2024-04-01', dateTo: '2026-03-31' },
-      { id: "ds-4", nameEn: "140 mm dia End Cap", nameMl: "140 മില്ലിമീറ്റർ വ്യാസമുള്ള പിവിസി കുഴൽക്കിണർ അടപ്പിന്റെ വില", rate: 87.59, dateFrom: '2024-04-01', dateTo: '2026-03-31' },
+      { id: "ds-1", nameEn: "110 mm dia drilling charge", nameMl: "110 മില്ലിമീറ്റർ വ്യാസമുള്ള കുഴൽക്കിണറിന്റെ ഡ്രില്ലിംഗ് ചാർജ്ജ്", rate: 390, dateFrom: '2024-04-01', dateTo: '2027-03-31' },
+      { id: "ds-2", nameEn: "140 mm dia 6 kg/cm2 PVC Casing Pipe", nameMl: "140 മില്ലിമീറ്റർ വ്യാസമുള്ള 6 കി.ഗ്രാം / ച. സെ. മീ. പിവിസി കെയ്‌സിംഗ് പൈപ്പിന്റെ വില", rate: 566.56, dateFrom: '2024-04-01', dateTo: '2027-03-31' },
+      { id: "ds-3", nameEn: "140 mm dia 10 kg/cm2 PVC Casing Pipe", nameMl: "140 മില്ലിമീറ്റർ വ്യാസമുള്ള 10 കി.ഗ്രാം / ച. സെ. മീ. പിവിസി കെയ്‌സിംഗ് പൈപ്പിന്റെ വില", rate: 879.01, dateFrom: '2024-04-01', dateTo: '2027-03-31' },
+      { id: "ds-4", nameEn: "140 mm dia End Cap", nameMl: "140 മില്ലിമീറ്റർ വ്യാസമുള്ള പിവിസി കുഴൽക്കിണർ അടപ്പിന്റെ വില", rate: 87.59, dateFrom: '2024-04-01', dateTo: '2027-03-31' },
     ],
     description: [
       "Construction of bore wells and tube wells using specialized departmental rigs.",
       "Installation of PVC/GI casing pipes as per site requirements.",
-      "Suitable for Domestic, Agriculture, and Industrial deployments.",
     ],
   },
   {
@@ -70,14 +70,14 @@ const INITIAL_SERVICES_DATA = [
     description: [
       "Determining the sustainable yield and recovery parameters of the well.",
       "Analysis of drawdown data to recommend safe pumping rates.",
-      "Mandatory for large-scale infrastructure and public water schemes.",
     ],
   },
   {
     id: "gst",
     title: "GST Configurations",
     items: [
-      { id: "gst-1", nameEn: "Standard Technical GST", nameMl: "സാധാരണ സാങ്കേതിക ജിഎസ്ടി", gstPercentage: 18, conditions: "Applicable on all technical survey and construction charges.", dateFrom: '2024-04-01', dateTo: '' },
+      { id: "gst-1", nameEn: "Drilling GST Exempt", nameMl: "110 മില്ലിമീറ്റർ വ്യാസമുള്ള കുഴൽക്കിണറിന്റെ ഡ്രില്ലിംഗ് ചാർജ്ജ്", gstPercentage: 0, conditions: "As per departmental order", dateFrom: '2024-04-01', dateTo: '2027-03-31' },
+      { id: "gst-2", nameEn: "140mm Pipe GST", nameMl: "140 മില്ലിമീറ്റർ വ്യാസമുള്ള 10 കി.ഗ്രാം / ച. സെ. മീ. പിവിസി കെയ്‌സിംഗ് പൈപ്പിന്റെ വില", gstPercentage: 18, conditions: "(110 മില്ലീമീറ്റർ വ്യാസമുള്ള കുഴൽകിണറിന്റെ ഡ്രില്ലിംഗ് ചാർജ്+ 140 മില്ലീമീറ്റർ വ്യാസമുള്ള 10 കി.ഗ്രാം /ച. സെ. മീ. പിവിസി കെയ്സിംഗ് പൈപ്പിന്റെ വില + 140 മില്ലീമീറ്റർ വ്യാസമുള്ള പിവിസി കുഴൽകിണർ അടപ്പിന്റെ വില) > Rs. 5000", dateFrom: '2024-04-01', dateTo: '2027-03-31' },
     ],
     description: ["Goods and Services Tax percentages for departmental technical works as per latest Government orders."],
   },
