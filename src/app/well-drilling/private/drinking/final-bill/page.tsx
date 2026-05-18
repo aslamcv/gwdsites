@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { PDFDocument } from 'pdf-lib';
 import { format } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 function numberToMalayalamWords(num: number): string {
   if (num <= 0) return 'പൂജ്യം രൂപ മാത്രം';
@@ -63,6 +64,7 @@ function BillContent() {
         borewellSize: report.borewellSize || '',
         nameOfSite: report.nameOfSite || report.applicantName || '',
         lsgd: report.lsgd || '',
+        address: report.address || '',
         totalDepth: report.totalDepth || '',
         overburden: report.overburden || '',
         pvc6kg: report.pvc6kg || '0',
@@ -221,7 +223,6 @@ function BillContent() {
         'remittance': calc.remitted.toString(),
         'balance': calc.balance.toString(),
         'balance_words': numberToMalayalamWords(calc.balance),
-        // Requested mappings
         'Well Number': data.wellNumber,
         'well_number': data.wellNumber,
         'sector/sub category': sectorSubCat.toUpperCase(),
@@ -233,7 +234,7 @@ function BillContent() {
             const textField = form.getTextField(field);
             if (textField) textField.setText(String(val || '')); 
         } catch(e) {
-            // Handle if field is missing in template silently or fallback to lower/snake case
+            // Field not found or other PDF issue
         }
       });
 
@@ -262,7 +263,7 @@ function BillContent() {
                 {isPdfLoading ? <Loader2 className="size-3 animate-spin" /> : <FileOutput className="size-3" />}
                 OPEN AS FILLABLE PDF
               </Button>
-              {!calc.error && <Button onClick={() => window.print()} className="gap-2 font-bold bg-[#1e3a8a] text-white h-8 text-xs px-6 rounded-lg"><Printer className="h-3 w-3" /> Print Preview</Button>}
+              {!calc.error && <Button onClick={() => window.print()} className="gap-2 font-bold bg-[#1e3a8a] text-white h-8 text-xs px-6 rounded-lg shadow-lg"><Printer className="h-3 w-3" /> Print Preview</Button>}
             </div>
         </div>
         
@@ -278,16 +279,30 @@ function BillContent() {
           <Alert className="bg-blue-50 border-blue-200 py-3 rounded-xl">
               <AlertCircle className="size-4 text-blue-600" />
               <AlertDescription className="text-[11px] font-black text-blue-800 uppercase tracking-tight">
-                  Rate applied based on technical session date: {calc.refDate}
+                  Rate applied based on technical session date: {formatTechnicalDate(report.reportDate)}
               </AlertDescription>
           </Alert>
         )}
       </div>
 
       {!calc.error && (
-        <div className="bg-white mx-auto w-[210mm] min-h-[297mm] shadow-xl print:shadow-none p-[12mm] flex flex-col text-[12px] leading-tight text-black border border-slate-200 print:border-none relative">
+        <div className="bg-white mx-auto w-[210mm] min-h-[297mm] shadow-xl print:shadow-none p-[15mm] flex flex-col text-[12px] leading-tight text-black border border-slate-200 print:border-none relative">
           
-          <div className="flex justify-between items-start mb-6">
+          {/* Well Number (Top Left) */}
+          <div className="absolute top-[40px] left-[40px] text-left">
+            <p className="text-[12px] font-black text-black leading-none">
+              ({data.wellNumber || 'WELL NUMBER'})
+            </p>
+          </div>
+
+          {/* Sector / Sub Category (Top Right) */}
+          <div className="absolute top-[40px] right-[40px] text-right uppercase">
+            <p className="text-[12px] font-black text-black leading-none">
+              {data.sector}/{data.subCategory || data.category}
+            </p>
+          </div>
+
+          <div className="flex justify-between items-start mb-6 pt-8">
             <div className="flex-1">
                 <h1 className="text-[16px] font-bold">ഭൂജല വകുപ്പ്, ജില്ലാ ഓഫീസ്, മലപ്പുറം</h1>
                 <h2 className="text-[12px] font-bold uppercase mt-1">ബോർവെൽ നിർമ്മാണം - അന്തിമ ബിൽ (110 മി.മീ.)</h2>
@@ -313,8 +328,6 @@ function BillContent() {
                 { l: 'നിയമസഭ മണ്ഡലം', v: report.assembly },
                 { l: 'വിലാസം', v: report.address },
                 { l: 'കുഴൽ കിണറിന്റെ നിലവിലെ സ്ഥിതി', v: report.remarks },
-                { l: 'Well Number', v: data.wellNumber },
-                { l: 'Sector / Sub Category', v: `${data.sector} / ${data.subCategory || data.category}` },
             ].map((row, i) => (
                 <div key={i} className="grid grid-cols-[200px_1fr] border-b border-black last:border-b-0">
                     <div className="border-r border-black p-2 px-4 font-medium">{row.l}</div>
@@ -401,21 +414,13 @@ function BillContent() {
           </div>
 
           <div className="mt-8 pt-2 border-t border-slate-200 text-[8px] text-muted-foreground flex justify-between uppercase tracking-widest font-sans font-black">
-            <span>GROUND WATER DEPARTMENT MALAPPURAM</span>
+            <span>GROUND WATER DEPARTMENT DISTRICT OFFICE, MALAPPURAM</span>
             <span>OFFICIAL FINAL BILL RECORD - FORM GWD-FB-110</span>
           </div>
         </div>
       )}
     </div>
   );
-}
-
-function useToast() {
-    const [state, setState] = useState<any>({});
-    return {
-        toast: (props: any) => setState(props),
-        state
-    };
 }
 
 export default function FinalBillPage() {
