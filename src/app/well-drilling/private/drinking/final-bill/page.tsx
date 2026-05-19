@@ -33,6 +33,16 @@ const formatTechnicalDate = (dateStr: string) => {
   return dateStr;
 };
 
+/**
+ * Robust numeric parser that handles nulls and non-numeric characters.
+ */
+function parseSafeFloat(val: any): number {
+  if (val === undefined || val === null || val === '') return 0;
+  const numStr = String(val).replace(/[^0-9.]/g, '');
+  const parsed = parseFloat(numStr);
+  return isNaN(parsed) ? 0 : parsed;
+}
+
 function BillContent() {
   const searchParams = useSearchParams();
   const firestore = useFirestore();
@@ -212,16 +222,14 @@ function BillContent() {
       if (res.error) return { error: true, missingItem: res.label };
     }
 
-    const isDryWellPrivate = isPrivate && isDryWell && !isFlushing;
-
-    if (!isDryWellPrivate) {
-      const pvc6 = parseFloat(report.pvc6kg || '0');
-      if (pvc6 > 0) processItem(LABEL_PVC_6KG, pvc6);
-      const pvc10 = parseFloat(report.pvc10kg || '0');
-      if (pvc10 > 0) processItem(LABEL_PVC_10KG, pvc10);
-      if (report.hasEndCap) {
+    const pvc6 = parseFloat(report.pvc6kg || '0');
+    if (pvc6 > 0) processItem(LABEL_PVC_6KG, pvc6);
+    const pvc10 = parseFloat(report.pvc10kg || '0');
+    if (pvc10 > 0) processItem(LABEL_PVC_10KG, pvc10);
+    
+    // Only charge for end cap if toggle is ticked
+    if (report.hasEndCap) {
         processItem(LABEL_END_CAP, 1, false, "1 No.");
-      }
     }
 
     const roundedGross = Math.ceil(totalGrandAmount);
