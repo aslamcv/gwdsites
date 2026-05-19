@@ -4,7 +4,7 @@
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Printer, ArrowLeft, ShieldAlert, FileOutput, Loader2, AlertCircle } from 'lucide-react';
+import { Printer, ArrowLeft, ShieldAlert, FileOutput, Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Link from 'next/link';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
@@ -87,7 +87,7 @@ function BillContent() {
         category: report.category || 'DRINKING',
         subCategory: report.subCategory || '',
         staff: report.staffAssignment || {},
-        reportDate: format(new Date(), 'yyyy-MM-dd') // Current date as per requirement
+        reportDate: format(new Date(), 'yyyy-MM-dd')
       };
     }
     return null;
@@ -105,7 +105,7 @@ function BillContent() {
     const isPrivate = report.sector?.toLowerCase() === 'private';
     const isAgri = (report.subCategory || report.category || report.purpose)?.toLowerCase().includes('agriculture');
 
-    const isDryWellPrivate = isPrivate && isDryWell && !isFlushing;
+    const isDryWellCondition = isDryWell && !isFlushing;
     const isAgriSubsidy = isPrivate && isAgri && !isFlushing && !isDryWell;
 
     const rawWorkEndDate = (report.endDate || report.startDate || report.reportDate || '').trim();
@@ -147,7 +147,6 @@ function BillContent() {
     let rows: any[] = [];
     let grossConstructionTotal = 0;
     let drillingItemTotal = 0;
-    let materialsTotal = 0;
 
     const processItem = (label: string, qty: number, isDrilling: boolean = false, customQtyStr?: string) => {
         const rate = findRate(label);
@@ -172,11 +171,7 @@ function BillContent() {
         });
         
         grossConstructionTotal += total;
-        if (isDrilling) {
-          drillingItemTotal = total;
-        } else {
-          materialsTotal += total;
-        }
+        if (isDrilling) drillingItemTotal = total;
         return { error: false };
     };
 
@@ -189,28 +184,21 @@ function BillContent() {
       if (res.error) return { error: true, refDate, missingItem: res.label };
     }
 
-    // Material inclusion logic
     const pvc6 = parseFloat(report.pvc6kg || '0');
-    if (pvc6 > 0) {
-      const res = processItem(LABEL_PVC_6KG, pvc6);
-      if (res.error) return { error: true, refDate, missingItem: res.label };
-    }
+    if (pvc6 > 0) processItem(LABEL_PVC_6KG, pvc6);
+    
     const pvc10 = parseFloat(report.pvc10kg || '0');
-    if (pvc10 > 0) {
-      const res = processItem(LABEL_PVC_10KG, pvc10);
-      if (res.error) return { error: true, refDate, missingItem: res.label };
-    }
-    const resEndCap = processItem(LABEL_END_CAP, 1, false, "1 No.");
-    if (resEndCap.error) return { error: true, refDate, missingItem: resEndCap.label };
+    if (pvc10 > 0) processItem(LABEL_PVC_10KG, pvc10);
+    
+    processItem(LABEL_END_CAP, 1, false, "1 No.");
 
     const roundedGross = Math.ceil(grossConstructionTotal);
-    
     let subsidyAmount = 0;
     let netPayable = roundedGross;
 
-    if (isDryWellPrivate) {
-      subsidyAmount = Math.ceil(drillingItemTotal * 0.75); // foregone 75%
-      netPayable = (roundedGross - subsidyAmount); // Result is exactly 25% of drilling + materials
+    if (isDryWellCondition) {
+      subsidyAmount = Math.ceil(drillingItemTotal * 0.75);
+      netPayable = roundedGross - subsidyAmount;
     } else if (isAgriSubsidy) {
       subsidyAmount = Math.ceil(drillingItemTotal * 0.5);
       netPayable = roundedGross - subsidyAmount;
@@ -229,7 +217,7 @@ function BillContent() {
         balance, 
         refDate,
         isAgriSubsidy,
-        isDryWellPrivate,
+        isDryWellCondition,
         isGstThresholdMet,
         isRefund
     };
@@ -259,7 +247,9 @@ function BillContent() {
         'well_number': data.wellNumber,
         'sector_subcategory': sectorSubCat.toUpperCase(),
         'due_label': calc.isRefund ? 'അപേക്ഷകന് തിരികെ ലഭിക്കുന്ന തുക :' : 'ഭൂജലവകുപ്പിന് തിരികെ ലഭിക്കേണ്ട തുക :',
-        'net_payable_label': calc.isDryWellPrivate ? 'കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക (ഡ്രില്ലിംഗ് ചാർജിന്റെ 25%) :' : 'കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക :'
+        'net_payable_label': calc.isDryWellCondition 
+            ? 'കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക (ഡ്രില്ലിംഗ് ചാർജിന്റെ 25%) :' 
+            : 'കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക :'
       };
 
       Object.entries(mapping).forEach(([field, val]) => {
@@ -313,15 +303,11 @@ function BillContent() {
         <div className="bg-white mx-auto w-[210mm] min-h-[297mm] shadow-xl print:shadow-none p-[15mm] flex flex-col text-[12px] leading-tight text-black border border-slate-200 print:border-none relative">
           
           <div className="absolute top-[40px] left-[40px] text-left">
-            <p className="text-[12px] font-black text-black leading-none">
-              ({data.wellNumber || 'WELL NUMBER'})
-            </p>
+            <p className="text-[12px] font-black text-black leading-none">({data.wellNumber || 'WELL NUMBER'})</p>
           </div>
 
           <div className="absolute top-[40px] right-[40px] text-right uppercase">
-            <p className="text-[12px] font-black text-black leading-none">
-              {data.sector}/{data.subCategory || data.category}
-            </p>
+            <p className="text-[12px] font-black text-black leading-none">{data.sector}/{data.subCategory || data.category}</p>
           </div>
 
           <div className="flex justify-between items-start mb-6 pt-8 text-left">
@@ -392,16 +378,21 @@ function BillContent() {
                   <span className="font-black text-[13px]">₹ {calc.roundedGross.toFixed(2)}</span>
               </div>
 
-              {calc.isAgriSubsidy && (
+              {(calc.isAgriSubsidy || calc.isDryWellCondition) && (
                 <div className="flex justify-between items-center p-3 border-b border-black text-red-600 bg-red-50/20">
-                    <span className="flex-1 uppercase text-[10px] tracking-tight">നാമമാത്ര / ചെറുകിട കർഷകർക്കുള്ള ധനസഹായം - ഡ്രില്ലിംഗ് ചാർജിന്റെ 50% :</span>
+                    <span className="flex-1 uppercase text-[10px] tracking-tight">
+                        {calc.isDryWellCondition 
+                          ? "ഫലശൂന്യമായ കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തി - ഡ്രില്ലിംഗ് ചാർജിന്റെ 75% ഇളവ് :" 
+                          : "നാമമാത്ര / ചെറുകിട കർഷകർക്കുള്ള ധനസഹായം - ഡ്രില്ലിംഗ് ചാർജിന്റെ 50% :"
+                        }
+                    </span>
                     <span className="font-black text-[13px]">₹ {calc.subsidyAmount.toFixed(2)}</span>
                 </div>
               )}
               
               <div className="flex justify-between items-center p-3 border-b border-black text-[#1e3a8a] bg-blue-50/10">
                   <span className="max-w-[480px]">
-                    {calc.isDryWellPrivate 
+                    {calc.isDryWellCondition 
                         ? "കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക (ഡ്രില്ലിംഗ് ചാർജിന്റെ 25%) :" 
                         : "കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക :"
                     }
