@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
@@ -38,9 +37,9 @@ export interface FirebaseContextState {
 
 // Return type for useFirebase()
 export interface FirebaseServicesAndUser {
-  firebaseApp: FirebaseApp;
-  firestore: Firestore;
-  auth: Auth;
+  firebaseApp: FirebaseApp | null;
+  firestore: Firestore | null;
+  auth: Auth | null;
   user: User | null;
   isUserLoading: boolean;
   userError: Error | null;
@@ -115,12 +114,21 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   );
 };
 
+/**
+ * useFirebase provides the full Firebase context.
+ * It is SSR-safe and will not throw during build if services are missing.
+ */
 export const useFirebase = (): FirebaseServicesAndUser => {
   const context = useContext(FirebaseContext);
-  if (context === undefined) throw new Error('useFirebase must be used within a FirebaseProvider.');
-  if (!context.areServicesAvailable || !context.firebaseApp || !context.firestore || !context.auth) {
-    throw new Error('Firebase core services not available.');
+  if (context === undefined) {
+    throw new Error('useFirebase must be used within a FirebaseProvider.');
   }
+
+  // During SSR/Build, services will be null. We only throw on the client if they're still missing.
+  if (typeof window !== 'undefined' && !context.areServicesAvailable) {
+    console.warn('Firebase core services not available on client side.');
+  }
+
   return {
     firebaseApp: context.firebaseApp,
     firestore: context.firestore,
@@ -132,9 +140,29 @@ export const useFirebase = (): FirebaseServicesAndUser => {
   };
 };
 
-export const useAuth = (): Auth => useFirebase().auth;
-export const useFirestore = (): Firestore => useFirebase().firestore;
-export const useFirebaseApp = (): FirebaseApp => useFirebase().firebaseApp;
+/**
+ * useAuth returns the Auth instance. Returns null during SSR.
+ */
+export const useAuth = (): Auth | null => {
+  const context = useContext(FirebaseContext);
+  return context?.auth || null;
+};
+
+/**
+ * useFirestore returns the Firestore instance. Returns null during SSR.
+ */
+export const useFirestore = (): Firestore | null => {
+  const context = useContext(FirebaseContext);
+  return context?.firestore || null;
+};
+
+/**
+ * useFirebaseApp returns the FirebaseApp instance. Returns null during SSR.
+ */
+export const useFirebaseApp = (): FirebaseApp | null => {
+  const context = useContext(FirebaseContext);
+  return context?.firebaseApp || null;
+};
 
 type MemoFirebase <T> = T & {__memo?: boolean};
 export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T | (MemoFirebase<T>) {

@@ -7,7 +7,7 @@ import { Printer, ArrowLeft, ShieldAlert, FileOutput, Loader2, Save } from 'luci
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Link from 'next/link';
 import { useFirestore, useDoc, useMemoFirebase, useUser, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { doc, collection, setDoc, updateDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, updateDoc } from 'firebase/firestore';
 import type { GroundwaterReport } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -32,6 +32,22 @@ const formatTechnicalDate = (dateStr: string) => {
   if (isValid(date)) return format(date, 'dd-MM-yyyy');
   return dateStr;
 };
+
+function numberToMalayalamWords(num: number): string {
+  if (isNaN(num) || num <= 0) return 'പൂജ്യം രൂപ മാത്രം';
+  const rounded = Math.round(num);
+  return `${rounded.toLocaleString('en-IN')} രൂപ (അക്ഷരത്തിൽ)`;
+}
+
+/**
+ * Robust numeric parser that handles nulls and non-numeric characters.
+ */
+function parseSafeFloat(val: any): number {
+  if (val === undefined || val === null || val === '') return 0;
+  const numStr = String(val).replace(/[^0-9.]/g, '');
+  const parsed = parseFloat(numStr);
+  return isNaN(parsed) ? 0 : parsed;
+}
 
 function BillContent() {
   const searchParams = useSearchParams();
@@ -112,16 +128,20 @@ function BillContent() {
                        report.category?.toLowerCase().includes('flushing');
 
     const yieldStatus = (report.remarks || '').toLowerCase().trim();
-    const isDryWell = yieldStatus === 'dry well' || yieldStatus === 'dry' || yieldStatus === 'collapsed well' || yieldStatus === 'collapsed';
-    
+    const isDryWell = 
+      yieldStatus === 'dry well' || 
+      yieldStatus === 'dry' || 
+      yieldStatus === 'collapsed well' || 
+      yieldStatus === 'collapsed';
+
+    const isPrivate = (report.sector || '').toLowerCase() === 'private';
     const sector = (report.sector || '').toLowerCase();
     const category = (report.category || '').toLowerCase();
     const subCategory = (report.subCategory || '').toLowerCase();
     const purpose = (report.purpose || '').toLowerCase();
     
-    const isPrivate = sector === 'private';
     const isDomestic = subCategory.includes('domestic') || category.includes('drinking') || subCategory.includes('drinking') || purpose.includes('drinking') || purpose.includes('domestic');
-    const isAgri = subCategory.includes('agriculture') || purpose.includes('agriculture');
+    const isAgri = (report.subCategory || report.category || '').toLowerCase().includes('agriculture');
 
     const isDryWellCondition = isDryWell && !isFlushing;
     const isEligibleSectorForSubsidy = isPrivate && (isDomestic || isAgri);
@@ -208,11 +228,15 @@ function BillContent() {
       if (res.error) return { error: true, missingItem: res.label };
     }
 
-    const pvc6 = parseFloat(report.pvc6kg || '0');
-    if (pvc6 > 0) processItem(LABEL_PVC_6KG, pvc6);
-    const pvc10 = parseFloat(report.pvc10kg || '0');
-    if (pvc10 > 0) processItem(LABEL_PVC_10KG, pvc10);
-    processItem(LABEL_END_CAP, 1, false, "1 No.");
+    const isDryWellPrivate = isPrivate && isDryWell && !isFlushing;
+
+    if (!isDryWellPrivate) {
+      const pvc6 = parseFloat(report.pvc6kg || '0');
+      if (pvc6 > 0) processItem(LABEL_PVC_6KG, pvc6);
+      const pvc10 = parseFloat(report.pvc10kg || '0');
+      if (pvc10 > 0) processItem(LABEL_PVC_10KG, pvc10);
+      processItem(LABEL_END_CAP, 1, false, "1 No.");
+    }
 
     const roundedGross = Math.ceil(totalGrandAmount);
     let subsidyAmount = 0;
@@ -245,7 +269,8 @@ function BillContent() {
         isEligibleSectorForSubsidy,
         isEligibleFor75Subsidy,
         isGstThresholdMet,
-        isRefund
+        isRefund,
+        isFlushing
     };
   }, [report, cloudRates]);
 
