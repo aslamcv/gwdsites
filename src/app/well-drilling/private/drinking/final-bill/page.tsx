@@ -33,14 +33,10 @@ const formatTechnicalDate = (dateStr: string) => {
   return dateStr;
 };
 
-/**
- * Robust numeric parser that handles nulls and non-numeric characters.
- */
-function parseSafeFloat(val: any): number {
-  if (val === undefined || val === null || val === '') return 0;
-  const numStr = String(val).replace(/[^0-9.]/g, '');
-  const parsed = parseFloat(numStr);
-  return isNaN(parsed) ? 0 : parsed;
+function numberToMalayalamWords(num: number): string {
+  if (isNaN(num) || num <= 0) return 'പൂജ്യം രൂപ മാത്രം';
+  const rounded = Math.round(num);
+  return `${rounded.toLocaleString('en-IN')} രൂപ (അക്ഷരത്തിൽ)`;
 }
 
 function BillContent() {
@@ -131,7 +127,7 @@ function BillContent() {
     
     const isPrivate = sector === 'private';
     const isDomestic = subCategory.includes('domestic') || category.includes('drinking') || subCategory.includes('drinking') || purpose.includes('drinking') || purpose.includes('domestic');
-    const isAgri = (report.subCategory || report.category || '').toLowerCase().includes('agriculture');
+    const isAgri = subCategory.includes('agriculture') || purpose.includes('agriculture');
 
     const isDryWellCondition = isDryWell && !isFlushing;
     const isEligibleSectorForSubsidy = isPrivate && (isDomestic || isAgri);
@@ -223,7 +219,6 @@ function BillContent() {
     const pvc10 = parseFloat(report.pvc10kg || '0');
     if (pvc10 > 0) processItem(LABEL_PVC_10KG, pvc10);
     
-    // Only charge for end cap if toggle was ticked
     if (report.hasEndCap) {
         processItem(LABEL_END_CAP, 1, false, "1 No.");
     }
