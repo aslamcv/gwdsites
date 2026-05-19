@@ -118,7 +118,8 @@ function BillContent() {
     const isAgri = (report.subCategory || report.category || report.purpose)?.toLowerCase().includes('agriculture');
 
     const isDryWellCondition = isDryWell && !isFlushing;
-    const isEligibleFor75Subsidy = isDryWellCondition && (isDomestic || isAgri) && isPrivate;
+    const isDomesticOrAgri = isDomestic || isAgri;
+    const isEligibleFor75Subsidy = isDryWellCondition && isDomesticOrAgri && isPrivate;
     const isAgriSubsidy = isPrivate && isAgri && !isFlushing && !isDryWell;
 
     const rawWorkEndDate = (report.endDate || report.startDate || report.reportDate || '').trim();
@@ -151,10 +152,6 @@ function BillContent() {
     const rate10kg = findRate(LABEL_PVC_10KG) || 0;
     const rateEndCap = findRate(LABEL_END_CAP) || 0;
 
-    const drillingRate = isFlushing ? findRate(LABEL_FLUSHING) : findRate(LABEL_DRILLING);
-    const drillingQty = isFlushing ? parseFloat((report.compressorWorkingHour || '2.5').replace(/[^0-9.]/g, '')) : parseFloat(report.totalDepth || '0');
-    const drillingBaseTotal = (drillingRate || 0) * drillingQty;
-    
     const gstCheckTotal = (parseFloat(report.pvc6kg || '0') * rate6kg) + (parseFloat(report.pvc10kg || '0') * rate10kg) + rateEndCap;
     const isGstThresholdMet = gstCheckTotal > 5000;
 
@@ -215,12 +212,10 @@ function BillContent() {
     let subsidyAmount = 0;
     let netPayable = roundedGross;
 
-    const isDomesticOrAgri = isDomestic || isAgri;
-
-    if (isEligibleFor75Subsidy && isDomesticOrAgri) {
+    if (isEligibleFor75Subsidy) {
       subsidyAmount = Math.ceil(drillingItemTotal * 0.75);
       netPayable = roundedGross - subsidyAmount;
-    } else if (isAgriSubsidy && !isEligibleFor75Subsidy) {
+    } else if (isAgriSubsidy) {
       subsidyAmount = Math.ceil(drillingItemTotal * 0.5);
       netPayable = roundedGross - subsidyAmount;
     }
@@ -326,7 +321,7 @@ function BillContent() {
             router.push('/well-drilling');
           })
           .catch((error) => {
-            errorEmitter.emit('permission-error', new FirestorePermissionError({ path: reportDocRef.path, operation: 'update' }));
+            errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'update' }));
           });
     });
   };
