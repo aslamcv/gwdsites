@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useSearchParams } from 'next/navigation';
@@ -103,9 +102,12 @@ function BillContent() {
     const yieldStatus = (report.remarks || '').toLowerCase().trim();
     const isDryWell = yieldStatus === 'dry well' || yieldStatus === 'dry' || yieldStatus === 'collapsed well' || yieldStatus === 'collapsed';
     const isPrivate = report.sector?.toLowerCase() === 'private';
+    const isDomestic = (report.subCategory || report.category || report.purpose)?.toLowerCase().includes('domestic');
     const isAgri = (report.subCategory || report.category || report.purpose)?.toLowerCase().includes('agriculture');
 
     const isDryWellCondition = isDryWell && !isFlushing;
+    // 75% Subsidy only for Private Domestic or Private Agriculture
+    const isEligibleFor75Subsidy = isDryWellCondition && (isDomestic || isAgri) && isPrivate;
     const isAgriSubsidy = isPrivate && isAgri && !isFlushing && !isDryWell;
 
     const rawWorkEndDate = (report.endDate || report.startDate || report.reportDate || '').trim();
@@ -147,6 +149,9 @@ function BillContent() {
     let rows: any[] = [];
     let grossConstructionTotal = 0;
     let drillingItemTotal = 0;
+    
+    let totalBaseAmount = 0;
+    let totalGstAmount = 0;
 
     const processItem = (label: string, qty: number, isDrilling: boolean = false, customQtyStr?: string) => {
         const rate = findRate(label);
@@ -154,6 +159,7 @@ function BillContent() {
         const baseAmt = qty * rate;
         
         let gstPercent = 0;
+        // Drilling is 0% GST as per request. Others 18% if threshold met.
         if (!isDrilling && isGstThresholdMet) {
             gstPercent = 0.18;
         }
@@ -170,6 +176,8 @@ function BillContent() {
             total 
         });
         
+        totalBaseAmount += baseAmt;
+        totalGstAmount += gstAmt;
         grossConstructionTotal += total;
         if (isDrilling) drillingItemTotal = total;
         return { error: false };
@@ -196,7 +204,7 @@ function BillContent() {
     let subsidyAmount = 0;
     let netPayable = roundedGross;
 
-    if (isDryWellCondition) {
+    if (isEligibleFor75Subsidy) {
       subsidyAmount = Math.ceil(drillingItemTotal * 0.75);
       netPayable = roundedGross - subsidyAmount;
     } else if (isAgriSubsidy) {
@@ -210,6 +218,8 @@ function BillContent() {
 
     return { 
         rows, 
+        totalBaseAmount,
+        totalGstAmount,
         roundedGross,
         subsidyAmount,
         netPayable,
@@ -218,6 +228,7 @@ function BillContent() {
         refDate,
         isAgriSubsidy,
         isDryWellCondition,
+        isEligibleFor75Subsidy,
         isGstThresholdMet,
         isRefund
     };
@@ -233,6 +244,11 @@ function BillContent() {
 
       const sectorSubCat = `${data.sector}/${data.subCategory || data.category}`;
 
+      let netPayableLabel = 'കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക :';
+      if (calc.isDryWellCondition) {
+          netPayableLabel = 'കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക (ഡ്രില്ലിംഗ് ചാർജിന്റെ 25%+പൈപ്പ്, അടപ്പ് ഉള്‍പ്പെടെ) :';
+      }
+
       const mapping: Record<string, string | undefined> = {
         'file_no': report.fileNo,
         'date': formatTechnicalDate(data.reportDate),
@@ -247,9 +263,7 @@ function BillContent() {
         'well_number': data.wellNumber,
         'sector_subcategory': sectorSubCat.toUpperCase(),
         'due_label': calc.isRefund ? 'അപേക്ഷകന് തിരികെ ലഭിക്കുന്ന തുക :' : 'ഭൂജലവകുപ്പിന് തിരികെ ലഭിക്കേണ്ട തുക :',
-        'net_payable_label': calc.isDryWellCondition 
-            ? 'കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക (ഡ്രില്ലിംഗ് ചാർജിന്റെ 25%) :' 
-            : 'കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക :'
+        'net_payable_label': netPayableLabel
       };
 
       Object.entries(mapping).forEach(([field, val]) => {
@@ -348,11 +362,11 @@ function BillContent() {
                 <tr className="font-bold h-10">
                   <th className="border-r border-black p-1 w-10">ക്രമ നമ്പർ</th>
                   <th className="border-r border-black p-1 text-left px-3">ഇനം</th>
-                  <th className="border-r border-black p-1 w-20">അളവ്</th>
-                  <th className="border-r border-black p-1 w-20">നിരക്ക്</th>
+                  <th className="border-r border-black p-1 w-18">അളവ്</th>
+                  <th className="border-r border-black p-1 w-18">നിരക്ക്</th>
                   <th className="border-r border-black p-1 w-24">തുക</th>
                   <th className="border-r border-black p-1 w-16">GST</th>
-                  <th className="p-1 w-28">മൊത്തം തുക</th>
+                  <th className="p-1 w-24">മൊത്തം തുക</th>
                 </tr>
               </thead>
               <tbody>
@@ -369,6 +383,14 @@ function BillContent() {
                   </tr>
                 ))}
               </tbody>
+              <tfoot className="border-t border-black bg-slate-50/30">
+                <tr className="h-10 font-black text-black">
+                   <td colSpan={4} className="border-r border-black text-right px-4 uppercase text-[9px]">Grand Total Calculation :</td>
+                   <td className="border-r border-black text-center">₹{calc.totalBaseAmount.toFixed(2)}</td>
+                   <td className="border-r border-black text-center">₹{calc.totalGstAmount.toFixed(2)}</td>
+                   <td className="text-center bg-blue-50/20">₹{calc.roundedGross.toFixed(2)}</td>
+                </tr>
+              </tfoot>
             </table>
           </div>
 
@@ -378,10 +400,10 @@ function BillContent() {
                   <span className="font-black text-[13px]">₹ {calc.roundedGross.toFixed(2)}</span>
               </div>
 
-              {(calc.isAgriSubsidy || calc.isDryWellCondition) && (
+              {(calc.isEligibleFor75Subsidy || calc.isAgriSubsidy) && (
                 <div className="flex justify-between items-center p-3 border-b border-black text-red-600 bg-red-50/20">
                     <span className="flex-1 uppercase text-[10px] tracking-tight">
-                        {calc.isDryWellCondition 
+                        {calc.isEligibleFor75Subsidy 
                           ? "ഫലശൂന്യമായ കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തി - ഡ്രില്ലിംഗ് ചാർജിന്റെ 75% ഇളവ് :" 
                           : "നാമമാത്ര / ചെറുകിട കർഷകർക്കുള്ള ധനസഹായം - ഡ്രില്ലിംഗ് ചാർജിന്റെ 50% :"
                         }
@@ -391,9 +413,9 @@ function BillContent() {
               )}
               
               <div className="flex justify-between items-center p-3 border-b border-black text-[#1e3a8a] bg-blue-50/10">
-                  <span className="max-w-[480px]">
+                  <span className="max-w-[480px] uppercase">
                     {calc.isDryWellCondition 
-                        ? "കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക (ഡ്രില്ലിംഗ് ചാർജിന്റെ 25%) :" 
+                        ? "കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക (ഡ്രില്ലിംഗ് ചാർജിന്റെ 25%+പൈപ്പ്, അടപ്പ് ഉള്‍പ്പെടെ) :" 
                         : "കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക :"
                     }
                   </span>
