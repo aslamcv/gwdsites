@@ -41,7 +41,7 @@ function BillContent() {
   const [isPdfLoading, setIsPdfLoading] = useState(false);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
-  const { user, isUserLoading: isAuthLoading } = useUser();
+  const { user, isUserLoading } = useUser();
   
   const [malayalamBalanceWords, setMalayalamBalanceWords] = useState<string>('');
 
@@ -175,7 +175,7 @@ function BillContent() {
         const baseAmt = qty * rate;
         
         let gstPercent = 0;
-        // Drilling is always 0% as per latest requirement
+        // Drilling is always 0% as per departmental policy
         if (!isDrilling && isGstThresholdMet) {
             gstPercent = 0.18;
         }
