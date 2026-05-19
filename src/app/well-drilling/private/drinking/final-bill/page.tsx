@@ -151,16 +151,11 @@ function BillContent() {
     const rate10kg = findRate(LABEL_PVC_10KG) || 0;
     const rateEndCap = findRate(LABEL_END_CAP) || 0;
 
-    const materialBaseTotal = (parseFloat(report.pvc6kg || '0') * rate6kg) + 
-                               (parseFloat(report.pvc10kg || '0') * rate10kg) + 
-                               rateEndCap;
-    
     const drillingRate = isFlushing ? findRate(LABEL_FLUSHING) : findRate(LABEL_DRILLING);
     const drillingQty = isFlushing ? parseFloat((report.compressorWorkingHour || '2.5').replace(/[^0-9.]/g, '')) : parseFloat(report.totalDepth || '0');
     const drillingBaseTotal = (drillingRate || 0) * drillingQty;
     
-    // Eligibility for 18% GST on materials is based on: (Drilling Base + 10kg Casing Base + End Cap Base) > 5000
-    const gstCheckTotal = drillingBaseTotal + (parseFloat(report.pvc10kg || '0') * rate10kg) + rateEndCap;
+    const gstCheckTotal = (parseFloat(report.pvc6kg || '0') * rate6kg) + (parseFloat(report.pvc10kg || '0') * rate10kg) + rateEndCap;
     const isGstThresholdMet = gstCheckTotal > 5000;
 
     let rows: any[] = [];
@@ -176,7 +171,6 @@ function BillContent() {
         const baseAmt = qty * rate;
         
         let gstPercent = 0;
-        // Drilling is always 0% GST. Others 18% if threshold met.
         if (!isDrilling && isGstThresholdMet) {
             gstPercent = 0.18;
         }
@@ -221,10 +215,12 @@ function BillContent() {
     let subsidyAmount = 0;
     let netPayable = roundedGross;
 
-    if (isEligibleFor75Subsidy) {
+    const isDomesticOrAgri = isDomestic || isAgri;
+
+    if (isEligibleFor75Subsidy && isDomesticOrAgri) {
       subsidyAmount = Math.ceil(drillingItemTotal * 0.75);
       netPayable = roundedGross - subsidyAmount;
-    } else if (isAgriSubsidy) {
+    } else if (isAgriSubsidy && !isEligibleFor75Subsidy) {
       subsidyAmount = Math.ceil(drillingItemTotal * 0.5);
       netPayable = roundedGross - subsidyAmount;
     }
@@ -248,22 +244,22 @@ function BillContent() {
         isEligibleFor75Subsidy,
         isGstThresholdMet,
         isRefund,
-        isDomesticOrAgri: isDomestic || isAgri
+        isDomesticOrAgri
     };
   }, [report, cloudRates]);
 
   useEffect(() => {
     if (calc && !calc.error) {
-      const balance = Math.abs(calc.balance);
-      if (balance === 0) {
+      const balanceAmount = Math.abs(calc.balance);
+      if (balanceAmount === 0) {
         setMalayalamBalanceWords('പൂജ്യം രൂപ മാത്രം');
         return;
       }
       
       startTransition(async () => {
         try {
-          const words = await convertNumberToMalayalam({ number: balance });
-          setMalayalamBalanceWords(words);
+          const result = await convertNumberToMalayalam({ number: balanceAmount });
+          setMalayalamBalanceWords(result.text + ' രൂപ മാത്രം');
         } catch (e) {
           console.error('Failed to convert number to Malayalam:', e);
         }
@@ -282,7 +278,7 @@ function BillContent() {
       const sectorSubCat = `${data.sector}/${data.subCategory || data.category}`;
 
       let netPayableLabel = 'കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക :';
-      if (calc.isEligibleFor75Subsidy) {
+      if (calc.isEligibleFor75Subsidy && calc.isDomesticOrAgri) {
           netPayableLabel = 'കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക (ഡ്രില്ലിംഗ് ചാർജിന്റെ 25%+പൈപ്പ്, അടപ്പ് ഉള്‍പ്പെടെ) :';
       }
 
@@ -330,7 +326,7 @@ function BillContent() {
             router.push('/well-drilling');
           })
           .catch((error) => {
-            errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'update' }));
+            errorEmitter.emit('permission-error', new FirestorePermissionError({ path: reportDocRef.path, operation: 'update' }));
           });
     });
   };

@@ -15,9 +15,12 @@ const NumberToMalayalamInputSchema = z.object({
 });
 export type NumberToMalayalamInput = z.infer<typeof NumberToMalayalamInputSchema>;
 
-const NumberToMalayalamOutputSchema = z.string().describe('The Malayalam words representation of the number.');
+const NumberToMalayalamOutputSchema = z.object({
+  text: z.string().describe('The Malayalam words representation of the number.'),
+});
+export type NumberToMalayalamOutput = z.infer<typeof NumberToMalayalamOutputSchema>;
 
-export async function convertNumberToMalayalam(input: NumberToMalayalamInput): Promise<string> {
+export async function convertNumberToMalayalam(input: NumberToMalayalamInput): Promise<NumberToMalayalamOutput> {
   return numberToMalayalamFlow(input);
 }
 
@@ -30,12 +33,17 @@ const numberToMalayalamPrompt = ai.definePrompt({
 Task:
 Convert the given number into Malayalam words using the Indian numbering system.
 
-Rules:
-1. Use correct Malayalam grammar and spelling.
-2. Follow Indian number format (thousand, lakh, crore).
-3. Combine words properly (e.g., ആയിരം → ആയിരത്തി when followed by smaller numbers).
-4. Do not include any extra explanation.
-5. Output only the Malayalam words.
+Strict rules:
+1. Output Malayalam words only.
+2. No English.
+3. No explanation or additional text.
+4. Use correct Indian numbering system (thousand, lakh, crore).
+5. Ensure proper joining words (e.g., ആയിരം becomes ആയിരത്തി when followed by smaller numbers, ലക്ഷം becomes ലക്ഷത്തി).
+6. Use correct Malayalam grammar and spelling.
+
+Example:
+Input: 28584
+Output: {"text": "ഇരുപത്തിയെട്ടായിരത്തി അഞ്ഞൂറ്റി എൺപത്തിനാലു"}
 
 Number: {{number}}`,
 });
@@ -48,6 +56,9 @@ const numberToMalayalamFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await numberToMalayalamPrompt(input);
-    return output!;
+    if (!output || !output.text) {
+        throw new Error('AI failed to generate Malayalam words for the given number.');
+    }
+    return output;
   }
 );
