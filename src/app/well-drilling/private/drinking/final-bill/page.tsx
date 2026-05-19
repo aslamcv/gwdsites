@@ -113,13 +113,19 @@ function BillContent() {
 
     const yieldStatus = (report.remarks || '').toLowerCase().trim();
     const isDryWell = yieldStatus === 'dry well' || yieldStatus === 'dry' || yieldStatus === 'collapsed well' || yieldStatus === 'collapsed';
-    const isPrivate = report.sector?.toLowerCase() === 'private';
-    const isDomestic = (report.subCategory || report.category || report.purpose)?.toLowerCase().includes('domestic');
-    const isAgri = (report.subCategory || report.category || report.purpose)?.toLowerCase().includes('agriculture');
+    
+    const sector = (report.sector || '').toLowerCase();
+    const subCat = (report.subCategory || report.category || report.purpose || '').toLowerCase();
+    
+    const isPrivate = sector === 'private';
+    const isDomestic = subCat.includes('domestic') || subCat.includes('drinking');
+    const isAgri = subCat.includes('agriculture');
 
     const isDryWellCondition = isDryWell && !isFlushing;
     const isDomesticOrAgri = isDomestic || isAgri;
-    const isEligibleFor75Subsidy = isDryWellCondition && isDomesticOrAgri && isPrivate;
+    const isEligibleSectorForSubsidy = isPrivate && isDomesticOrAgri;
+    
+    const isEligibleFor75Subsidy = isDryWellCondition && isEligibleSectorForSubsidy;
     const isAgriSubsidy = isPrivate && isAgri && !isFlushing && !isDryWell;
 
     const findRate = (searchLabel: string) => {
@@ -154,7 +160,6 @@ function BillContent() {
                                   (parseFloat(report.pvc10kg || '0') * rate10kg) + 
                                   rateEndCap;
     
-    // Condition: Material subtotal > 5000 triggers GST for materials
     const isGstThresholdMet = materialSubtotalForGst > 5000;
 
     let rows: any[] = [];
@@ -169,7 +174,7 @@ function BillContent() {
         const baseAmt = qty * rate;
         
         let gstPercent = 0;
-        // Drilling is always 0%. Materials are 18% if threshold is met.
+        // Drilling is always 0% as per latest requirement
         if (!isDrilling && isGstThresholdMet) {
             gstPercent = 0.18;
         }
@@ -236,6 +241,7 @@ function BillContent() {
         balance, 
         isAgriSubsidy,
         isDryWellCondition,
+        isEligibleSectorForSubsidy,
         isEligibleFor75Subsidy,
         isGstThresholdMet,
         isRefund,
@@ -273,7 +279,7 @@ function BillContent() {
       const sectorSubCat = `${data.sector}/${data.subCategory || data.category}`;
 
       let netPayableLabel = 'കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക :';
-      if (calc.isEligibleFor75Subsidy && calc.isDomesticOrAgri) {
+      if (calc.isEligibleFor75Subsidy && calc.isEligibleSectorForSubsidy) {
           netPayableLabel = 'കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക (ഡ്രില്ലിംഗ് ചാർജിന്റെ 25%+പൈപ്പ്, അടപ്പ് ഉള്‍പ്പെടെ) :';
       }
 
@@ -321,7 +327,7 @@ function BillContent() {
             router.push('/well-drilling');
           })
           .catch((error) => {
-            errorEmitter.emit('permission-error', new FirestorePermissionError({ path: reportDocRef.path, operation: 'update' }));
+            errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'update' }));
           });
     });
   };
@@ -391,7 +397,7 @@ function BillContent() {
           <div className="mb-6 border border-black text-[11px] text-left">
             {[
                 { l: 'സൈറ്റിന്റെ പേര്', v: report.nameOfSite },
-                { l: 'പഞ്ചായത്ത്/നഗരസഭ', v: report.lsgd },
+                { l: 'പഞ്ചായത്ത്/നഗസഭ', v: report.lsgd },
                 { l: 'നിയമസഭ മണ്ഡലം', v: report.assembly },
                 { l: 'വിലാസം', v: report.address },
                 { l: 'കുഴൽ കിണറിന്റെ നിലവിലെ സ്ഥിതി', v: data.remarks },
@@ -465,8 +471,8 @@ function BillContent() {
               )}
               
               <div className="flex justify-between items-center p-3 border-b border-black text-[#1e3a8a] bg-blue-50/10">
-                  <span className="max-w-[480px] uppercase">
-                    {(calc.isEligibleFor75Subsidy && calc.isDomesticOrAgri)
+                  <span className="max-w-[480px] uppercase text-justify">
+                    {(calc.isEligibleFor75Subsidy && calc.isEligibleSectorForSubsidy)
                         ? "കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക (ഡ്രില്ലിംഗ് ചാർജിന്റെ 25%+പൈപ്പ്, അടപ്പ് ഉള്‍പ്പെടെ) :" 
                         : "കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക :"
                     }
