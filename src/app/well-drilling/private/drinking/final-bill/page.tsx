@@ -7,7 +7,7 @@ import { Printer, ArrowLeft, ShieldAlert, FileOutput, Loader2, Save } from 'luci
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Link from 'next/link';
 import { useFirestore, useDoc, useMemoFirebase, useUser, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { doc, collection, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import type { GroundwaterReport } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -32,12 +32,6 @@ const formatTechnicalDate = (dateStr: string) => {
   if (isValid(date)) return format(date, 'dd-MM-yyyy');
   return dateStr;
 };
-
-function numberToMalayalamWords(num: number): string {
-  if (isNaN(num) || num <= 0) return 'പൂജ്യം രൂപ മാത്രം';
-  const rounded = Math.round(num);
-  return `${rounded.toLocaleString('en-IN')} രൂപ (അക്ഷരത്തിൽ)`;
-}
 
 function BillContent() {
   const searchParams = useSearchParams();
@@ -260,7 +254,7 @@ function BillContent() {
 
   useEffect(() => {
     if (calc && !calc.error) {
-      const balanceAmount = Math.abs(calc.balance);
+      const balanceAmount = Math.round(Math.abs(calc.balance));
       if (balanceAmount === 0) {
         setMalayalamBalanceWords('പൂജ്യം രൂപ മാത്രം');
         return;
@@ -272,6 +266,7 @@ function BillContent() {
           setMalayalamBalanceWords(result.text + ' രൂപ മാത്രം');
         } catch (e) {
           console.error('Failed to convert number to Malayalam:', e);
+          setMalayalamBalanceWords(balanceAmount.toLocaleString('en-IN') + ' രൂപ മാത്രം');
         }
       });
     }
