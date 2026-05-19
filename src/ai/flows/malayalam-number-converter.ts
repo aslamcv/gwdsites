@@ -1,6 +1,6 @@
 'use server';
 /**
- * @fileOverview A Malayalam number to words converter.
+ * @fileOverview A Malayalam number to words converter with robust error handling.
  *
  * - convertNumberToMalayalam - A function that handles the conversion process.
  * - NumberToMalayalamInput - The input type.
@@ -56,7 +56,7 @@ Strict rules:
 2. No English.
 3. No explanation or additional text.
 4. Use correct Indian numbering system (thousand, lakh, crore).
-5. Ensure proper joining words (e.g., ആയിരം becomes ആയിരത്തി когда followed by smaller numbers, ലക്ഷം becomes ലക്ഷത്തി).
+5. Ensure proper joining words (e.g., ആയിരം becomes ആയിരത്തി followed by smaller numbers, ലക്ഷം becomes ലക്ഷത്തി).
 6. Use correct Malayalam grammar and spelling.
 
 Example:
