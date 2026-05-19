@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useSearchParams } from 'next/navigation';
@@ -26,11 +27,9 @@ const formatTechnicalDate = (dateStr: string) => {
   const trimmed = dateStr.trim();
   const parts = trimmed.split(/[-/]/);
   if (parts.length === 3) {
-    // If it's already in DD-MM-YYYY
     if (parts[0].length <= 2 && parts[2].length === 4) {
       return `${parts[0]}-${parts[1]}-${parts[2]}`;
     }
-    // If it's in YYYY-MM-DD
     if (parts[0].length === 4) {
       return `${parts[2]}-${parts[1]}-${parts[0]}`;
     }
@@ -63,6 +62,9 @@ function BillContent() {
 
   const data = useMemo(() => {
     if (report) {
+      const yieldStatus = (report.remarks || '').toLowerCase().trim();
+      const isDry = yieldStatus === 'dry well' || yieldStatus === 'dry' || yieldStatus === 'collapsed well' || yieldStatus === 'collapsed';
+
       return {
         fileNo: report.fileNo || '',
         wellNumber: report.wellNumber || '',
@@ -74,7 +76,7 @@ function BillContent() {
         overburden: report.overburden || '',
         pvc6kg: report.pvc6kg || '0',
         pvc10kg: report.pvc10kg || '0',
-        discharge: report.discharge || '0',
+        discharge: isDry ? '0' : (report.discharge || '0'),
         waterLevel: report.waterLevel || '0',
         workStart: report.dateOfInvestigation?.split(' - ')[0] || '',
         workEnd: report.dateOfInvestigation?.split(' - ')[1] || '',
@@ -85,7 +87,7 @@ function BillContent() {
         category: report.category || 'DRINKING',
         subCategory: report.subCategory || '',
         staff: report.staffAssignment || {},
-        reportDate: report.reportDate || ''
+        reportDate: format(new Date(), 'yyyy-MM-dd') // Current date as per requirement
       };
     }
     return null;
@@ -104,7 +106,7 @@ function BillContent() {
     const isAgri = (report.subCategory || report.category || report.purpose)?.toLowerCase().includes('agriculture');
 
     const isDryWellPrivate = isPrivate && isDryWell && !isFlushing;
-    const isAgriSubsidy = isPrivate && isAgri && !isFlushing && ['low yield', 'medium yield', 'high yield'].includes(yieldStatus);
+    const isAgriSubsidy = isPrivate && isAgri && !isFlushing && !isDryWell;
 
     const rawWorkEndDate = (report.endDate || report.startDate || report.reportDate || '').trim();
     const refDate = (rawWorkEndDate.includes('-') && rawWorkEndDate.split('-')[0].length === 4) ? rawWorkEndDate : format(new Date(), 'yyyy-MM-dd');
@@ -132,7 +134,6 @@ function BillContent() {
     const LABEL_PVC_10KG = '140 മില്ലിമീറ്റർ വ്യാസമുള്ള 10 കി.ഗ്രാം / ച. സെ. മീ. പിവിസി കെയ്‌സിംഗ് പൈപ്പിന്റെ വില';
     const LABEL_END_CAP = '140 മില്ലിമീറ്റർ വ്യാസമുള്ള പിവിസി കുഴൽക്കിണർ അടപ്പിന്റെ വില';
 
-    // MATERIAL TOTAL FOR GST THRESHOLD
     const rate6kg = findRate(LABEL_PVC_6KG) || 0;
     const rate10kg = findRate(LABEL_PVC_10KG) || 0;
     const rateEndCap = findRate(LABEL_END_CAP) || 0;
@@ -146,14 +147,14 @@ function BillContent() {
     let rows: any[] = [];
     let grossConstructionTotal = 0;
     let drillingItemTotal = 0;
+    let materialsTotal = 0;
 
-    const processItem = (label: string, qty: number, isDrilling: boolean = false) => {
+    const processItem = (label: string, qty: number, isDrilling: boolean = false, customQtyStr?: string) => {
         const rate = findRate(label);
         if (rate === null) return { error: true, label };
         const baseAmt = qty * rate;
         
         let gstPercent = 0;
-        // 18% GST only if threshold met AND it's not a drilling charge
         if (!isDrilling && isGstThresholdMet) {
             gstPercent = 0.18;
         }
@@ -163,7 +164,7 @@ function BillContent() {
         
         rows.push({ 
             label, 
-            qtyStr: isDrilling && isFlushing ? (report.compressorWorkingHour || '2.5 hrs') : `${qty} m`, 
+            qtyStr: customQtyStr || (isDrilling && isFlushing ? (report.compressorWorkingHour || '2.5 hrs') : `${qty} m`), 
             rate, 
             amount: baseAmt, 
             gst: gstAmt, 
@@ -171,7 +172,11 @@ function BillContent() {
         });
         
         grossConstructionTotal += total;
-        if (isDrilling) drillingItemTotal = total; 
+        if (isDrilling) {
+          drillingItemTotal = total;
+        } else {
+          materialsTotal += total;
+        }
         return { error: false };
     };
 
@@ -184,33 +189,36 @@ function BillContent() {
       if (res.error) return { error: true, refDate, missingItem: res.label };
     }
 
-    if (!isDryWellPrivate) {
-      const pvc6 = parseFloat(report.pvc6kg || '0');
-      if (pvc6 > 0) {
-        const res = processItem(LABEL_PVC_6KG, pvc6);
-        if (res.error) return { error: true, refDate, missingItem: res.label };
-      }
-      const pvc10 = parseFloat(report.pvc10kg || '0');
-      if (pvc10 > 0) {
-        const res = processItem(LABEL_PVC_10KG, pvc10);
-        if (res.error) return { error: true, refDate, missingItem: res.label };
-      }
-      const res = processItem(LABEL_END_CAP, 1);
+    // Material inclusion logic
+    const pvc6 = parseFloat(report.pvc6kg || '0');
+    if (pvc6 > 0) {
+      const res = processItem(LABEL_PVC_6KG, pvc6);
       if (res.error) return { error: true, refDate, missingItem: res.label };
     }
+    const pvc10 = parseFloat(report.pvc10kg || '0');
+    if (pvc10 > 0) {
+      const res = processItem(LABEL_PVC_10KG, pvc10);
+      if (res.error) return { error: true, refDate, missingItem: res.label };
+    }
+    const resEndCap = processItem(LABEL_END_CAP, 1, false, "1 No.");
+    if (resEndCap.error) return { error: true, refDate, missingItem: resEndCap.label };
 
     const roundedGross = Math.ceil(grossConstructionTotal);
     
     let subsidyAmount = 0;
+    let netPayable = roundedGross;
+
     if (isDryWellPrivate) {
-      subsidyAmount = Math.ceil(drillingItemTotal * 0.75);
+      subsidyAmount = Math.ceil(drillingItemTotal * 0.75); // foregone 75%
+      netPayable = (roundedGross - subsidyAmount); // Result is exactly 25% of drilling + materials
     } else if (isAgriSubsidy) {
       subsidyAmount = Math.ceil(drillingItemTotal * 0.5);
+      netPayable = roundedGross - subsidyAmount;
     }
 
-    const netPayable = roundedGross - subsidyAmount;
     const remitted = parseFloat(report.remittance || '0');
     const balance = remitted - netPayable;
+    const isRefund = balance >= 0;
 
     return { 
         rows, 
@@ -222,7 +230,8 @@ function BillContent() {
         refDate,
         isAgriSubsidy,
         isDryWellPrivate,
-        isGstThresholdMet
+        isGstThresholdMet,
+        isRefund
     };
   }, [report, cloudRates]);
 
@@ -238,17 +247,19 @@ function BillContent() {
 
       const mapping: Record<string, string | undefined> = {
         'file_no': report.fileNo,
-        'date': formatTechnicalDate(report.reportDate),
+        'date': formatTechnicalDate(data.reportDate),
         'site_name': report.nameOfSite,
         'lsgd': report.lsgd,
         'address': report.address,
         'status': report.remarks,
         'total_cost': calc.roundedGross.toString(),
         'remittance': calc.remitted.toString(),
-        'balance': calc.balance.toString(),
+        'balance': Math.abs(calc.balance).toString(),
         'balance_words': numberToMalayalamWords(calc.balance),
         'well_number': data.wellNumber,
-        'sector_subcategory': sectorSubCat.toUpperCase()
+        'sector_subcategory': sectorSubCat.toUpperCase(),
+        'due_label': calc.isRefund ? 'അപേക്ഷകന് തിരികെ ലഭിക്കുന്ന തുക :' : 'ഭൂജലവകുപ്പിന് തിരികെ ലഭിക്കേണ്ട തുക :',
+        'net_payable_label': calc.isDryWellPrivate ? 'കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക (ഡ്രില്ലിംഗ് ചാർജിന്റെ 25%) :' : 'കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക :'
       };
 
       Object.entries(mapping).forEach(([field, val]) => {
@@ -287,20 +298,13 @@ function BillContent() {
             </div>
         </div>
         
-        {calc.error ? (
+        {calc.error && (
           <Alert variant="destructive" className="bg-rose-50 border-rose-200 py-6 rounded-2xl">
             <ShieldAlert className="size-6 text-rose-600" />
             <AlertTitle className="text-sm font-black uppercase tracking-tight ml-2">Rate Configuration Missing</AlertTitle>
             <AlertDescription className="text-xs font-bold text-rose-800 ml-2 mt-2 leading-relaxed">
               No valid rate found for technical item: <span className="underline font-black">{calc.missingItem}</span> on date: <span className="underline">{calc.refDate}</span>.
             </AlertDescription>
-          </Alert>
-        ) : (
-          <Alert className="bg-blue-50 border-blue-200 py-3 rounded-xl">
-              <AlertCircle className="size-4 text-blue-600" />
-              <AlertDescription className="text-[11px] font-black text-blue-800 uppercase tracking-tight">
-                  {calc.isGstThresholdMet ? "Technical Component Threshold Met (>₹5000): GST 18% Applied to Materials." : "Threshold Not Met (≤₹5000): GST 0% Applied."}
-              </AlertDescription>
           </Alert>
         )}
       </div>
@@ -334,7 +338,7 @@ function BillContent() {
 
           <div className="grid grid-cols-2 border border-black mb-6 text-[13px] text-left">
             <div className="border-r border-black p-2 px-4 flex justify-between"><span>ഫയൽ നമ്പർ:</span> <span className="font-bold">{report.fileNo}</span></div>
-            <div className="p-2 px-4 flex justify-between"><span>തീയതി:</span> <span className="font-bold">{formatTechnicalDate(report.reportDate)}</span></div>
+            <div className="p-2 px-4 flex justify-between"><span>തീയതി:</span> <span className="font-bold">{formatTechnicalDate(data.reportDate)}</span></div>
           </div>
 
           <div className="mb-6 border border-black text-[11px] text-left">
@@ -343,7 +347,7 @@ function BillContent() {
                 { l: 'പഞ്ചായത്ത്/നഗരസഭ', v: report.lsgd },
                 { l: 'നിയമസഭ മണ്ഡലം', v: report.assembly },
                 { l: 'വിലാസം', v: report.address },
-                { l: 'കുഴൽ കിണറിന്റെ നിലവിലെ സ്ഥിതി', v: report.remarks },
+                { l: 'കുഴൽ കിണറിന്റെ നിലവിലെ സ്ഥിതി', v: data.remarks },
             ].map((row, i) => (
                 <div key={i} className="grid grid-cols-[200px_1fr] border-b border-black last:border-b-0">
                     <div className="border-r border-black p-2 px-4 font-medium">{row.l}</div>
@@ -395,15 +399,13 @@ function BillContent() {
                 </div>
               )}
               
-              {calc.isDryWellPrivate && (
-                <div className="flex justify-between items-center p-3 border-b border-black text-red-600 bg-red-50/20">
-                    <span className="flex-1 uppercase text-[10px] tracking-tight whitespace-normal">കുഴൽ കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് വകുപ്പിന് ലഭിക്കേണ്ട തുക (ഡ്രില്ലിംഗ് ചാർജിന്റെ 25%) :</span>
-                    <span className="font-black text-[13px] shrink-0">₹ {calc.subsidyAmount.toFixed(2)}</span>
-                </div>
-              )}
-
               <div className="flex justify-between items-center p-3 border-b border-black text-[#1e3a8a] bg-blue-50/10">
-                  <span className="max-w-[480px]">കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക :</span>
+                  <span className="max-w-[480px]">
+                    {calc.isDryWellPrivate 
+                        ? "കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക (ഡ്രില്ലിംഗ് ചാർജിന്റെ 25%) :" 
+                        : "കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക :"
+                    }
+                  </span>
                   <span className="font-black text-[14px]">₹ {calc.netPayable.toFixed(2)}</span>
               </div>
 
@@ -413,9 +415,11 @@ function BillContent() {
               </div>
 
               <div className="flex justify-between items-center p-3 bg-white">
-                  <span className="text-[#1e3a8a] font-black uppercase text-[11px]">അപേക്ഷകന് തിരികെ ലഭിക്കുന്ന തുക :</span>
+                  <span className="text-[#1e3a8a] font-black uppercase text-[11px]">
+                    {calc.isRefund ? "അപേക്ഷകന് തിരികെ ലഭിക്കുന്ന തുക :" : "ഭൂജലവകുപ്പിന് തിരികെ ലഭിക്കേണ്ട തുക :"}
+                  </span>
                   <div className="text-right">
-                    <p className="font-black text-[16px] text-[#1e3a8a]">₹ {calc.balance.toFixed(2)}</p>
+                    <p className="font-black text-[16px] text-[#1e3a8a]">₹ {Math.abs(calc.balance).toFixed(2)}</p>
                     <p className="text-[9px] italic font-normal text-slate-500 mt-1">{numberToMalayalamWords(calc.balance)}</p>
                   </div>
               </div>
