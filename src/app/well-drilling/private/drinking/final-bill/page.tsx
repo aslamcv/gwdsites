@@ -115,15 +115,16 @@ function BillContent() {
     const isDryWell = yieldStatus === 'dry well' || yieldStatus === 'dry' || yieldStatus === 'collapsed well' || yieldStatus === 'collapsed';
     
     const sector = (report.sector || '').toLowerCase();
-    const subCat = (report.subCategory || report.category || report.purpose || '').toLowerCase();
+    const category = (report.category || '').toLowerCase();
+    const subCategory = (report.subCategory || '').toLowerCase();
+    const purpose = (report.purpose || '').toLowerCase();
     
     const isPrivate = sector === 'private';
-    const isDomestic = subCat.includes('domestic') || subCat.includes('drinking');
-    const isAgri = subCat.includes('agriculture');
+    const isDomestic = subCategory.includes('domestic') || category.includes('drinking') || subCategory.includes('drinking') || purpose.includes('drinking') || purpose.includes('domestic');
+    const isAgri = subCategory.includes('agriculture') || purpose.includes('agriculture');
 
     const isDryWellCondition = isDryWell && !isFlushing;
-    const isDomesticOrAgri = isDomestic || isAgri;
-    const isEligibleSectorForSubsidy = isPrivate && isDomesticOrAgri;
+    const isEligibleSectorForSubsidy = isPrivate && (isDomestic || isAgri);
     
     const isEligibleFor75Subsidy = isDryWellCondition && isEligibleSectorForSubsidy;
     const isAgriSubsidy = isPrivate && isAgri && !isFlushing && !isDryWell;
@@ -244,8 +245,7 @@ function BillContent() {
         isEligibleSectorForSubsidy,
         isEligibleFor75Subsidy,
         isGstThresholdMet,
-        isRefund,
-        isDomesticOrAgri
+        isRefund
     };
   }, [report, cloudRates]);
 
@@ -472,7 +472,7 @@ function BillContent() {
               
               <div className="flex justify-between items-center p-3 border-b border-black text-[#1e3a8a] bg-blue-50/10">
                   <span className="max-w-[480px] uppercase text-justify">
-                    {(calc.isEligibleFor75Subsidy && calc.isEligibleSectorForSubsidy)
+                    {(calc.isEligibleFor75Subsidy)
                         ? "കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക (ഡ്രില്ലിംഗ് ചാർജിന്റെ 25%+പൈപ്പ്, അടപ്പ് ഉള്‍പ്പെടെ) :" 
                         : "കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക :"
                     }
