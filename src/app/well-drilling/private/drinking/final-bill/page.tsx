@@ -7,7 +7,7 @@ import { Printer, ArrowLeft, ShieldAlert, FileOutput, Loader2, Save } from 'luci
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Link from 'next/link';
 import { useFirestore, useDoc, useMemoFirebase, useUser, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { collection, doc, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, collection, setDoc, updateDoc } from 'firebase/firestore';
 import type { GroundwaterReport } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -179,7 +179,7 @@ function BillContent() {
 
     const materialSubtotalForGst = (parseFloat(report.pvc6kg || '0') * rate6kg) + 
                                   (parseFloat(report.pvc10kg || '0') * rate10kg) + 
-                                  rateEndCap;
+                                  (report.hasEndCap ? rateEndCap : 0);
     
     const isGstThresholdMet = materialSubtotalForGst > 5000;
 
@@ -235,7 +235,9 @@ function BillContent() {
       if (pvc6 > 0) processItem(LABEL_PVC_6KG, pvc6);
       const pvc10 = parseFloat(report.pvc10kg || '0');
       if (pvc10 > 0) processItem(LABEL_PVC_10KG, pvc10);
-      processItem(LABEL_END_CAP, 1, false, "1 No.");
+      if (report.hasEndCap !== false) {
+        processItem(LABEL_END_CAP, 1, false, "1 No.");
+      }
     }
 
     const roundedGross = Math.ceil(totalGrandAmount);
@@ -269,8 +271,7 @@ function BillContent() {
         isEligibleSectorForSubsidy,
         isEligibleFor75Subsidy,
         isGstThresholdMet,
-        isRefund,
-        isFlushing
+        isRefund
     };
   }, [report, cloudRates]);
 

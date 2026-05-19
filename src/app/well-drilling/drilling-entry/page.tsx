@@ -26,6 +26,7 @@ import {
   SearchCode,
   ArrowRight
 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useLsgdData } from '@/hooks/use-lsgd-data';
@@ -43,6 +44,7 @@ import type { GroundwaterReport, Employee } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { StaffMultiSelect } from '@/components/investigation/staff-multi-select';
+import { cn } from '@/lib/utils';
 import { Logo } from '@/components/logo';
 
 const MASTER_ADMIN_EMAIL = 'gwdmpm@gmail.com';
@@ -130,6 +132,7 @@ function UnifiedDrillingSupervisionContent() {
     waterLevel: '',
     remarks: 'Medium yield',
     observations: '',
+    hasEndCap: true,
     staffAssignment: {
         unitInCharge: [],
         drillers: [],
@@ -157,6 +160,7 @@ function UnifiedDrillingSupervisionContent() {
         subCategory: subCat || prev.subCategory,
         startDate: dateParts[0] || prev.startDate,
         endDate: dateParts[1] || prev.endDate,
+        hasEndCap: cloudReport.hasEndCap !== undefined ? cloudReport.hasEndCap : true,
         staffAssignment: {
           unitInCharge: Array.isArray(sa.unitInCharge) ? sa.unitInCharge : (sa.unitInCharge ? (sa.unitInCharge as string).split(', ') : []),
           drillers: Array.isArray(sa.drillers) ? sa.drillers : (sa.drillers ? (sa.drillers as string).split(', ') : []),
@@ -410,6 +414,15 @@ function UnifiedDrillingSupervisionContent() {
                   <SelectItem value="collapsed">Collapsed well</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="flex items-center space-x-2 pt-6">
+              <Checkbox 
+                id="hasEndCap" 
+                checked={formData.hasEndCap} 
+                onCheckedChange={(checked) => updateField('hasEndCap', checked)}
+                disabled={!isAllowed}
+              />
+              <Label htmlFor="hasEndCap" className="text-[10px] font-black uppercase text-slate-700 cursor-pointer">End Cap Used</Label>
             </div>
           </div>
           <div className="space-y-2">

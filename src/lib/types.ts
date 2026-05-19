@@ -209,6 +209,7 @@ export type GroundwaterReport = {
   compressorWorkingHour?: string;
   observations?: string;
   remarks?: string;
+  hasEndCap?: boolean;
 
   // MWSS 39 Specific Parameters
   pump3hp?: string;
