@@ -245,7 +245,7 @@ function BillContent() {
       const sectorSubCat = `${data.sector}/${data.subCategory || data.category}`;
 
       let netPayableLabel = 'കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക :';
-      if (calc.isDryWellCondition) {
+      if (calc.isEligibleFor75Subsidy) {
           netPayableLabel = 'കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക (ഡ്രില്ലിംഗ് ചാർജിന്റെ 25%+പൈപ്പ്, അടപ്പ് ഉള്‍പ്പെടെ) :';
       }
 
@@ -400,13 +400,19 @@ function BillContent() {
                   <span className="font-black text-[13px]">₹ {calc.roundedGross.toFixed(2)}</span>
               </div>
 
-              {(calc.isEligibleFor75Subsidy || calc.isAgriSubsidy) && (
+              {calc.isEligibleFor75Subsidy && (
                 <div className="flex justify-between items-center p-3 border-b border-black text-red-600 bg-red-50/20">
                     <span className="flex-1 uppercase text-[10px] tracking-tight">
-                        {calc.isEligibleFor75Subsidy 
-                          ? "ഫലശൂന്യമായ കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തി - ഡ്രില്ലിംഗ് ചാർജിന്റെ 75% ഇളവ് :" 
-                          : "നാമമാത്ര / ചെറുകിട കർഷകർക്കുള്ള ധനസഹായം - ഡ്രില്ലിംഗ് ചാർജിന്റെ 50% :"
-                        }
+                        ഫലശൂന്യമായ കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തി - ഡ്രില്ലിംഗ് ചാർജിന്റെ 75% ഇളവ് :
+                    </span>
+                    <span className="font-black text-[13px]">₹ {calc.subsidyAmount.toFixed(2)}</span>
+                </div>
+              )}
+
+              {calc.isAgriSubsidy && !calc.isEligibleFor75Subsidy && (
+                 <div className="flex justify-between items-center p-3 border-b border-black text-red-600 bg-red-50/20">
+                    <span className="flex-1 uppercase text-[10px] tracking-tight">
+                        നാമമാത്ര / ചെറുകിട കർഷകർക്കുള്ള ധനസഹായം - ഡ്രില്ലിംഗ് ചാർജിന്റെ 50% :
                     </span>
                     <span className="font-black text-[13px]">₹ {calc.subsidyAmount.toFixed(2)}</span>
                 </div>
@@ -414,7 +420,7 @@ function BillContent() {
               
               <div className="flex justify-between items-center p-3 border-b border-black text-[#1e3a8a] bg-blue-50/10">
                   <span className="max-w-[480px] uppercase">
-                    {calc.isDryWellCondition 
+                    {calc.isEligibleFor75Subsidy 
                         ? "കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക (ഡ്രില്ലിംഗ് ചാർജിന്റെ 25%+പൈപ്പ്, അടപ്പ് ഉള്‍പ്പെടെ) :" 
                         : "കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക :"
                     }
