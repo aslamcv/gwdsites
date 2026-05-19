@@ -1,25 +1,20 @@
 'use client';
 
-import { useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { Suspense, useEffect, useMemo, useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
-import { Printer, ArrowLeft, ShieldAlert, FileOutput, Loader2 } from 'lucide-react';
+import { Printer, ArrowLeft, ShieldAlert, FileOutput, Loader2, Save } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Link from 'next/link';
-import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useFirestore, useDoc, useMemoFirebase, useUser, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { doc, collection, setDoc, updateDoc } from 'firebase/firestore';
 import type { GroundwaterReport } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { PDFDocument } from 'pdf-lib';
 import { format, parseISO, isValid } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-
-function numberToMalayalamWords(num: number): string {
-  if (num <= 0) return 'പൂജ്യം രൂപ മാത്രം';
-  const rounded = Math.round(Math.abs(num));
-  return `${rounded.toLocaleString('en-IN')} രൂപ (അക്ഷരത്തിൽ)`;
-}
+import { convertNumberToMalayalam } from '@/ai/flows/malayalam-number-converter';
 
 const formatTechnicalDate = (dateStr: string) => {
   if (!dateStr) return '';
@@ -41,16 +36,21 @@ const formatTechnicalDate = (dateStr: string) => {
 function BillContent() {
   const searchParams = useSearchParams();
   const firestore = useFirestore();
+  const router = useRouter();
   const id = searchParams.get('id');
   const [isPdfLoading, setIsPdfLoading] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const { user, isUserLoading: isAuthLoading } = useUser();
   
+  const [malayalamBalanceWords, setMalayalamBalanceWords] = useState<string>('');
+
   const reportRef = useMemoFirebase(() => {
     if (!firestore || !id) return null;
     return doc(firestore, 'groundwaterReports', id);
   }, [firestore, id]);
 
-  const { data: report, isLoading } = useDoc<GroundwaterReport>(reportRef);
+  const { data: report, isLoading: isReportLoading } = useDoc<GroundwaterReport>(reportRef);
 
   const settingsRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -58,6 +58,18 @@ function BillContent() {
   }, [firestore]);
 
   const { data: cloudRates, isLoading: isRatesLoading } = useDoc(settingsRef);
+
+  const userProfileRef = useMemoFirebase(() => {
+    if (!firestore || !user?.email) return null;
+    return doc(firestore, 'users', user.email.toLowerCase().trim());
+  }, [firestore, user?.email]);
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
+  
+  const isAllowed = useMemo(() => {
+    if (isAuthLoading || isProfileLoading) return false;
+    if (user?.email === 'gwdmpm@gmail.com') return true;
+    return (userProfile?.role === 'admin' || userProfile?.role === 'engineer') && userProfile?.isApproved === true;
+  }, [user, userProfile, isAuthLoading, isProfileLoading]);
 
   const data = useMemo(() => {
     if (report) {
@@ -106,7 +118,6 @@ function BillContent() {
     const isAgri = (report.subCategory || report.category || report.purpose)?.toLowerCase().includes('agriculture');
 
     const isDryWellCondition = isDryWell && !isFlushing;
-    // 75% Subsidy only for Private Domestic or Private Agriculture
     const isEligibleFor75Subsidy = isDryWellCondition && (isDomestic || isAgri) && isPrivate;
     const isAgriSubsidy = isPrivate && isAgri && !isFlushing && !isDryWell;
 
@@ -144,7 +155,13 @@ function BillContent() {
                                (parseFloat(report.pvc10kg || '0') * rate10kg) + 
                                rateEndCap;
     
-    const isGstThresholdMet = materialBaseTotal > 5000;
+    const drillingRate = isFlushing ? findRate(LABEL_FLUSHING) : findRate(LABEL_DRILLING);
+    const drillingQty = isFlushing ? parseFloat((report.compressorWorkingHour || '2.5').replace(/[^0-9.]/g, '')) : parseFloat(report.totalDepth || '0');
+    const drillingBaseTotal = (drillingRate || 0) * drillingQty;
+    
+    // Eligibility for 18% GST on materials is based on: (Drilling Base + 10kg Casing Base + End Cap Base) > 5000
+    const gstCheckTotal = drillingBaseTotal + (parseFloat(report.pvc10kg || '0') * rate10kg) + rateEndCap;
+    const isGstThresholdMet = gstCheckTotal > 5000;
 
     let rows: any[] = [];
     let grossConstructionTotal = 0;
@@ -159,7 +176,7 @@ function BillContent() {
         const baseAmt = qty * rate;
         
         let gstPercent = 0;
-        // Drilling is 0% GST as per request. Others 18% if threshold met.
+        // Drilling is always 0% GST. Others 18% if threshold met.
         if (!isDrilling && isGstThresholdMet) {
             gstPercent = 0.18;
         }
@@ -230,9 +247,29 @@ function BillContent() {
         isDryWellCondition,
         isEligibleFor75Subsidy,
         isGstThresholdMet,
-        isRefund
+        isRefund,
+        isDomesticOrAgri: isDomestic || isAgri
     };
   }, [report, cloudRates]);
+
+  useEffect(() => {
+    if (calc && !calc.error) {
+      const balance = Math.abs(calc.balance);
+      if (balance === 0) {
+        setMalayalamBalanceWords('പൂജ്യം രൂപ മാത്രം');
+        return;
+      }
+      
+      startTransition(async () => {
+        try {
+          const words = await convertNumberToMalayalam({ number: balance });
+          setMalayalamBalanceWords(words);
+        } catch (e) {
+          console.error('Failed to convert number to Malayalam:', e);
+        }
+      });
+    }
+  }, [calc]);
 
   const handleFillPdf = async () => {
     if (!report || !calc || !data) return;
@@ -259,7 +296,7 @@ function BillContent() {
         'total_cost': calc.roundedGross.toString(),
         'remittance': calc.remitted.toString(),
         'balance': Math.abs(calc.balance).toString(),
-        'balance_words': numberToMalayalamWords(calc.balance),
+        'balance_words': malayalamBalanceWords,
         'well_number': data.wellNumber,
         'sector_subcategory': sectorSubCat.toUpperCase(),
         'due_label': calc.isRefund ? 'അപേക്ഷകന് തിരികെ ലഭിക്കുന്ന തുക :' : 'ഭൂജലവകുപ്പിന് തിരികെ ലഭിക്കേണ്ട തുക :',
@@ -283,7 +320,22 @@ function BillContent() {
     } finally { setIsPdfLoading(false); }
   };
 
-  if (isLoading || isRatesLoading) return <div className="p-12 flex justify-center"><Skeleton className="h-[800px] w-full max-w-[800px]" /></div>;
+  const handleSaveToCloud = () => {
+    if (!report || !isAllowed || !firestore) return;
+    startTransition(() => {
+        const docRef = doc(firestore, 'groundwaterReports', report.id);
+        updateDoc(docRef, { status: 'Published' })
+          .then(() => {
+            toast({ title: 'Report Published', description: 'Technical records updated in ledger.' });
+            router.push('/well-drilling');
+          })
+          .catch((error) => {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'update' }));
+          });
+    });
+  };
+
+  if (isReportLoading || isRatesLoading) return <div className="p-12 flex justify-center"><Skeleton className="h-[800px] w-full max-w-[800px]" /></div>;
   if (!report || !calc || !data) return null;
 
   return (
@@ -299,6 +351,10 @@ function BillContent() {
                 OPEN AS FILLABLE PDF
               </Button>
               {!calc.error && <Button onClick={() => window.print()} className="gap-2 font-bold bg-[#1e3a8a] text-white h-8 text-xs px-6 rounded-lg shadow-lg"><Printer className="h-3 w-3" /> Print Preview</Button>}
+              <Button onClick={handleSaveToCloud} disabled={isPending} className="gap-2 font-bold bg-emerald-600 text-white h-8 text-xs px-6 rounded-lg shadow-lg">
+                {isPending ? <Loader2 className="size-3 animate-spin" /> : <Save className="size-3" />}
+                Publish Record
+              </Button>
             </div>
         </div>
         
@@ -420,7 +476,7 @@ function BillContent() {
               
               <div className="flex justify-between items-center p-3 border-b border-black text-[#1e3a8a] bg-blue-50/10">
                   <span className="max-w-[480px] uppercase">
-                    {calc.isEligibleFor75Subsidy 
+                    {(calc.isEligibleFor75Subsidy && calc.isDomesticOrAgri)
                         ? "കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക (ഡ്രില്ലിംഗ് ചാർജിന്റെ 25%+പൈപ്പ്, അടപ്പ് ഉള്‍പ്പെടെ) :" 
                         : "കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക :"
                     }
@@ -439,7 +495,9 @@ function BillContent() {
                   </span>
                   <div className="text-right">
                     <p className="font-black text-[16px] text-[#1e3a8a]">₹ {Math.abs(calc.balance).toFixed(2)}</p>
-                    <p className="text-[9px] italic font-normal text-slate-500 mt-1">{numberToMalayalamWords(calc.balance)}</p>
+                    <p className="text-[9px] italic font-normal text-slate-500 mt-1">
+                      {isPending ? <Loader2 className="h-3 w-3 animate-spin inline mr-1" /> : malayalamBalanceWords}
+                    </p>
                   </div>
               </div>
           </div>
