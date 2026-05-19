@@ -11,6 +11,7 @@ import {
   ArrowLeft, 
   Save, 
   FileText, 
+  ClipboardList, 
   Activity,
   Loader2,
   MapPin,
@@ -425,7 +426,7 @@ function DrillingSiteEntryContent() {
           </div>
           
           <div className="flex items-center gap-3 pr-2">
-            <Button onClick={handleSave} disabled={isPending || !isAllowed} className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] gap-2 shadow-xl shadow-blue-900/30 transition-all hover:scale-[1.02] active:scale-95">
+            <Button onClick={handleSave} disabled={isPending || !isAllowed} className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/30 transition-all hover:scale-[1.02] active:scale-95">
               {isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
               {id ? 'UPDATE RECORD' : 'SAVE TECHNICAL RECORD'}
             </Button>

@@ -7,7 +7,7 @@ import { Printer, ArrowLeft, ShieldAlert, FileOutput, Loader2, Save } from 'luci
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Link from 'next/link';
 import { useFirestore, useDoc, useMemoFirebase, useUser, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { doc, collection, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import type { GroundwaterReport } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -33,14 +33,10 @@ const formatTechnicalDate = (dateStr: string) => {
   return dateStr;
 };
 
-/**
- * Robust numeric parser that handles nulls and non-numeric characters.
- */
-function parseSafeFloat(val: any): number {
-  if (val === undefined || val === null || val === '') return 0;
-  const numStr = String(val).replace(/[^0-9.]/g, '');
-  const parsed = parseFloat(numStr);
-  return isNaN(parsed) ? 0 : parsed;
+function numberToMalayalamWords(num: number): string {
+  if (isNaN(num) || num <= 0) return 'പൂജ്യം രൂപ മാത്രം';
+  const rounded = Math.round(num);
+  return `${rounded.toLocaleString('en-IN')} രൂപ (അക്ഷരത്തിൽ)`;
 }
 
 function BillContent() {

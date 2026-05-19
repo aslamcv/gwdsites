@@ -22,13 +22,15 @@ export type NumberToMalayalamOutput = z.infer<typeof NumberToMalayalamOutputSche
 
 /**
  * Retries a function with exponential backoff on transient errors (503/429).
+ * Increased retries and delay to handle free-tier quota spikes.
  */
-async function callWithRetry<T>(fn: () => Promise<T>, retries = 3, delay = 1000): Promise<T> {
+async function callWithRetry<T>(fn: () => Promise<T>, retries = 5, delay = 2000): Promise<T> {
   try {
     return await fn();
   } catch (error: any) {
     const isRetryable = error.message?.includes('503') || error.message?.includes('429');
     if (retries > 0 && isRetryable) {
+      console.warn(`AI busy or rate limited. Retrying in ${delay}ms... (${retries} attempts left)`);
       await new Promise(resolve => setTimeout(resolve, delay));
       return callWithRetry(fn, retries - 1, delay * 2);
     }
