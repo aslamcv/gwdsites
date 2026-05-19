@@ -66,10 +66,10 @@ function BillContent() {
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
   
   const isAllowed = useMemo(() => {
-    if (isAuthLoading || isProfileLoading) return false;
-    if (user?.email === 'gwdmpm@gmail.com') return true;
+    if (isUserLoading || isProfileLoading) return false;
+    if (user?.email?.toLowerCase() === 'gwdmpm@gmail.com') return true;
     return (userProfile?.role === 'admin' || userProfile?.role === 'engineer') && userProfile?.isApproved === true;
-  }, [user, userProfile, isAuthLoading, isProfileLoading]);
+  }, [user, userProfile, isUserLoading, isProfileLoading]);
 
   const data = useMemo(() => {
     if (report) {
@@ -122,9 +122,6 @@ function BillContent() {
     const isEligibleFor75Subsidy = isDryWellCondition && isDomesticOrAgri && isPrivate;
     const isAgriSubsidy = isPrivate && isAgri && !isFlushing && !isDryWell;
 
-    const rawWorkEndDate = (report.endDate || report.startDate || report.reportDate || '').trim();
-    const refDate = (rawWorkEndDate.includes('-') && rawWorkEndDate.split('-')[0].length === 4) ? rawWorkEndDate : format(new Date(), 'yyyy-MM-dd');
-
     const findRate = (searchLabel: string) => {
       if (!cloudRates?.services) return null;
       const normalizeStr = (s: string) => (s || '').toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9\u0D00-\u0D7F]/g, ''); 
@@ -135,7 +132,8 @@ function BillContent() {
           if (normalizeStr(item.nameMl) === target || normalizeStr(item.nameEn) === target) {
             const from = item.dateFrom || '0000-00-00';
             const to = item.dateTo || '9999-99-99';
-            if (refDate >= from && refDate <= to) return item.rate;
+            const today = format(new Date(), 'yyyy-MM-dd');
+            if (today >= from && today <= to) return item.rate;
           }
         }
       }
@@ -152,15 +150,18 @@ function BillContent() {
     const rate10kg = findRate(LABEL_PVC_10KG) || 0;
     const rateEndCap = findRate(LABEL_END_CAP) || 0;
 
-    const gstCheckTotal = (parseFloat(report.pvc6kg || '0') * rate6kg) + (parseFloat(report.pvc10kg || '0') * rate10kg) + rateEndCap;
-    const isGstThresholdMet = gstCheckTotal > 5000;
+    const materialSubtotalForGst = (parseFloat(report.pvc6kg || '0') * rate6kg) + 
+                                  (parseFloat(report.pvc10kg || '0') * rate10kg) + 
+                                  rateEndCap;
+    
+    // Condition: Material subtotal > 5000 triggers GST for materials
+    const isGstThresholdMet = materialSubtotalForGst > 5000;
 
     let rows: any[] = [];
-    let grossConstructionTotal = 0;
     let drillingItemTotal = 0;
-    
     let totalBaseAmount = 0;
     let totalGstAmount = 0;
+    let totalGrandAmount = 0;
 
     const processItem = (label: string, qty: number, isDrilling: boolean = false, customQtyStr?: string) => {
         const rate = findRate(label);
@@ -168,6 +169,7 @@ function BillContent() {
         const baseAmt = qty * rate;
         
         let gstPercent = 0;
+        // Drilling is always 0%. Materials are 18% if threshold is met.
         if (!isDrilling && isGstThresholdMet) {
             gstPercent = 0.18;
         }
@@ -186,7 +188,7 @@ function BillContent() {
         
         totalBaseAmount += baseAmt;
         totalGstAmount += gstAmt;
-        grossConstructionTotal += total;
+        totalGrandAmount += total;
         if (isDrilling) drillingItemTotal = total;
         return { error: false };
     };
@@ -194,21 +196,19 @@ function BillContent() {
     if (isFlushing) {
       const hours = parseFloat((report.compressorWorkingHour || '2.5').replace(/[^0-9.]/g, '')) || 2.5;
       const res = processItem(LABEL_FLUSHING, hours, true);
-      if (res.error) return { error: true, refDate, missingItem: res.label };
+      if (res.error) return { error: true, missingItem: res.label };
     } else {
       const res = processItem(LABEL_DRILLING, parseFloat(report.totalDepth || '0'), true);
-      if (res.error) return { error: true, refDate, missingItem: res.label };
+      if (res.error) return { error: true, missingItem: res.label };
     }
 
     const pvc6 = parseFloat(report.pvc6kg || '0');
     if (pvc6 > 0) processItem(LABEL_PVC_6KG, pvc6);
-    
     const pvc10 = parseFloat(report.pvc10kg || '0');
     if (pvc10 > 0) processItem(LABEL_PVC_10KG, pvc10);
-    
     processItem(LABEL_END_CAP, 1, false, "1 No.");
 
-    const roundedGross = Math.ceil(grossConstructionTotal);
+    const roundedGross = Math.ceil(totalGrandAmount);
     let subsidyAmount = 0;
     let netPayable = roundedGross;
 
@@ -228,12 +228,12 @@ function BillContent() {
         rows, 
         totalBaseAmount,
         totalGstAmount,
+        totalGrandAmount,
         roundedGross,
         subsidyAmount,
         netPayable,
         remitted, 
         balance, 
-        refDate,
         isAgriSubsidy,
         isDryWellCondition,
         isEligibleFor75Subsidy,
@@ -321,7 +321,7 @@ function BillContent() {
             router.push('/well-drilling');
           })
           .catch((error) => {
-            errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'update' }));
+            errorEmitter.emit('permission-error', new FirestorePermissionError({ path: reportDocRef.path, operation: 'update' }));
           });
     });
   };
@@ -354,7 +354,7 @@ function BillContent() {
             <ShieldAlert className="size-6 text-rose-600" />
             <AlertTitle className="text-sm font-black uppercase tracking-tight ml-2">Rate Configuration Missing</AlertTitle>
             <AlertDescription className="text-xs font-bold text-rose-800 ml-2 mt-2 leading-relaxed">
-              No valid rate found for technical item: <span className="underline font-black">{calc.missingItem}</span> on date: <span className="underline">{calc.refDate}</span>.
+              No valid rate found for technical item: <span className="underline font-black">{calc.missingItem}</span>.
             </AlertDescription>
           </Alert>
         )}
@@ -417,7 +417,6 @@ function BillContent() {
                 </tr>
               </thead>
               <tbody>
-                <tr className="h-[1px] border-b border-black"><td colSpan={7}></td></tr>
                 {calc.rows.map((row, i) => (
                   <tr key={i} className="h-9 border-b border-black last:border-b-0">
                     <td className="border-r border-black">{i + 1}</td>
@@ -435,7 +434,7 @@ function BillContent() {
                    <td colSpan={4} className="border-r border-black text-right px-4 uppercase text-[9px]">Grand Total Calculation :</td>
                    <td className="border-r border-black text-center">₹{calc.totalBaseAmount.toFixed(2)}</td>
                    <td className="border-r border-black text-center">₹{calc.totalGstAmount.toFixed(2)}</td>
-                   <td className="text-center bg-blue-50/20">₹{calc.roundedGross.toFixed(2)}</td>
+                   <td className="text-center bg-blue-50/20">₹{calc.totalGrandAmount.toFixed(2)}</td>
                 </tr>
               </tfoot>
             </table>

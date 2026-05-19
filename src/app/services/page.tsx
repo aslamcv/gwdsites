@@ -576,19 +576,65 @@ export default function ServicesRatesCatalog() {
                                   <tr key={item.id} className="h-11 border-b border-slate-100 last:border-b-0">
                                     <td className="text-center font-bold text-slate-300 text-[10px] border-r">{iIdx + 1}</td>
                                     <td className="px-6 border-r">
-                                      <span className="text-[11px] font-bold text-slate-400 uppercase">{item.nameEn}</span>
+                                      {isAdmin ? (
+                                        <Input 
+                                          value={item.nameEn || ""} 
+                                          onChange={(e) => updateItem(service.id, item.id, 'nameEn', e.target.value)}
+                                          className="h-8 text-xs border-slate-200 bg-white"
+                                        />
+                                      ) : (
+                                        <span className="text-[11px] font-bold text-slate-400 uppercase">{item.nameEn}</span>
+                                      )}
                                     </td>
                                     <td className="px-6 border-r">
-                                      <span className="text-[11px] font-bold text-slate-400">{item.nameMl}</span>
+                                      {isAdmin ? (
+                                        <Input 
+                                          value={item.nameMl || ""} 
+                                          onChange={(e) => updateItem(service.id, item.id, 'nameMl', e.target.value)}
+                                          className="h-8 text-xs font-bold border-slate-200 bg-white"
+                                        />
+                                      ) : (
+                                        <span className="text-[11px] font-bold text-slate-400">{item.nameMl}</span>
+                                      )}
                                     </td>
                                     {isGstSection ? (
                                       <>
-                                        <td className="w-24 text-center border-r text-slate-400 font-bold text-[11px]">{item.gstPercentage}%</td>
-                                        <td className="px-6 border-r text-slate-400 text-[11px] italic">{item.conditions}</td>
+                                        <td className="w-24 text-center border-r">
+                                          {isAdmin ? (
+                                            <Input 
+                                              type="number" 
+                                              value={item.gstPercentage ?? 0} 
+                                              onChange={(e) => updateItem(service.id, item.id, 'gstPercentage', parseInt(e.target.value) || 0)}
+                                              className="h-8 w-16 text-center text-xs font-black text-slate-400 bg-white mx-auto"
+                                            />
+                                          ) : (
+                                            <span className="text-slate-400 font-bold text-[11px]">{item.gstPercentage}%</span>
+                                          )}
+                                        </td>
+                                        <td className="px-6 border-r">
+                                          {isAdmin ? (
+                                            <Input 
+                                              value={item.conditions || ""} 
+                                              onChange={(e) => updateItem(service.id, item.id, 'conditions', e.target.value)}
+                                              className="h-8 text-xs border-slate-200 bg-white"
+                                            />
+                                          ) : (
+                                            <span className="text-slate-400 text-[11px] italic">{item.conditions}</span>
+                                          )}
+                                        </td>
                                       </>
                                     ) : (
                                       <td className="text-right pr-6 border-r">
-                                        <span className="text-[11px] font-bold text-slate-400">₹{item.rate?.toLocaleString('en-IN')}</span>
+                                        {isAdmin ? (
+                                          <Input 
+                                            type="number" 
+                                            value={item.rate ?? 0} 
+                                            onChange={(e) => updateItem(service.id, item.id, 'rate', parseFloat(e.target.value) || 0)}
+                                            className="h-8 w-24 text-right text-xs font-black text-slate-400 bg-white"
+                                          />
+                                        ) : (
+                                          <span className="text-[11px] font-bold text-slate-400">₹{item.rate?.toLocaleString('en-IN')}</span>
+                                        )}
                                       </td>
                                     )}
                                     <td className="border-r px-2">
