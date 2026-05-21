@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 import { PDFDocument } from 'pdf-lib';
 import { format, parseISO, isValid } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import { convertNumberToMalayalam } from '@/ai/flows/malayalam-number-converter';
+import { numberToMalayalamWords } from '@/lib/malayalam-utils';
 
 const formatTechnicalDate = (dateStr: string) => {
   if (!dateStr) return '';
@@ -43,8 +43,6 @@ function BillContent() {
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
   
-  const [malayalamBalanceWords, setMalayalamBalanceWords] = useState<string>('');
-
   const reportRef = useMemoFirebase(() => {
     if (!firestore || !id) return null;
     return doc(firestore, 'groundwaterReports', id);
@@ -139,8 +137,10 @@ function BillContent() {
           if (normalizeStr(item.nameMl) === target || normalizeStr(item.nameEn) === target) {
             const from = item.dateFrom || '0000-00-00';
             const to = item.dateTo || '9999-99-99';
+            // Capping date at 2025-03-31 for current rate cycle
             const today = format(new Date(), 'yyyy-MM-dd');
-            if (today >= from && today <= to) return item.rate;
+            const effectiveDateForLookup = today > '2025-03-31' ? '2025-03-31' : today;
+            if (effectiveDateForLookup >= from && effectiveDateForLookup <= to) return item.rate;
           }
         }
       }
@@ -252,24 +252,10 @@ function BillContent() {
     };
   }, [report, cloudRates]);
 
-  useEffect(() => {
-    if (calc && !calc.error) {
-      const balanceAmount = Math.round(Math.abs(calc.balance));
-      if (balanceAmount === 0) {
-        setMalayalamBalanceWords('പൂജ്യം രൂപ മാത്രം');
-        return;
-      }
-      
-      startTransition(async () => {
-        try {
-          const result = await convertNumberToMalayalam({ number: balanceAmount });
-          setMalayalamBalanceWords(result.text + ' രൂപ മാത്രം');
-        } catch (e) {
-          console.error('Failed to convert number to Malayalam:', e);
-          setMalayalamBalanceWords(balanceAmount.toLocaleString('en-IN') + ' രൂപ മാത്രം');
-        }
-      });
-    }
+  const malayalamBalanceWords = useMemo(() => {
+    if (!calc) return '';
+    const amt = Math.round(Math.abs(calc.balance));
+    return numberToMalayalamWords(amt) + ' രൂപ മാത്രം';
   }, [calc]);
 
   const handleFillPdf = async () => {
@@ -496,7 +482,7 @@ function BillContent() {
                   <div className="text-right">
                     <p className="font-black text-[16px] text-[#1e3a8a]">₹ {Math.abs(calc.balance).toFixed(2)}</p>
                     <p className="text-[9px] italic font-normal text-slate-500 mt-1">
-                      {isPending ? <Loader2 className="h-3 w-3 animate-spin inline mr-1" /> : malayalamBalanceWords}
+                      {malayalamBalanceWords}
                     </p>
                   </div>
               </div>
