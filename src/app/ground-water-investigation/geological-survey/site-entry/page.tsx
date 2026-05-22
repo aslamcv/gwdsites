@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useEffect, useMemo, Suspense } from 'react';
@@ -34,8 +35,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -67,7 +68,6 @@ import { StaffMultiSelect } from '@/components/investigation/staff-multi-select'
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/logo';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 const MASTER_ADMIN_EMAIL = 'gwdmpm@gmail.com';
 
@@ -147,6 +147,24 @@ function UnifiedGeologicalSurveyContent() {
   const [selectedNearbyStructure, setSelectedNearbyStructure] = useState<string | null>(null);
   const [isManualVillageOpen, setIsManualVillageOpen] = useState(false);
   const [manualVillageName, setManualVillageName] = useState('');
+
+  // Global fix for stuck pointer events after dialog close
+  useEffect(() => {
+    if (!isRecommendationDialogOpen && !isNearbyDialogOpen && !isManualVillageOpen) {
+      document.body.style.pointerEvents = "auto";
+      document.body.style.overflow = "auto";
+    }
+  }, [isRecommendationDialogOpen, isNearbyDialogOpen, isManualVillageOpen]);
+
+  const handleDialogChange = (setter: (val: boolean) => void, val: boolean) => {
+    setter(val);
+    if (!val) {
+      setTimeout(() => {
+        document.body.style.pointerEvents = "auto";
+        document.body.style.overflow = "auto";
+      }, 50);
+    }
+  };
 
   // Role detection with robust email casing
   const userProfileRef = useMemoFirebase(() => {
@@ -234,7 +252,6 @@ function UnifiedGeologicalSurveyContent() {
   useEffect(() => {
     if (cloudReport) {
       const SaData = cloudReport.staffAssignment || {};
-      const dateParts = cloudReport.dateOfInvestigation?.split(' - ') || [];
       setFormData((prev: any) => ({
         ...prev,
         ...cloudReport,
@@ -329,14 +346,14 @@ function UnifiedGeologicalSurveyContent() {
         if(type === 'borewell') updateField('noNearbyBorewells', false);
         if(type === 'openwell') updateField('noNearbyOpenwells', false);
         setSelectedNearbyStructure(value);
-        setIsNearbyDialogOpen(true);
+        handleDialogChange(setIsNearbyDialogOpen, true);
     }
   };
 
   const handleManualVillageSave = () => {
     if (manualVillageName.trim()) {
       updateField('village', manualVillageName.trim().toUpperCase());
-      setIsManualVillageOpen(false);
+      handleDialogChange(setIsManualVillageOpen, false);
       setManualVillageName('');
     }
   };
@@ -370,14 +387,14 @@ function UnifiedGeologicalSurveyContent() {
               </div>
               <div className="space-y-1">
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter">Conveyance</Label>
-                <Select disabled={!isAllowed} onValueChange={(v) => updateField('conveyance', v)} value={formData.conveyance || ''}>
+                <Select key={formData.conveyance ? "c-sel" : "c-none"} disabled={!isAllowed} onValueChange={(v) => updateField('conveyance', v)} value={formData.conveyance || ''}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">{conveyanceOptions.map(o => <SelectItem key={o} value={o} className="text-xs font-bold">{o}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter">Sector</Label>
-                <Select disabled={!isAllowed} onValueChange={(v) => updateField('sector', v)} value={formData.sector || ''}>
+                <Select key={formData.sector ? "s-sel" : "s-none"} disabled={!isAllowed} onValueChange={(v) => updateField('sector', v)} value={formData.sector || ''}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">
                     {sectorOptions.map(s => <SelectItem key={s.id} value={s.id} className="text-[10px] font-black uppercase">{s.label}</SelectItem>)}
@@ -386,7 +403,7 @@ function UnifiedGeologicalSurveyContent() {
               </div>
               <div className="space-y-1">
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter">Sub Category</Label>
-                <Select disabled={!isAllowed} onValueChange={(v) => updateField('category', v)} value={formData.category || ''}>
+                <Select key={formData.category ? "cat-sel" : "cat-none"} disabled={!isAllowed} onValueChange={(v) => updateField('category', v)} value={formData.category || ''}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">
                     {categoryMappings[formData.sector]?.map(c => <SelectItem key={c} value={c} className="text-[10px] font-black uppercase">{c}</SelectItem>)}
@@ -420,7 +437,7 @@ function UnifiedGeologicalSurveyContent() {
           </CardHeader>
           <CardContent className="p-10 grid grid-cols-1 md:grid-cols-4 gap-8">
                 <FormFieldItem label="8. Village" id="village">
-                  <DropdownMenu>
+                  <DropdownMenu key={formData.village ? "v-sel" : "v-none"}>
                     <DropdownMenuTrigger asChild>
                       <Button variant="outline" className="w-full h-10 justify-between border-slate-200 font-bold" disabled={!isAllowed}>
                         <span className="uppercase text-[11px] tracking-tight truncate">
@@ -434,17 +451,17 @@ function UnifiedGeologicalSurveyContent() {
                         <DropdownMenuLabel className="px-4 py-2 text-[10px] font-black uppercase text-primary tracking-widest bg-slate-50">Select Revenue Village</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         {villageOptions.map((group, groupIdx) => (
-                          <div key={groupIdx}>
+                          <div key={`${group.label}-${groupIdx}`}>
                             <div className="px-4 py-2 text-[10px] font-black uppercase text-slate-400 bg-slate-50/50">{group.label}</div>
                             {group.options.map((v, i) => (
-                              <DropdownMenuItem key={i} onClick={() => updateField('village', v)} className="rounded-xl py-2.5 px-6 font-bold text-xs uppercase cursor-pointer">
+                              <DropdownMenuItem key={`${v}-${i}`} onClick={() => updateField('village', v)} className="rounded-xl py-2.5 px-6 font-bold text-xs uppercase cursor-pointer">
                                 {v}
                               </DropdownMenuItem>
                             ))}
                           </div>
                         ))}
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => setIsManualVillageOpen(true)} className="rounded-xl py-3 px-6 font-black text-xs uppercase cursor-pointer text-blue-600 bg-blue-50 hover:bg-blue-100">
+                        <DropdownMenuItem onClick={() => handleDialogChange(setIsManualVillageOpen, true)} className="rounded-xl py-3 px-6 font-black text-xs uppercase cursor-pointer text-blue-600 bg-blue-50 hover:bg-blue-100">
                           <PlusCircle className="size-4 mr-2" /> OTHER / MANUAL ENTRY
                         </DropdownMenuItem>
                       </ScrollArea>
@@ -454,7 +471,7 @@ function UnifiedGeologicalSurveyContent() {
                 <FormFieldItem label="9. Ward" id="ward"><Input disabled={!isAllowed} value={formData.ward} onChange={(e) => updateField('ward', e.target.value)} /></FormFieldItem>
                 <FormFieldItem label="10. Altitude" id="altitude"><Input disabled={!isAllowed} value={formData.altitude} onChange={(e) => updateField('altitude', e.target.value)} /></FormFieldItem>
                 <FormFieldItem label="11. LSGD" id="lsgd">
-                  <Select disabled={!isAllowed} onValueChange={(v) => updateField('lsgd', v)} value={formData.lsgd}>
+                  <Select key={formData.lsgd ? "l-sel" : "l-none"} disabled={!isAllowed} onValueChange={(v) => updateField('lsgd', v)} value={formData.lsgd}>
                     <SelectTrigger className="h-10"><SelectValue/></SelectTrigger>
                     <SelectContent>{lsgs.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
                   </Select>
@@ -463,13 +480,13 @@ function UnifiedGeologicalSurveyContent() {
                     <Input value={detectedLac} disabled className="bg-slate-50 font-black text-blue-600 uppercase" placeholder="Auto-populated" />
                 </FormFieldItem>
                 <FormFieldItem label="13. Block" id="block">
-                  <Select disabled={!isAllowed} onValueChange={(v) => updateField('block', v)} value={formData.block}>
+                  <Select key={formData.block ? "b-sel" : "b-none"} disabled={!isAllowed} onValueChange={(v) => updateField('block', v)} value={formData.block}>
                     <SelectTrigger className="h-10"><SelectValue/></SelectTrigger>
                     <SelectContent>{blockOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
                   </Select>
                 </FormFieldItem>
                 <FormFieldItem label="14. Type Applied For" id="typeAppliedFor">
-                  <Select disabled={!isAllowed} onValueChange={(v) => updateField('typeAppliedFor', v)} value={formData.typeAppliedFor}>
+                  <Select key={formData.typeAppliedFor ? "taf-sel" : "taf-none"} disabled={!isAllowed} onValueChange={(v) => updateField('typeAppliedFor', v)} value={formData.typeAppliedFor}>
                     <SelectTrigger className="h-10"><SelectValue/></SelectTrigger>
                     <SelectContent>
                       {recommendationTypeOptions.filter(o=>o.value !== 'not_feasible').map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
@@ -539,7 +556,7 @@ function UnifiedGeologicalSurveyContent() {
           <CardContent className="p-10 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
                 <FormFieldItem label="Recommendation Type" id="recommendationType" className="w-full">
-                  <Select disabled={!isAllowed} onValueChange={(val) => {updateField('recommendationType', val); setIsRecommendationDialogOpen(true);}} value={formData.recommendationType}>
+                  <Select disabled={!isAllowed} onValueChange={(val) => {updateField('recommendationType', val); handleDialogChange(setIsRecommendationDialogOpen, true);}} value={formData.recommendationType}>
                     <SelectTrigger className="h-14 border-slate-200 rounded-2xl font-black uppercase text-xs tracking-widest shadow-sm">
                       <SelectValue placeholder="ENTER THE DETAILS" />
                     </SelectTrigger>
@@ -644,20 +661,20 @@ function UnifiedGeologicalSurveyContent() {
 
       <NearbyStructureDialog 
         isOpen={isNearbyDialogOpen}
-        onOpenChange={setIsNearbyDialogOpen}
+        onOpenChange={(val: boolean) => handleDialogChange(setIsNearbyDialogOpen, val)}
         structureType={selectedNearbyStructure}
         formData={formData}
         updateField={updateField}
       />
       <RecommendationDialog
         isOpen={isRecommendationDialogOpen}
-        onOpenChange={setIsRecommendationDialogOpen}
+        onOpenChange={(val: boolean) => handleDialogChange(setIsRecommendationDialogOpen, val)}
         formData={formData}
         updateField={updateField}
       />
 
       {/* Manual Village Entry Dialog */}
-      <Dialog open={isManualVillageOpen} onOpenChange={setIsManualVillageOpen}>
+      <Dialog open={isManualVillageOpen} onOpenChange={(val: boolean) => handleDialogChange(setIsManualVillageOpen, val)} modal={false}>
         <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl">
           <DialogHeader>
             <DialogTitle className="uppercase font-black text-primary tracking-tight">Manual Village Entry</DialogTitle>
@@ -693,14 +710,14 @@ const FormFieldItem = ({ label, id, children, className }: {label:string, id:str
 );
 
 const RecommendationDialog = ({isOpen, onOpenChange, formData, updateField}: any) => (
-  <Dialog open={isOpen} onOpenChange={onOpenChange}>
-    <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl">
+  <Dialog open={isOpen} onOpenChange={onOpenChange} modal={false}>
+    <DialogContent className="sm:max-w-[480px] rounded-[32px] p-8 border-none shadow-2xl">
       <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight text-center">RECOMMENDATION FOR {formData.recommendationType}</DialogTitle></DialogHeader>
       {(formData.recommendationType === 'borewell' || formData.recommendationType === 'tubewell' || formData.recommendationType === 'filterpoint') && (
         <div className="space-y-6 py-4">
           <div className="grid grid-cols-2 gap-6">
             <FormFieldItem label="Total Depth (m)" id="recBorewellTotalDepth"><Input value={formData.recBorewellTotalDepth} onChange={e => updateField('recBorewellTotalDepth', e.target.value)}/></FormFieldItem>
-            <FormFieldItem label="Diameter" id="recBorewellDiameter"><Select onValueChange={v=>updateField('recBorewellDiameter', v)} value={formData.recBorewellDiameter}><SelectTrigger/><SelectContent>{borewellDiameterOptions.map(o=><SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent></Select></FormFieldItem>
+            <FormFieldItem label="Diameter" id="recBorewellDiameter"><Select key={formData.recBorewellDiameter} onValueChange={v=>updateField('recBorewellDiameter', v)} value={formData.recBorewellDiameter}><SelectTrigger/><SelectContent>{borewellDiameterOptions.map(o=><SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent></Select></FormFieldItem>
           </div>
           <FormFieldItem label="Expected Overburden (m)" id="expectedOverburden"><Input value={formData.expectedOverburden} onChange={e => updateField('expectedOverburden', e.target.value)}/></FormFieldItem>
           <FormFieldItem label="Details" id="recommendationBorewell"><Textarea value={formData.recommendationBorewell} onChange={e => updateField('recommendationBorewell', e.target.value)} className="min-h-[100px]"/></FormFieldItem>
@@ -710,7 +727,7 @@ const RecommendationDialog = ({isOpen, onOpenChange, formData, updateField}: any
         <div className="space-y-6 py-4">
           <div className="grid grid-cols-2 gap-6">
             <FormFieldItem label="Total Depth (m)" id="recOpenwellTotalDepth"><Input value={formData.recOpenwellTotalDepth} onChange={e => updateField('recOpenwellTotalDepth', e.target.value)}/></FormFieldItem>
-            <FormFieldItem label="Diameter (m)" id="recOpenwellDiameter"><Select onValueChange={v=>updateField('recOpenwellDiameter', v)} value={formData.recOpenwellDiameter}><SelectTrigger/><SelectContent>{openwellDiameterOptions.map(o=><SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent></Select></FormFieldItem>
+            <FormFieldItem label="Diameter (m)" id="recOpenwellDiameter"><Select key={formData.recOpenwellDiameter} onValueChange={v=>updateField('recOpenwellDiameter', v)} value={formData.recOpenwellDiameter}><SelectTrigger/><SelectContent>{openwellDiameterOptions.map(o=><SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent></Select></FormFieldItem>
           </div>
           <FormFieldItem label="Details" id="recommendationOpenwell"><Textarea value={formData.recommendationOpenwell} onChange={e => updateField('recommendationOpenwell', e.target.value)} className="min-h-[100px]"/></FormFieldItem>
         </div>
@@ -725,8 +742,8 @@ const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, formData, u
   const index = structureType ? parseInt(structureType.slice(-1)) : 1;
   
   return (
-  <Dialog open={isOpen} onOpenChange={onOpenChange}>
-    <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl">
+  <Dialog open={isOpen} onOpenChange={onOpenChange} modal={false}>
+    <DialogContent className="sm:max-w-[480px] rounded-[32px] p-8 border-none shadow-2xl">
       <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight">DETAILS FOR {structureType}</DialogTitle></DialogHeader>
       {isBorewell ? (
         <div className="space-y-6 py-4">
@@ -740,7 +757,7 @@ const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, formData, u
           <FormFieldItem label="Water Level (m)" id={`nod_wl${index}`}><Input value={formData[`nearbyOpenwell${index}WaterLevel`]} onChange={e=>updateField(`nearbyOpenwell${index}WaterLevel`, e.target.value)} /></FormFieldItem>
           <FormFieldItem label="Parapet (m)" id={`nod_ph${index}`}><Input value={formData[`nearbyOpenwell${index}ParapetHeight`]} onChange={e=>updateField(`nearbyOpenwell${index}ParapetHeight`, e.target.value)} /></FormFieldItem>
           <FormFieldItem label="Type" id={`nod_type${index}`}>
-            <Select onValueChange={v=>updateField(`nearbyOpenwell${index}Type`, v)} value={formData[`nearbyOpenwell${index}Type`]}><SelectTrigger/><SelectContent><SelectItem value="Perennial">Perennial</SelectItem><SelectItem value="Seasonal">Seasonal</SelectItem></SelectContent></Select>
+            <Select key={formData[`nearbyOpenwell${index}Type`]} onValueChange={v=>updateField(`nearbyOpenwell${index}Type`, v)} value={formData[`nearbyOpenwell${index}Type`]}><SelectTrigger/><SelectContent><SelectItem value="Perennial">Perennial</SelectItem><SelectItem value="Seasonal">Seasonal</SelectItem></SelectContent></Select>
           </FormFieldItem>
         </div>
       )}
