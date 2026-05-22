@@ -599,7 +599,7 @@ function UnifiedGeophysicalSurveyContent() {
           </div>
         </CardContent>
       </Card>
-
+      
       <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
           <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3">
@@ -661,21 +661,10 @@ const FormFieldItem = ({ label, id, children, className }: {label:string, id:str
   </div>
 );
 
-const borewellDiameterOptions = [
-  { value: '110mm', label: '110mm (4.5")' },
-  { value: '150mm', label: '150mm (6")' },
-  { value: '200mm', label: '200mm (8")' },
-];
-
-const openwellDiameterOptions = Array.from({ length: 11 }, (_, i) => {
-  const val = (1 + i * 0.5).toString();
-  return { value: val, label: `${val}m` };
-});
-
 const RecommendationDialog = ({isOpen, onOpenChange, formData, updateField}: any) => (
   <Dialog open={isOpen} onOpenChange={onOpenChange}>
     <DialogContent className="sm:max-w-[480px] rounded-[32px] p-8 border-none shadow-2xl">
-      <DialogHeader><DialogTitle className="uppercase font-black text-primary">Parameters for {formData.recommendationType}</DialogTitle></DialogHeader>
+      <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight">Parameters for {formData.recommendationType}</DialogTitle></DialogHeader>
       {(formData.recommendationType === 'borewell' || formData.recommendationType === 'tubewell' || formData.recommendationType === 'filterpoint') && (
         <div className="space-y-4 py-4">
           <div className="grid grid-cols-2 gap-4">
@@ -707,7 +696,7 @@ const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, formData, u
   return (
   <Dialog open={isOpen} onOpenChange={onOpenChange}>
     <DialogContent className="sm:max-w-[480px] rounded-[32px] p-8 border-none shadow-2xl">
-      <DialogHeader><DialogTitle className="uppercase font-black text-primary">Details for {structureType}</DialogTitle></DialogHeader>
+      <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight">Details for {structureType}</DialogTitle></DialogHeader>
       {isBorewell ? (
         <div className="space-y-4 py-4">
           <FormFieldItem label="Total Depth (m)" id={`nbd${index}`}><Input value={formData[`nearbyBorewell${index}Depth`]} onChange={e=>updateField(`nearbyBorewell${index}Depth`, e.target.value)} /></FormFieldItem>

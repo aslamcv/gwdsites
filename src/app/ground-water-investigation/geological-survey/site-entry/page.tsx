@@ -692,17 +692,6 @@ const FormFieldItem = ({ label, id, children, className }: {label:string, id:str
   </div>
 );
 
-const borewellDiameterOptions = [
-  { value: '110mm', label: '110mm (4.5")' },
-  { value: '150mm', label: '150mm (6")' },
-  { value: '200mm', label: '200mm (8")' },
-];
-
-const openwellDiameterOptions = Array.from({ length: 11 }, (_, i) => {
-  const val = (1 + i * 0.5).toString();
-  return { value: val, label: `${val}m` };
-});
-
 const RecommendationDialog = ({isOpen, onOpenChange, formData, updateField}: any) => (
   <Dialog open={isOpen} onOpenChange={onOpenChange}>
     <DialogContent className="sm:max-w-[480px] rounded-[32px] p-8 border-none shadow-2xl">
