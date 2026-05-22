@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect, useMemo, Suspense } from 'react';
@@ -131,7 +130,7 @@ const openwellDiameterOptions = Array.from({ length: 11 }, (_, i) => {
   return { value: val, label: `${val}m` };
 });
 
-function UnifiedGeologicalSurveyContent() {
+function SiteEntryContent() {
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -148,7 +147,7 @@ function UnifiedGeologicalSurveyContent() {
   const [isManualVillageOpen, setIsManualVillageOpen] = useState(false);
   const [manualVillageName, setManualVillageName] = useState('');
 
-  // Global fix for stuck pointer events after dialog close
+  // Global fix for pointer-events
   useEffect(() => {
     if (!isRecommendationDialogOpen && !isNearbyDialogOpen && !isManualVillageOpen) {
       document.body.style.pointerEvents = "auto";
@@ -166,7 +165,6 @@ function UnifiedGeologicalSurveyContent() {
     }
   };
 
-  // Role detection with robust email casing
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user?.email) return null;
     return doc(firestore, 'users', user.email.toLowerCase().trim());
@@ -179,7 +177,6 @@ function UnifiedGeologicalSurveyContent() {
     return (userProfile?.role === 'admin' || userProfile?.role === 'scientist') && userProfile?.isApproved === true;
   }, [user, userProfile, isUserLoading, isProfileLoading]);
 
-  // Fetch Employees for staff selection
   const employeesRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'employees');
@@ -289,13 +286,10 @@ function UnifiedGeologicalSurveyContent() {
     return { hg: hgList, jhg: jhgList, ga: gaList, other: otherList };
   }, [employees]);
 
-  // AUTO-POPULATE LAC logic with robust matching
   const detectedLac = useMemo(() => {
     if (!formData.lsgd || !lsgMappings || lsgMappings.length === 0) return '';
     const searchLsg = formData.lsgd.toLowerCase().trim();
-    const mapping = lsgMappings.find(m => 
-      m.lsg.toLowerCase().trim() === searchLsg
-    );
+    const mapping = lsgMappings.find(m => m.lsg.toLowerCase().trim() === searchLsg);
     return mapping?.constituency || '';
   }, [formData.lsgd, lsgMappings]);
 
@@ -318,7 +312,7 @@ function UnifiedGeologicalSurveyContent() {
         purpose: "Ground Water Investigation / Geological Survey",
         dateOfInvestigation,
         updatedAt: new Date().toISOString(),
-        assembly: detectedLac, // Save auto-populated value
+        assembly: detectedLac,
         staffAssignment: {
             hydrogeologist: formData.staffAssignment.hydrogeologist.join(', '),
             juniorHydrogeologist: formData.staffAssignment.juniorHydrogeologist.join(', '),
@@ -387,14 +381,14 @@ function UnifiedGeologicalSurveyContent() {
               </div>
               <div className="space-y-1">
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter">Conveyance</Label>
-                <Select key={formData.conveyance ? "c-sel" : "c-none"} disabled={!isAllowed} onValueChange={(v) => updateField('conveyance', v)} value={formData.conveyance || ''}>
+                <Select disabled={!isAllowed} onValueChange={(v) => updateField('conveyance', v)} value={formData.conveyance || ''}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">{conveyanceOptions.map(o => <SelectItem key={o} value={o} className="text-xs font-bold">{o}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter">Sector</Label>
-                <Select key={formData.sector ? "s-sel" : "s-none"} disabled={!isAllowed} onValueChange={(v) => updateField('sector', v)} value={formData.sector || ''}>
+                <Select disabled={!isAllowed} onValueChange={(v) => updateField('sector', v)} value={formData.sector || ''}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">
                     {sectorOptions.map(s => <SelectItem key={s.id} value={s.id} className="text-[10px] font-black uppercase">{s.label}</SelectItem>)}
@@ -403,7 +397,7 @@ function UnifiedGeologicalSurveyContent() {
               </div>
               <div className="space-y-1">
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter">Sub Category</Label>
-                <Select key={formData.category ? "cat-sel" : "cat-none"} disabled={!isAllowed} onValueChange={(v) => updateField('category', v)} value={formData.category || ''}>
+                <Select disabled={!isAllowed} onValueChange={(v) => updateField('category', v)} value={formData.category || ''}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">
                     {categoryMappings[formData.sector]?.map(c => <SelectItem key={c} value={c} className="text-[10px] font-black uppercase">{c}</SelectItem>)}
@@ -437,9 +431,9 @@ function UnifiedGeologicalSurveyContent() {
           </CardHeader>
           <CardContent className="p-10 grid grid-cols-1 md:grid-cols-4 gap-8">
                 <FormFieldItem label="8. Village" id="village">
-                  <DropdownMenu key={formData.village ? "v-sel" : "v-none"}>
+                  <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="outline" className="w-full h-10 justify-between border-slate-200 font-bold" disabled={!isAllowed}>
+                      <Button type="button" variant="outline" className="w-full h-10 justify-between border-slate-200 font-bold" disabled={!isAllowed}>
                         <span className="uppercase text-[11px] tracking-tight truncate">
                           {formData.village || "ENTER THE DETAILS"}
                         </span>
@@ -471,7 +465,7 @@ function UnifiedGeologicalSurveyContent() {
                 <FormFieldItem label="9. Ward" id="ward"><Input disabled={!isAllowed} value={formData.ward} onChange={(e) => updateField('ward', e.target.value)} /></FormFieldItem>
                 <FormFieldItem label="10. Altitude" id="altitude"><Input disabled={!isAllowed} value={formData.altitude} onChange={(e) => updateField('altitude', e.target.value)} /></FormFieldItem>
                 <FormFieldItem label="11. LSGD" id="lsgd">
-                  <Select key={formData.lsgd ? "l-sel" : "l-none"} disabled={!isAllowed} onValueChange={(v) => updateField('lsgd', v)} value={formData.lsgd}>
+                  <Select disabled={!isAllowed} onValueChange={(v) => updateField('lsgd', v)} value={formData.lsgd}>
                     <SelectTrigger className="h-10"><SelectValue/></SelectTrigger>
                     <SelectContent>{lsgs.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
                   </Select>
@@ -480,13 +474,13 @@ function UnifiedGeologicalSurveyContent() {
                     <Input value={detectedLac} disabled className="bg-slate-50 font-black text-blue-600 uppercase" placeholder="Auto-populated" />
                 </FormFieldItem>
                 <FormFieldItem label="13. Block" id="block">
-                  <Select key={formData.block ? "b-sel" : "b-none"} disabled={!isAllowed} onValueChange={(v) => updateField('block', v)} value={formData.block}>
+                  <Select disabled={!isAllowed} onValueChange={(v) => updateField('block', v)} value={formData.block}>
                     <SelectTrigger className="h-10"><SelectValue/></SelectTrigger>
                     <SelectContent>{blockOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
                   </Select>
                 </FormFieldItem>
                 <FormFieldItem label="14. Type Applied For" id="typeAppliedFor">
-                  <Select key={formData.typeAppliedFor ? "taf-sel" : "taf-none"} disabled={!isAllowed} onValueChange={(v) => updateField('typeAppliedFor', v)} value={formData.typeAppliedFor}>
+                  <Select disabled={!isAllowed} onValueChange={(v) => updateField('typeAppliedFor', v)} value={formData.typeAppliedFor}>
                     <SelectTrigger className="h-10"><SelectValue/></SelectTrigger>
                     <SelectContent>
                       {recommendationTypeOptions.filter(o=>o.value !== 'not_feasible').map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
@@ -514,16 +508,16 @@ function UnifiedGeologicalSurveyContent() {
               <Label className="text-sm font-semibold">a) Borewell Status</Label>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="w-full h-12 justify-between border-slate-200" disabled={!isAllowed}>
+                  <Button type="button" variant="outline" className="w-full h-12 justify-between border-slate-200" disabled={!isAllowed}>
                     <span className="font-bold uppercase text-[11px] tracking-widest">ENTER THE DETAILS</span>
                     <ChevronDown className="size-4 opacity-50" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-[300px] rounded-2xl p-2 bg-white shadow-2xl border-slate-200">
-                  <DropdownMenuItem onClick={() => handleNearbyTypeSelect('borewell', 'borewell1')} className="rounded-xl py-3 font-bold text-xs uppercase cursor-pointer">Add Bore well-1</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleNearbyTypeSelect('borewell', 'borewell2')} className="rounded-xl py-3 font-bold text-xs uppercase cursor-pointer">Add Bore well-2</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleNearbyTypeSelect('borewell', 'borewell3')} className="rounded-xl py-3 font-bold text-xs uppercase cursor-pointer">Add Bore well-3</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleNearbyTypeSelect('borewell', 'none')} className="rounded-xl py-3 font-bold text-xs uppercase cursor-pointer text-rose-600">There is no nearby borewells</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleNearbyTypeSelect('borewell', 'borewell1')}>Add Bore well-1</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleNearbyTypeSelect('borewell', 'borewell2')}>Add Bore well-2</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleNearbyTypeSelect('borewell', 'borewell3')}>Add Bore well-3</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleNearbyTypeSelect('borewell', 'none')} className="text-rose-600">There is no nearby borewells</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -531,16 +525,16 @@ function UnifiedGeologicalSurveyContent() {
               <Label className="text-sm font-semibold">b) Open well Status</Label>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="w-full h-12 justify-between border-slate-200" disabled={!isAllowed}>
+                  <Button type="button" variant="outline" className="w-full h-12 justify-between border-slate-200" disabled={!isAllowed}>
                     <span className="font-bold uppercase text-[11px] tracking-widest">ENTER THE DETAILS</span>
                     <ChevronDown className="size-4 opacity-50" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-[300px] rounded-2xl p-2 bg-white shadow-2xl border-slate-200">
-                  <DropdownMenuItem onClick={() => handleNearbyTypeSelect('openwell', 'openwell1')} className="rounded-xl py-3 font-bold text-xs uppercase cursor-pointer">Add open well-1</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleNearbyTypeSelect('openwell', 'openwell2')} className="rounded-xl py-3 font-bold text-xs uppercase cursor-pointer">Add open well-2</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleNearbyTypeSelect('openwell', 'openwell3')} className="rounded-xl py-3 font-bold text-xs uppercase cursor-pointer">Add open well-3</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleNearbyTypeSelect('openwell', 'none')} className="rounded-xl py-3 font-bold text-xs uppercase cursor-pointer text-rose-600">There is no nearby open wells</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleNearbyTypeSelect('openwell', 'openwell1')}>Add open well-1</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleNearbyTypeSelect('openwell', 'openwell2')}>Add open well-2</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleNearbyTypeSelect('openwell', 'openwell3')}>Add open well-3</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleNearbyTypeSelect('openwell', 'none')} className="text-rose-600">There is no nearby open wells</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -648,10 +642,10 @@ function UnifiedGeologicalSurveyContent() {
             </div>
           </div>
           <div className="flex items-center gap-4">
-             <Button variant="ghost" asChild className="font-black uppercase text-[10px] tracking-widest text-slate-400 hover:text-slate-600 transition-colors px-6 h-12 rounded-xl">
+             <Button type="button" variant="ghost" asChild className="font-black uppercase text-[10px] tracking-widest text-slate-400 hover:text-slate-600 transition-colors px-6 h-12 rounded-xl">
                <Link href="/ground-water-investigation">DISCARD</Link>
              </Button>
-             <Button onClick={handleSave} disabled={isPending || !isAllowed} className="h-14 px-16 rounded-[20px] bg-[#1e3a8a] hover:bg-blue-900 text-white font-black uppercase tracking-widest text-[11px] gap-3 shadow-xl shadow-blue-900/20 transition-all hover:scale-[1.02] active:scale-95">
+             <Button type="button" onClick={handleSave} disabled={isPending || !isAllowed} className="h-14 px-16 rounded-[20px] bg-[#1e3a8a] hover:bg-blue-900 text-white font-black uppercase tracking-widest text-[11px] gap-3 shadow-xl shadow-blue-900/20 transition-all hover:scale-[1.02] active:scale-95">
                {isPending ? <Loader2 className="size-5 animate-spin" /> : <Save className="size-5" />} 
                {isAllowed ? (id ? 'UPDATE' : 'SAVE') + ' TECHNICAL RECORD' : 'Access Restricted'}
              </Button>
@@ -673,7 +667,6 @@ function UnifiedGeologicalSurveyContent() {
         updateField={updateField}
       />
 
-      {/* Manual Village Entry Dialog */}
       <Dialog open={isManualVillageOpen} onOpenChange={(val: boolean) => handleDialogChange(setIsManualVillageOpen, val)} modal={false}>
         <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl">
           <DialogHeader>
@@ -692,7 +685,7 @@ function UnifiedGeologicalSurveyContent() {
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={handleManualVillageSave} className="w-full h-12 rounded-xl font-black uppercase text-[11px] tracking-widest shadow-lg shadow-blue-900/20">
+            <Button type="button" onClick={handleManualVillageSave} className="w-full h-12 rounded-xl font-black uppercase text-[11px] tracking-widest shadow-lg shadow-blue-900/20">
               Confirm Entry
             </Button>
           </DialogFooter>
@@ -711,7 +704,7 @@ const FormFieldItem = ({ label, id, children, className }: {label:string, id:str
 
 const RecommendationDialog = ({isOpen, onOpenChange, formData, updateField}: any) => (
   <Dialog open={isOpen} onOpenChange={onOpenChange} modal={false}>
-    <DialogContent className="sm:max-w-[480px] rounded-[32px] p-8 border-none shadow-2xl">
+    <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl">
       <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight text-center">RECOMMENDATION FOR {formData.recommendationType}</DialogTitle></DialogHeader>
       {(formData.recommendationType === 'borewell' || formData.recommendationType === 'tubewell' || formData.recommendationType === 'filterpoint') && (
         <div className="space-y-6 py-4">
@@ -732,7 +725,7 @@ const RecommendationDialog = ({isOpen, onOpenChange, formData, updateField}: any
           <FormFieldItem label="Details" id="recommendationOpenwell"><Textarea value={formData.recommendationOpenwell} onChange={e => updateField('recommendationOpenwell', e.target.value)} className="min-h-[100px]"/></FormFieldItem>
         </div>
       )}
-      <DialogFooter className="pt-4"><Button onClick={() => onOpenChange(false)} className="w-full h-12 rounded-xl font-black uppercase text-[11px] tracking-widest shadow-lg bg-[#1e3a8a] text-white hover:bg-blue-900">Confirm Parameters</Button></DialogFooter>
+      <DialogFooter className="pt-4"><Button type="button" onClick={() => onOpenChange(false)} className="w-full h-12 rounded-xl font-black uppercase text-[11px] tracking-widest shadow-lg bg-[#1e3a8a] text-white hover:bg-blue-900">Confirm Parameters</Button></DialogFooter>
     </DialogContent>
   </Dialog>
 );
@@ -743,7 +736,7 @@ const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, formData, u
   
   return (
   <Dialog open={isOpen} onOpenChange={onOpenChange} modal={false}>
-    <DialogContent className="sm:max-w-[480px] rounded-[32px] p-8 border-none shadow-2xl">
+    <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl">
       <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight">DETAILS FOR {structureType}</DialogTitle></DialogHeader>
       {isBorewell ? (
         <div className="space-y-6 py-4">
@@ -761,16 +754,15 @@ const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, formData, u
           </FormFieldItem>
         </div>
       )}
-      <DialogFooter className="pt-4"><Button onClick={() => onOpenChange(false)} className="w-full h-12 rounded-xl font-black uppercase text-[11px] tracking-widest shadow-lg bg-[#1e3a8a] text-white hover:bg-blue-900">Save Details</Button></DialogFooter>
+      <DialogFooter className="pt-4"><Button type="button" onClick={() => onOpenChange(false)} className="w-full h-12 rounded-xl font-black uppercase text-[11px] tracking-widest shadow-lg bg-[#1e3a8a] text-white hover:bg-blue-900">Save Details</Button></DialogFooter>
     </DialogContent>
   </Dialog>
 )};
 
-
-export default function UnifiedGeologicalSurveyPage() {
+export default function GeologicalSurveySiteEntryPage() {
     return (
         <Suspense fallback={<div className="p-12 text-center animate-pulse uppercase tracking-widest font-black opacity-30 text-slate-400">Initializing Workspace...</div>}>
-            <UnifiedGeologicalSurveyContent />
+            <SiteEntryContent />
         </Suspense>
     )
 }

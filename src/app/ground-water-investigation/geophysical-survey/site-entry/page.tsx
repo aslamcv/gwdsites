@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect, useMemo, Suspense } from 'react';
@@ -33,7 +32,6 @@ import {
   ChevronDown
 } from 'lucide-react';
 import {
-  // Use unique key if rows change
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -187,7 +185,6 @@ function UnifiedGeophysicalSurveyContent() {
     }
   };
 
-  // Role detection
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user?.email) return null;
     return doc(firestore, 'users', user.email.toLowerCase().trim());
@@ -200,7 +197,6 @@ function UnifiedGeophysicalSurveyContent() {
     return (userProfile?.role === 'admin' || userProfile?.role === 'scientist') && userProfile?.isApproved === true;
   }, [user, userProfile, isUserLoading, isProfileLoading]);
 
-  // Fetch Employees
   const employeesRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'employees');
@@ -262,7 +258,6 @@ function UnifiedGeophysicalSurveyContent() {
   useEffect(() => {
     if (cloudReport) {
       const SaData = cloudReport.staffAssignment || {};
-      const dateParts = cloudReport.dateOfInvestigation?.split(' - ') || [];
       setFormData((prev: any) => ({
         ...prev,
         ...cloudReport,
@@ -284,16 +279,11 @@ function UnifiedGeophysicalSurveyContent() {
     setFormData((prev: any) => {
       const newVes = [...prev.vesData];
       const k = staticVesData[index].k;
-      
       newVes[index] = { ...newVes[index], [field]: value };
-      
       if (field === 'ves1_r') {
         const r = parseFloat(value);
-        if (!isNaN(r)) {
-          newVes[index].ves1_ra = (r * k).toFixed(2);
-        }
+        if (!isNaN(r)) newVes[index].ves1_ra = (r * k).toFixed(2);
       }
-      
       return { ...prev, vesData: newVes };
     });
   };
@@ -380,7 +370,6 @@ function UnifiedGeophysicalSurveyContent() {
       
       <div className="bg-white border border-slate-200 p-8 rounded-[32px] shadow-sm ring-1 ring-slate-200/50">
         <div className="flex flex-col space-y-8">
-          {/* Top Center Heading */}
           <div className="text-center">
             <h1 className="text-[26px] font-black text-slate-900 uppercase tracking-tighter leading-none">Vertical Electrical Sounding (VES)</h1>
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">Technical Operations | District Office, Malappuram</p>
@@ -395,31 +384,23 @@ function UnifiedGeophysicalSurveyContent() {
             
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4 w-full lg:w-auto">
               <div className="space-y-1">
-                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
-                  <CalendarIcon className="size-3 pointer-events-none" /> Start Date
-                </Label>
+                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter">Start Date</Label>
                 <Input disabled={!isAllowed} type="date" value={formData.startDate || ''} onChange={(e) => updateField('startDate', e.target.value)} className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl focus:bg-white" />
               </div>
               <div className="space-y-1">
-                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
-                  <CalendarIcon className="size-3 pointer-events-none" /> End Date
-                </Label>
+                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter">End Date</Label>
                 <Input disabled={!isAllowed} type="date" value={formData.endDate || ''} onChange={(e) => updateField('endDate', e.target.value)} className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl focus:bg-white" />
               </div>
               <div className="space-y-1">
-                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
-                  <Truck className="size-3" /> Conveyance
-                </Label>
-                <Select key={formData.conveyance ? "conv-y" : "conv-n"} disabled={!isAllowed} onValueChange={(v) => updateField('conveyance', v)} value={formData.conveyance || ''}>
+                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter">Conveyance</Label>
+                <Select disabled={!isAllowed} onValueChange={(v) => updateField('conveyance', v)} value={formData.conveyance || ''}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">{conveyanceOptions.map(o => <SelectItem key={o} value={o} className="text-xs font-bold">{o}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
-                  <Building className="size-3" /> Sector
-                </Label>
-                <Select key={formData.sector ? "sec-y" : "sec-n"} disabled={!isAllowed} onValueChange={(v) => updateField('sector', v)} value={formData.sector || ''}>
+                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter">Sector</Label>
+                <Select disabled={!isAllowed} onValueChange={(v) => updateField('sector', v)} value={formData.sector || ''}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">
                     {sectorOptions.map(s => <SelectItem key={s.id} value={s.id} className="text-[10px] font-black uppercase">{s.label}</SelectItem>)}
@@ -427,10 +408,8 @@ function UnifiedGeophysicalSurveyContent() {
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
-                  <SearchCode className="size-3" /> Sub Category
-                </Label>
-                <Select key={formData.category ? "cat-y" : "cat-n"} disabled={!isAllowed} onValueChange={(v) => updateField('category', v)} value={formData.category || ''}>
+                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter">Sub Category</Label>
+                <Select disabled={!isAllowed} onValueChange={(v) => updateField('category', v)} value={formData.category || ''}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">
                     {categoryMappings[formData.sector]?.map(c => <SelectItem key={c} value={c} className="text-[10px] font-black uppercase">{c}</SelectItem>)}
@@ -470,7 +449,7 @@ function UnifiedGeophysicalSurveyContent() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">LSGD (Panchayath)</Label>
-              <Select key={formData.lsgd ? "lsgd-y" : "lsgd-n"} disabled={!isAllowed} onValueChange={(v) => updateField('lsgd', v)} value={formData.lsgd || ''}>
+              <Select disabled={!isAllowed} onValueChange={(v) => updateField('lsgd', v)} value={formData.lsgd || ''}>
                 <SelectTrigger className="h-11 border-slate-200 font-bold"><SelectValue placeholder="Select LSGD" /></SelectTrigger>
                 <SelectContent className="max-h-[400px] rounded-2xl">{lsgs.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
               </Select>
@@ -548,7 +527,7 @@ function UnifiedGeophysicalSurveyContent() {
 
       <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
-          <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500">4. REPORT & RECOMMENDATION</CardTitle>
+          <CardTitle className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">4. REPORT & RECOMMENDATION</CardTitle>
         </CardHeader>
         <CardContent className="p-10 space-y-10">
           <div className="space-y-4">
@@ -567,7 +546,7 @@ function UnifiedGeophysicalSurveyContent() {
               <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Structure Recommendation Type</Label>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="w-full h-14 border-slate-200 rounded-2xl font-black uppercase text-xs tracking-widest shadow-sm justify-between" disabled={!isAllowed}>
+                  <Button type="button" variant="outline" className="w-full h-14 border-slate-200 rounded-2xl font-black uppercase text-xs tracking-widest shadow-sm justify-between" disabled={!isAllowed}>
                     <span>{formData.recommendationType ? recommendationTypeOptions.find(o => o.value === formData.recommendationType)?.label : "ENTER THE DETAILS"}</span>
                     <ChevronDown className="size-4 opacity-50" />
                   </Button>
@@ -587,7 +566,7 @@ function UnifiedGeophysicalSurveyContent() {
                <div className="grid grid-cols-2 gap-4">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="outline" className="w-full h-12 justify-between border-slate-200" disabled={!isAllowed}>
+                      <Button type="button" variant="outline" className="w-full h-12 justify-between border-slate-200" disabled={!isAllowed}>
                         <span className="font-bold uppercase text-[10px] tracking-widest">BOREWELL STATUS</span>
                         <ChevronDown className="size-4 opacity-50" />
                       </Button>
@@ -602,7 +581,7 @@ function UnifiedGeophysicalSurveyContent() {
 
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="outline" className="w-full h-12 justify-between border-slate-200" disabled={!isAllowed}>
+                      <Button type="button" variant="outline" className="w-full h-12 justify-between border-slate-200" disabled={!isAllowed}>
                         <span className="font-bold uppercase text-[10px] tracking-widest">OPENWELL STATUS</span>
                         <ChevronDown className="size-4 opacity-50" />
                       </Button>
@@ -646,6 +625,7 @@ function UnifiedGeophysicalSurveyContent() {
 
           <div className="pr-2">
             <Button 
+              type="button"
               onClick={handleSave} 
               disabled={isPending || !isAllowed} 
               className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/30 gap-3 hover:bg-blue-900 transition-all hover:scale-[1.02] active:scale-95"
@@ -683,28 +663,28 @@ const FormFieldItem = ({ label, id, children, className }: {label:string, id:str
 
 const RecommendationDialog = ({isOpen, onOpenChange, formData, updateField}: any) => (
   <Dialog open={isOpen} onOpenChange={onOpenChange} modal={false}>
-    <DialogContent className="sm:max-w-[480px] rounded-[32px] p-8 border-none shadow-2xl">
+    <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl">
       <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight text-center">RECOMMENDATION FOR {formData.recommendationType}</DialogTitle></DialogHeader>
       {(formData.recommendationType === 'borewell' || formData.recommendationType === 'tubewell' || formData.recommendationType === 'filterpoint') && (
-        <div className="space-y-4 py-4">
-          <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-6 py-4">
+          <div className="grid grid-cols-2 gap-6">
             <FormFieldItem label="Total Depth (m)" id="recBorewellTotalDepth"><Input value={formData.recBorewellTotalDepth} onChange={e => updateField('recBorewellTotalDepth', e.target.value)}/></FormFieldItem>
             <FormFieldItem label="Diameter" id="recBorewellDiameter"><Select key={formData.recBorewellDiameter} onValueChange={v=>updateField('recBorewellDiameter', v)} value={formData.recBorewellDiameter}><SelectTrigger/><SelectContent>{borewellDiameterOptions.map(o=><SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent></Select></FormFieldItem>
           </div>
           <FormFieldItem label="Expected Overburden (m)" id="expectedOverburden"><Input value={formData.expectedOverburden} onChange={e => updateField('expectedOverburden', e.target.value)}/></FormFieldItem>
-          <FormFieldItem label="Details" id="recommendationBorewell"><Textarea value={formData.recommendationBorewell} onChange={e => updateField('recommendationBorewell', e.target.value)}/></FormFieldItem>
+          <FormFieldItem label="Details" id="recommendationBorewell"><Textarea value={formData.recommendationBorewell} onChange={e => updateField('recommendationBorewell', e.target.value)} className="min-h-[100px]"/></FormFieldItem>
         </div>
       )}
       {formData.recommendationType === 'openwell' && (
-        <div className="space-y-4 py-4">
-          <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-6 py-4">
+          <div className="grid grid-cols-2 gap-6">
             <FormFieldItem label="Total Depth (m)" id="recOpenwellTotalDepth"><Input value={formData.recOpenwellTotalDepth} onChange={e => updateField('recOpenwellTotalDepth', e.target.value)}/></FormFieldItem>
             <FormFieldItem label="Diameter (m)" id="recOpenwellDiameter"><Select key={formData.recOpenwellDiameter} onValueChange={v=>updateField('recOpenwellDiameter', v)} value={formData.recOpenwellDiameter}><SelectTrigger/><SelectContent>{openwellDiameterOptions.map(o=><SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent></Select></FormFieldItem>
           </div>
-          <FormFieldItem label="Details" id="recommendationOpenwell"><Textarea value={formData.recommendationOpenwell} onChange={e => updateField('recommendationOpenwell', e.target.value)}/></FormFieldItem>
+          <FormFieldItem label="Details" id="recommendationOpenwell"><Textarea value={formData.recommendationOpenwell} onChange={e => updateField('recommendationOpenwell', e.target.value)} className="min-h-[100px]"/></FormFieldItem>
         </div>
       )}
-      <DialogFooter className="pt-4"><Button onClick={() => onOpenChange(false)} className="w-full h-12 rounded-xl font-black uppercase text-[11px] tracking-widest shadow-lg bg-[#1e3a8a] text-white hover:bg-blue-900">Confirm Parameters</Button></DialogFooter>
+      <DialogFooter className="pt-4"><Button type="button" onClick={() => onOpenChange(false)} className="w-full h-12 rounded-xl font-black uppercase text-[11px] tracking-widest shadow-lg bg-[#1e3a8a] text-white hover:bg-blue-900">Confirm Parameters</Button></DialogFooter>
     </DialogContent>
   </Dialog>
 );
@@ -715,16 +695,16 @@ const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, formData, u
   
   return (
   <Dialog open={isOpen} onOpenChange={onOpenChange} modal={false}>
-    <DialogContent className="sm:max-w-[480px] rounded-[32px] p-8 border-none shadow-2xl">
-      <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight text-center">DETAILS FOR {structureType}</DialogTitle></DialogHeader>
+    <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl">
+      <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight">DETAILS FOR {structureType}</DialogTitle></DialogHeader>
       {isBorewell ? (
-        <div className="space-y-4 py-4">
+        <div className="space-y-6 py-4">
           <FormFieldItem label="Total Depth (m)" id={`nbd${index}`}><Input value={formData[`nearbyBorewell${index}Depth`]} onChange={e=>updateField(`nearbyBorewell${index}Depth`, e.target.value)} /></FormFieldItem>
           <FormFieldItem label="Diameter" id={`nbd_dia${index}`}><Input value={formData[`nearbyBorewell${index}Diameter`]} onChange={e=>updateField(`nearbyBorewell${index}Diameter`, e.target.value)} /></FormFieldItem>
           <FormFieldItem label="Zones" id={`nbd_zones${index}`}><Input value={formData[`nearbyBorewell${index}Zones`]} onChange={e=>updateField(`nearbyBorewell${index}Zones`, e.target.value)} /></FormFieldItem>
         </div>
       ) : (
-         <div className="space-y-4 py-4">
+         <div className="space-y-6 py-4">
           <FormFieldItem label="Total Depth (m)" id={`nod${index}`}><Input value={formData[`nearbyOpenwell${index}Depth`]} onChange={e=>updateField(`nearbyOpenwell${index}Depth`, e.target.value)} /></FormFieldItem>
           <FormFieldItem label="Water Level (m)" id={`nod_wl${index}`}><Input value={formData[`nearbyOpenwell${index}WaterLevel`]} onChange={e=>updateField(`nearbyOpenwell${index}WaterLevel`, e.target.value)} /></FormFieldItem>
           <FormFieldItem label="Parapet (m)" id={`nod_ph${index}`}><Input value={formData[`nearbyOpenwell${index}ParapetHeight`]} onChange={e=>updateField(`nearbyOpenwell${index}ParapetHeight`, e.target.value)} /></FormFieldItem>
@@ -733,11 +713,10 @@ const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, formData, u
           </FormFieldItem>
         </div>
       )}
-      <DialogFooter className="pt-4"><Button onClick={() => onOpenChange(false)} className="w-full h-12 rounded-xl font-black uppercase text-[11px] tracking-widest shadow-lg bg-[#1e3a8a] text-white hover:bg-blue-900">Save Details</Button></DialogFooter>
+      <DialogFooter className="pt-4"><Button type="button" onClick={() => onOpenChange(false)} className="w-full h-12 rounded-xl font-black uppercase text-[11px] tracking-widest shadow-lg bg-[#1e3a8a] text-white hover:bg-blue-900">Save Details</Button></DialogFooter>
     </DialogContent>
   </Dialog>
 )};
-
 
 export default function UnifiedGeophysicalSurveyPage() {
     return (

@@ -7,7 +7,7 @@ import { Printer, ArrowLeft, ShieldAlert, FileOutput, Loader2, Save } from 'luci
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Link from 'next/link';
 import { useFirestore, useDoc, useMemoFirebase, useUser, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, collection, setDoc, updateDoc } from 'firebase/firestore';
 import type { GroundwaterReport } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -137,8 +137,8 @@ function BillContent() {
           if (normalizeStr(item.nameMl) === target || normalizeStr(item.nameEn) === target) {
             const from = item.dateFrom || '0000-00-00';
             const to = item.dateTo || '9999-99-99';
-            // Capping date at 2025-03-31 for current rate cycle
             const today = format(new Date(), 'yyyy-MM-dd');
+            // Capping date at 2025-03-31 for current rate cycle
             const effectiveDateForLookup = today > '2025-03-31' ? '2025-03-31' : today;
             if (effectiveDateForLookup >= from && effectiveDateForLookup <= to) return item.rate;
           }
@@ -463,7 +463,7 @@ function BillContent() {
               <div className="flex justify-between items-center p-3 border-b border-black text-[#1e3a8a] bg-blue-50/10">
                   <span className="max-w-[480px] uppercase text-justify">
                     {(calc.isEligibleFor75Subsidy)
-                        ? "കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക (ഡ്രില്ലിംഗ് ചാർജിന്റെ 25%+പൈപ്പ്, അടപ്പ് ഉൾപ്പെടെ) :" 
+                        ? "കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക (ഡ്രില്ലിംഗ് ചാർജിന്റെ 25%+പൈപ്പ്, അടപ്പ് ഉള്‍പ്പെടെ) :" 
                         : "കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക :"
                     }
                   </span>
