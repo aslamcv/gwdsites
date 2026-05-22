@@ -138,7 +138,7 @@ function BillContent() {
             const from = item.dateFrom || '0000-00-00';
             const to = item.dateTo || '9999-99-99';
             const today = format(new Date(), 'yyyy-MM-dd');
-            // Capping date at 2025-03-31 for current rate cycle
+            // Technical cap for rate consistency
             const effectiveDateForLookup = today > '2025-03-31' ? '2025-03-31' : today;
             if (effectiveDateForLookup >= from && effectiveDateForLookup <= to) return item.rate;
           }

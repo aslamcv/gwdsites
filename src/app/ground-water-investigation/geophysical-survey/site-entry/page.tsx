@@ -111,7 +111,7 @@ const staticVesData = [
   { sNo: '7', ab2: 8, mn2: 0.5, k: 200.3 },
   { sNo: '7A', ab2: 8, mn2: 2, k: 47.1 },
   { sNo: '8', ab2: 10, mn2: 0.5, k: 313.4 },
-  { sNo: '8A', ab2: 10, mn2: 2, k: 75.4 },
+  { sNo: '8A', logic_label: '8A', ab2: 10, mn2: 2, k: 75.4 },
   { sNo: '9', ab2: 15, mn2: 2, k: 173.6 },
   { sNo: '10', ab2: 20, mn2: 2, k: 311.0 },
   { sNo: '11', ab2: 25, mn2: 2, k: 487.7 },

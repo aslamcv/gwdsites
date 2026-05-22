@@ -1,7 +1,7 @@
 /**
  * Malayalam Number to Words Converter
  * Supports up to Crores
- * Deterministic implementation for financial technical reports.
+ * Deterministic implementation for technical financial reports.
  */
 export function numberToMalayalamWords(num: number): string {
   if (num === 0) return "പൂജ്യം";

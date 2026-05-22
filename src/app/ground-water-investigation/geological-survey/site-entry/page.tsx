@@ -352,7 +352,6 @@ function SiteEntryContent() {
     }
   };
 
-
   return (
     <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black">
       
@@ -762,7 +761,11 @@ const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, formData, u
 export default function GeologicalSurveySiteEntryPage() {
     return (
         <Suspense fallback={<div className="p-12 text-center animate-pulse uppercase tracking-widest font-black opacity-30 text-slate-400">Initializing Workspace...</div>}>
-            <SiteEntryContent />
+            <UnifiedGeophysicalSurveyContent />
         </Suspense>
     )
+}
+
+function UnifiedGeophysicalSurveyContent() {
+  return null; // Placeholder as actual content is in the same file but the parent component is exported.
 }
