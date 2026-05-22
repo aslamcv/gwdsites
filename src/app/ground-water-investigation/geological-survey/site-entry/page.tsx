@@ -238,8 +238,6 @@ function UnifiedGeologicalSurveyContent() {
       setFormData((prev: any) => ({
         ...prev,
         ...cloudReport,
-        startDate: dateParts[0] || prev.startDate,
-        endDate: dateParts[1] || prev.endDate,
         staffAssignment: {
           hydrogeologist: Array.isArray(SaData.hydrogeologist) ? SaData.hydrogeologist : (SaData.hydrogeologist ? (SaData.hydrogeologist as string).split(', ') : []),
           juniorHydrogeologist: Array.isArray(SaData.juniorHydrogeologist) ? SaData.juniorHydrogeologist : (SaData.juniorHydrogeologist ? (SaData.juniorHydrogeologist as string).split(', ') : []),
@@ -533,9 +531,13 @@ function UnifiedGeologicalSurveyContent() {
         </Card>
         
         <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><ShieldCheck className="size-4 text-primary"/> 22. Recommendation</CardTitle></CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+          <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
+            <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3">
+               <ShieldCheck className="size-4 text-primary"/> 22. Recommendation
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-10 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
                 <FormFieldItem label="Recommendation Type" id="recommendationType" className="w-full">
                   <Select disabled={!isAllowed} onValueChange={(val) => {updateField('recommendationType', val); setIsRecommendationDialogOpen(true);}} value={formData.recommendationType}>
                     <SelectTrigger className="h-14 border-slate-200 rounded-2xl font-black uppercase text-xs tracking-widest shadow-sm">
@@ -690,9 +692,20 @@ const FormFieldItem = ({ label, id, children, className }: {label:string, id:str
   </div>
 );
 
+const borewellDiameterOptions = [
+  { value: '110mm', label: '110mm (4.5")' },
+  { value: '150mm', label: '150mm (6")' },
+  { value: '200mm', label: '200mm (8")' },
+];
+
+const openwellDiameterOptions = Array.from({ length: 11 }, (_, i) => {
+  const val = (1 + i * 0.5).toString();
+  return { value: val, label: `${val}m` };
+});
+
 const RecommendationDialog = ({isOpen, onOpenChange, formData, updateField}: any) => (
   <Dialog open={isOpen} onOpenChange={onOpenChange}>
-    <DialogContent className="rounded-[32px] p-8 border-none shadow-2xl">
+    <DialogContent className="sm:max-w-[480px] rounded-[32px] p-8 border-none shadow-2xl">
       <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight">Recommendation for {formData.recommendationType}</DialogTitle></DialogHeader>
       {(formData.recommendationType === 'borewell' || formData.recommendationType === 'tubewell' || formData.recommendationType === 'filterpoint') && (
         <div className="space-y-6 py-4">
@@ -724,7 +737,7 @@ const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, formData, u
   
   return (
   <Dialog open={isOpen} onOpenChange={onOpenChange}>
-    <DialogContent className="rounded-[32px] p-8 border-none shadow-2xl">
+    <DialogContent className="sm:max-w-[480px] rounded-[32px] p-8 border-none shadow-2xl">
       <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight">Details for {structureType}</DialogTitle></DialogHeader>
       {isBorewell ? (
         <div className="space-y-6 py-4">

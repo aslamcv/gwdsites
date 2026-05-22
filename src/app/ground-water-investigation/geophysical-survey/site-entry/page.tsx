@@ -170,13 +170,13 @@ function UnifiedGeophysicalSurveyContent() {
   // Role detection
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user?.email) return null;
-    return doc(firestore, 'users', user.email);
+    return doc(firestore, 'users', user.email.toLowerCase().trim());
   }, [firestore, user?.email]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
   
   const isAllowed = useMemo(() => {
     if (isUserLoading || isProfileLoading) return false;
-    if (user?.email === MASTER_ADMIN_EMAIL) return true;
+    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
     return (userProfile?.role === 'admin' || userProfile?.role === 'scientist') && userProfile?.isApproved === true;
   }, [user, userProfile, isUserLoading, isProfileLoading]);
 
@@ -246,8 +246,6 @@ function UnifiedGeophysicalSurveyContent() {
       setFormData((prev: any) => ({
         ...prev,
         ...cloudReport,
-        startDate: dateParts[0] || prev.startDate,
-        endDate: dateParts[1] || prev.endDate,
         staffAssignment: {
           geophysicist: Array.isArray(SaData.geophysicist) ? SaData.geophysicist : (SaData.geophysicist ? (SaData.geophysicist as string).split(', ') : []),
           juniorGeophysicist: Array.isArray(SaData.juniorGeophysicist) ? SaData.juniorGeophysicist : (SaData.juniorGeophysicist ? (SaData.juniorGeophysicist as string).split(', ') : []),
@@ -301,11 +299,7 @@ function UnifiedGeophysicalSurveyContent() {
   }, [employees]);
 
   const detectedLac = useMemo(() => {
-    if (!formData.lsgd || !lsgMappings || lsgMappings.length === 0) return '';
-    const searchLsg = formData.lsgd.toLowerCase().trim();
-    const mapping = lsgMappings.find(m => 
-      m.lsg.toLowerCase().trim() === searchLsg
-    );
+    const mapping = lsgMappings?.find(m => m.lsg === formData.lsgd);
     return mapping?.constituency || '';
   }, [formData.lsgd, lsgMappings]);
 
@@ -366,6 +360,7 @@ function UnifiedGeophysicalSurveyContent() {
       
       <div className="bg-white border border-slate-200 p-8 rounded-[32px] shadow-sm ring-1 ring-slate-200/50">
         <div className="flex flex-col space-y-8">
+          {/* Top Center Heading */}
           <div className="text-center">
             <h1 className="text-[26px] font-black text-slate-900 uppercase tracking-tighter leading-none">Vertical Electrical Sounding (VES)</h1>
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">Technical Operations | District Office, Malappuram</p>
@@ -666,9 +661,20 @@ const FormFieldItem = ({ label, id, children, className }: {label:string, id:str
   </div>
 );
 
+const borewellDiameterOptions = [
+  { value: '110mm', label: '110mm (4.5")' },
+  { value: '150mm', label: '150mm (6")' },
+  { value: '200mm', label: '200mm (8")' },
+];
+
+const openwellDiameterOptions = Array.from({ length: 11 }, (_, i) => {
+  const val = (1 + i * 0.5).toString();
+  return { value: val, label: `${val}m` };
+});
+
 const RecommendationDialog = ({isOpen, onOpenChange, formData, updateField}: any) => (
   <Dialog open={isOpen} onOpenChange={onOpenChange}>
-    <DialogContent className="max-w-xl">
+    <DialogContent className="sm:max-w-[480px] rounded-[32px] p-8 border-none shadow-2xl">
       <DialogHeader><DialogTitle className="uppercase font-black text-primary">Parameters for {formData.recommendationType}</DialogTitle></DialogHeader>
       {(formData.recommendationType === 'borewell' || formData.recommendationType === 'tubewell' || formData.recommendationType === 'filterpoint') && (
         <div className="space-y-4 py-4">
@@ -700,7 +706,7 @@ const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, formData, u
   
   return (
   <Dialog open={isOpen} onOpenChange={onOpenChange}>
-    <DialogContent>
+    <DialogContent className="sm:max-w-[480px] rounded-[32px] p-8 border-none shadow-2xl">
       <DialogHeader><DialogTitle className="uppercase font-black text-primary">Details for {structureType}</DialogTitle></DialogHeader>
       {isBorewell ? (
         <div className="space-y-4 py-4">
