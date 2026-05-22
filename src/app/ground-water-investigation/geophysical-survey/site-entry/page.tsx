@@ -12,7 +12,6 @@ import {
   FileText, 
   Activity, 
   Loader2,
-  Eye,
   MapPin,
   Calendar as CalendarIcon,
   Truck,
@@ -24,18 +23,16 @@ import {
   Calculator,
   SearchCode,
   Lock,
-  Wrench,
-  Clock,
-  CheckCircle2,
-  Info,
-  PackageSearch,
-  ChevronDown
+  ChevronDown,
+  PlusCircle
 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
@@ -63,6 +60,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
@@ -111,7 +109,7 @@ const staticVesData = [
   { sNo: '7', ab2: 8, mn2: 0.5, k: 200.3 },
   { sNo: '7A', ab2: 8, mn2: 2, k: 47.1 },
   { sNo: '8', ab2: 10, mn2: 0.5, k: 313.4 },
-  { sNo: '8A', logic_label: '8A', ab2: 10, mn2: 2, k: 75.4 },
+  { sNo: '8A', ab2: 10, mn2: 2, k: 75.4 },
   { sNo: '9', ab2: 15, mn2: 2, k: 173.6 },
   { sNo: '10', ab2: 20, mn2: 2, k: 311.0 },
   { sNo: '11', ab2: 25, mn2: 2, k: 487.7 },
@@ -166,24 +164,6 @@ function UnifiedGeophysicalSurveyContent() {
   const [isRecommendationDialogOpen, setIsRecommendationDialogOpen] = useState(false);
   const [isNearbyDialogOpen, setIsNearbyDialogOpen] = useState(false);
   const [selectedNearbyStructure, setSelectedNearbyStructure] = useState<string | null>(null);
-
-  // Global fix for stuck pointer events after dialog close
-  useEffect(() => {
-    if (!isRecommendationDialogOpen && !isNearbyDialogOpen) {
-      document.body.style.pointerEvents = "auto";
-      document.body.style.overflow = "auto";
-    }
-  }, [isRecommendationDialogOpen, isNearbyDialogOpen]);
-
-  const handleDialogChange = (setter: (val: boolean) => void, val: boolean) => {
-    setter(val);
-    if (!val) {
-      setTimeout(() => {
-        document.body.style.pointerEvents = "auto";
-        document.body.style.overflow = "auto";
-      }, 50);
-    }
-  };
 
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user?.email) return null;
@@ -309,7 +289,8 @@ function UnifiedGeophysicalSurveyContent() {
   }, [employees]);
 
   const detectedLac = useMemo(() => {
-    const mapping = lsgMappings?.find(m => m.lsg === formData.lsgd);
+    if (!formData.lsgd || !lsgMappings || lsgMappings.length === 0) return '';
+    const mapping = lsgMappings.find(m => m.lsg === formData.lsgd);
     return mapping?.constituency || '';
   }, [formData.lsgd, lsgMappings]);
 
@@ -361,7 +342,7 @@ function UnifiedGeophysicalSurveyContent() {
         if(type === 'borewell') updateField('noNearbyBorewells', false);
         if(type === 'openwell') updateField('noNearbyOpenwells', false);
         setSelectedNearbyStructure(value);
-        handleDialogChange(setIsNearbyDialogOpen, true);
+        setIsNearbyDialogOpen(true);
     }
   };
 
@@ -501,7 +482,7 @@ function UnifiedGeophysicalSurveyContent() {
                       <TableCell className="text-center border-r text-xs font-bold bg-slate-50/20">{row.ab2}</TableCell>
                       <TableCell className="text-center border-r text-xs font-bold bg-slate-50/20">{row.mn2}</TableCell>
                       <TableCell className="text-center border-r text-xs font-mono text-primary bg-primary/5">{row.k}</TableCell>
-                      <TableCell className="p-1 border-r">
+                      <TableCell className="border-r p-1">
                         <Input 
                           disabled={!isAllowed}
                           value={row.ves1_r || ''} 
@@ -553,7 +534,7 @@ function UnifiedGeophysicalSurveyContent() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-[300px] rounded-2xl p-2 bg-white shadow-2xl border-slate-200">
                   {recommendationTypeOptions.map(o => (
-                    <DropdownMenuItem key={o.value} onClick={() => {updateField('recommendationType', o.value); handleDialogChange(setIsRecommendationDialogOpen, true);}} className="rounded-xl py-3 font-bold text-xs uppercase cursor-pointer">
+                    <DropdownMenuItem key={o.value} onClick={() => {updateField('recommendationType', o.value); setIsRecommendationDialogOpen(true);}} className="rounded-xl py-3 font-bold text-xs uppercase cursor-pointer">
                       {o.label}
                     </DropdownMenuItem>
                   ))}
@@ -572,10 +553,10 @@ function UnifiedGeophysicalSurveyContent() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="w-[200px] rounded-2xl p-2">
-                      <DropdownMenuItem onClick={() => handleNearbyTypeSelect('borewell', 'borewell1')}>Add Bore well-1</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleNearbyTypeSelect('borewell', 'borewell2')}>Add Bore well-2</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleNearbyTypeSelect('borewell', 'borewell3')}>Add Bore well-3</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleNearbyTypeSelect('borewell', 'none')} className="text-rose-600">None found</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleNearbyTypeSelect('borewell', 'borewell1')} className="py-2.5 font-bold uppercase text-[10px]">Add Bore well-1</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleNearbyTypeSelect('borewell', 'borewell2')} className="py-2.5 font-bold uppercase text-[10px]">Add Bore well-2</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleNearbyTypeSelect('borewell', 'borewell3')} className="py-2.5 font-bold uppercase text-[10px]">Add Bore well-3</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleNearbyTypeSelect('borewell', 'none')} className="text-rose-600 py-2.5 font-bold uppercase text-[10px]">None found</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
 
@@ -587,10 +568,10 @@ function UnifiedGeophysicalSurveyContent() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="w-[200px] rounded-2xl p-2">
-                      <DropdownMenuItem onClick={() => handleNearbyTypeSelect('openwell', 'openwell1')}>Add open well-1</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleNearbyTypeSelect('openwell', 'openwell2')}>Add open well-2</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleNearbyTypeSelect('openwell', 'openwell3')}>Add open well-3</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleNearbyTypeSelect('openwell', 'none')} className="text-rose-600">None found</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleNearbyTypeSelect('openwell', 'openwell1')} className="py-2.5 font-bold uppercase text-[10px]">Add open well-1</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleNearbyTypeSelect('openwell', 'openwell2')} className="py-2.5 font-bold uppercase text-[10px]">Add open well-2</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleNearbyTypeSelect('openwell', 'openwell3')} className="py-2.5 font-bold uppercase text-[10px]">Add open well-3</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleNearbyTypeSelect('openwell', 'none')} className="text-rose-600 py-2.5 font-bold uppercase text-[10px]">None found</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                </div>
@@ -637,16 +618,17 @@ function UnifiedGeophysicalSurveyContent() {
         </div>
       </div>
 
-      <NearbyStructureDialog 
-        isOpen={isNearbyDialogOpen}
-        onOpenChange={(val: boolean) => handleDialogChange(setIsNearbyDialogOpen, val)}
-        structureType={selectedNearbyStructure}
+      <RecommendationDialog
+        isOpen={isRecommendationDialogOpen}
+        onOpenChange={setIsRecommendationDialogOpen}
         formData={formData}
         updateField={updateField}
       />
-      <RecommendationDialog
-        isOpen={isRecommendationDialogOpen}
-        onOpenChange={(val: boolean) => handleDialogChange(setIsRecommendationDialogOpen, val)}
+
+      <NearbyStructureDialog 
+        isOpen={isNearbyDialogOpen}
+        onOpenChange={setIsNearbyDialogOpen}
+        structureType={selectedNearbyStructure}
         formData={formData}
         updateField={updateField}
       />
@@ -662,26 +644,40 @@ const FormFieldItem = ({ label, id, children, className }: {label:string, id:str
 );
 
 const RecommendationDialog = ({isOpen, onOpenChange, formData, updateField}: any) => (
-  <Dialog open={isOpen} onOpenChange={onOpenChange} modal={false}>
+  <Dialog open={isOpen} onOpenChange={onOpenChange}>
     <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl">
       <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight text-center">RECOMMENDATION FOR {formData.recommendationType}</DialogTitle></DialogHeader>
       {(formData.recommendationType === 'borewell' || formData.recommendationType === 'tubewell' || formData.recommendationType === 'filterpoint') && (
         <div className="space-y-6 py-4">
           <div className="grid grid-cols-2 gap-6">
             <FormFieldItem label="Total Depth (m)" id="recBorewellTotalDepth"><Input value={formData.recBorewellTotalDepth} onChange={e => updateField('recBorewellTotalDepth', e.target.value)}/></FormFieldItem>
-            <FormFieldItem label="Diameter" id="recBorewellDiameter"><Select key={formData.recBorewellDiameter} onValueChange={v=>updateField('recBorewellDiameter', v)} value={formData.recBorewellDiameter}><SelectTrigger/><SelectContent>{borewellDiameterOptions.map(o=><SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent></Select></FormFieldItem>
+            <FormFieldItem label="Diameter" id="recBorewellDiameter">
+               <Select onValueChange={v=>updateField('recBorewellDiameter', v)} value={formData.recBorewellDiameter}>
+                 <SelectTrigger className="h-10 text-xs bg-slate-50/50 border-slate-200"><SelectValue /></SelectTrigger>
+                 <SelectContent className="rounded-xl border-slate-200">
+                    {borewellDiameterOptions.map(o=><SelectItem key={o.value} value={o.value} className="text-xs font-bold">{o.label}</SelectItem>)}
+                 </SelectContent>
+               </Select>
+            </FormFieldItem>
           </div>
           <FormFieldItem label="Expected Overburden (m)" id="expectedOverburden"><Input value={formData.expectedOverburden} onChange={e => updateField('expectedOverburden', e.target.value)}/></FormFieldItem>
-          <FormFieldItem label="Details" id="recommendationBorewell"><Textarea value={formData.recommendationBorewell} onChange={e => updateField('recommendationBorewell', e.target.value)} className="min-h-[100px]"/></FormFieldItem>
+          <FormFieldItem label="Details" id="recommendationBorewell"><Textarea value={formData.recommendationBorewell} onChange={e => updateField('recommendationBorewell', e.target.value)} className="min-h-[100px] text-xs font-bold uppercase"/></FormFieldItem>
         </div>
       )}
       {formData.recommendationType === 'openwell' && (
         <div className="space-y-6 py-4">
           <div className="grid grid-cols-2 gap-6">
             <FormFieldItem label="Total Depth (m)" id="recOpenwellTotalDepth"><Input value={formData.recOpenwellTotalDepth} onChange={e => updateField('recOpenwellTotalDepth', e.target.value)}/></FormFieldItem>
-            <FormFieldItem label="Diameter (m)" id="recOpenwellDiameter"><Select key={formData.recOpenwellDiameter} onValueChange={v=>updateField('recOpenwellDiameter', v)} value={formData.recOpenwellDiameter}><SelectTrigger/><SelectContent>{openwellDiameterOptions.map(o=><SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent></Select></FormFieldItem>
+            <FormFieldItem label="Diameter (m)" id="recOpenwellDiameter">
+              <Select onValueChange={v=>updateField('recOpenwellDiameter', v)} value={formData.recOpenwellDiameter}>
+                 <SelectTrigger className="h-10 text-xs bg-slate-50/50 border-slate-200"><SelectValue /></SelectTrigger>
+                 <SelectContent className="rounded-xl border-slate-200">
+                    {openwellDiameterOptions.map(o=><SelectItem key={o.value} value={o.value} className="text-xs font-bold">{o.label}</SelectItem>)}
+                 </SelectContent>
+               </Select>
+            </FormFieldItem>
           </div>
-          <FormFieldItem label="Details" id="recommendationOpenwell"><Textarea value={formData.recommendationOpenwell} onChange={e => updateField('recommendationOpenwell', e.target.value)} className="min-h-[100px]"/></FormFieldItem>
+          <FormFieldItem label="Details" id="recommendationOpenwell"><Textarea value={formData.recommendationOpenwell} onChange={e => updateField('recommendationOpenwell', e.target.value)} className="min-h-[100px] text-xs font-bold uppercase"/></FormFieldItem>
         </div>
       )}
       <DialogFooter className="pt-4"><Button type="button" onClick={() => onOpenChange(false)} className="w-full h-12 rounded-xl font-black uppercase text-[11px] tracking-widest shadow-lg bg-[#1e3a8a] text-white hover:bg-blue-900">Confirm Parameters</Button></DialogFooter>
@@ -694,7 +690,7 @@ const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, formData, u
   const index = structureType ? parseInt(structureType.slice(-1)) : 1;
   
   return (
-  <Dialog open={isOpen} onOpenChange={onOpenChange} modal={false}>
+  <Dialog open={isOpen} onOpenChange={onOpenChange}>
     <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl">
       <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight">DETAILS FOR {structureType}</DialogTitle></DialogHeader>
       {isBorewell ? (
@@ -709,7 +705,13 @@ const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, formData, u
           <FormFieldItem label="Water Level (m)" id={`nod_wl${index}`}><Input value={formData[`nearbyOpenwell${index}WaterLevel`]} onChange={e=>updateField(`nearbyOpenwell${index}WaterLevel`, e.target.value)} /></FormFieldItem>
           <FormFieldItem label="Parapet (m)" id={`nod_ph${index}`}><Input value={formData[`nearbyOpenwell${index}ParapetHeight`]} onChange={e=>updateField(`nearbyOpenwell${index}ParapetHeight`, e.target.value)} /></FormFieldItem>
           <FormFieldItem label="Type" id={`nod_type${index}`}>
-            <Select key={formData[`nearbyOpenwell${index}Type`]} onValueChange={v=>updateField(`nearbyOpenwell${index}Type`, v)} value={formData[`nearbyOpenwell${index}Type`]}><SelectTrigger/><SelectContent><SelectItem value="Perennial">Perennial</SelectItem><SelectItem value="Seasonal">Seasonal</SelectItem></SelectContent></Select>
+            <Select onValueChange={v=>updateField(`nearbyOpenwell${index}Type`, v)} value={formData[`nearbyOpenwell${index}Type`]}>
+                <SelectTrigger className="h-10 text-xs bg-slate-50/50 border-slate-200"><SelectValue /></SelectTrigger>
+                <SelectContent className="rounded-xl border-slate-200">
+                    <SelectItem value="Perennial" className="text-xs font-bold">Perennial</SelectItem>
+                    <SelectItem value="Seasonal" className="text-xs font-bold">Seasonal</SelectItem>
+                </SelectContent>
+            </Select>
           </FormFieldItem>
         </div>
       )}

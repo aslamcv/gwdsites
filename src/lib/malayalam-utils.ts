@@ -152,7 +152,7 @@ export function numberToMalayalamWords(num: number): string {
   }
 
   return convert(num)
-    .replace(/ആയിരം\s+/g, "ആയിരത്തി ")
-    .replace(/ലക്ഷം\s+/g, "ലക്ഷത്തി ")
-    .replace(/കോടി\s+/g, "കോടി ");
+    .replace(/ആയിരം\s+/g, " ആയിരത്തി ")
+    .replace(/ലക്ഷം\s+/g, " ലക്ഷത്തി ")
+    .replace(/കോടി\s+/g, " കോടി ");
 }

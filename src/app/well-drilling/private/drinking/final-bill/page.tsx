@@ -138,7 +138,6 @@ function BillContent() {
             const from = item.dateFrom || '0000-00-00';
             const to = item.dateTo || '9999-99-99';
             const today = format(new Date(), 'yyyy-MM-dd');
-            // Technical cap for rate consistency
             const effectiveDateForLookup = today > '2025-03-31' ? '2025-03-31' : today;
             if (effectiveDateForLookup >= from && effectiveDateForLookup <= to) return item.rate;
           }
@@ -175,7 +174,6 @@ function BillContent() {
         const baseAmt = qty * rate;
         
         let gstPercent = 0;
-        // Drilling is always 0% as per departmental policy
         if (!isDrilling && isGstThresholdMet) {
             gstPercent = 0.18;
         }
@@ -265,7 +263,6 @@ function BillContent() {
       const existingPdfBytes = await fetch('/final-bill.pdf').then(res => res.arrayBuffer());
       const pdfDoc = await PDFDocument.load(existingPdfBytes);
       const form = pdfDoc.getForm();
-
       const sectorSubCat = `${data.sector}/${data.subCategory || data.category}`;
 
       let netPayableLabel = 'കുഴൽക്കിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക :';

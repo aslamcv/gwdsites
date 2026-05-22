@@ -147,24 +147,6 @@ function SiteEntryContent() {
   const [isManualVillageOpen, setIsManualVillageOpen] = useState(false);
   const [manualVillageName, setManualVillageName] = useState('');
 
-  // Global fix for pointer-events
-  useEffect(() => {
-    if (!isRecommendationDialogOpen && !isNearbyDialogOpen && !isManualVillageOpen) {
-      document.body.style.pointerEvents = "auto";
-      document.body.style.overflow = "auto";
-    }
-  }, [isRecommendationDialogOpen, isNearbyDialogOpen, isManualVillageOpen]);
-
-  const handleDialogChange = (setter: (val: boolean) => void, val: boolean) => {
-    setter(val);
-    if (!val) {
-      setTimeout(() => {
-        document.body.style.pointerEvents = "auto";
-        document.body.style.overflow = "auto";
-      }, 50);
-    }
-  };
-
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user?.email) return null;
     return doc(firestore, 'users', user.email.toLowerCase().trim());
@@ -340,14 +322,14 @@ function SiteEntryContent() {
         if(type === 'borewell') updateField('noNearbyBorewells', false);
         if(type === 'openwell') updateField('noNearbyOpenwells', false);
         setSelectedNearbyStructure(value);
-        handleDialogChange(setIsNearbyDialogOpen, true);
+        setIsNearbyDialogOpen(true);
     }
   };
 
   const handleManualVillageSave = () => {
     if (manualVillageName.trim()) {
       updateField('village', manualVillageName.trim().toUpperCase());
-      handleDialogChange(setIsManualVillageOpen, false);
+      setIsManualVillageOpen(false);
       setManualVillageName('');
     }
   };
@@ -410,7 +392,7 @@ function SiteEntryContent() {
 
       <div className='space-y-8'>
         <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><MapPin className="size-4 text-primary" /> Basic Site Details</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2 text-sm uppercase font-black tracking-widest"><MapPin className="size-4 text-primary" /> Basic Site Details</CardTitle></CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <FormFieldItem label="1. Name of Site" id="nameOfSite"><Input disabled={!isAllowed} value={formData.nameOfSite} onChange={(e) => updateField('nameOfSite', e.target.value)} /></FormFieldItem>
             <FormFieldItem label="2. Address" id="address"><Input disabled={!isAllowed} value={formData.address} onChange={(e) => updateField('address', e.target.value)} /></FormFieldItem>
@@ -454,7 +436,7 @@ function SiteEntryContent() {
                           </div>
                         ))}
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleDialogChange(setIsManualVillageOpen, true)} className="rounded-xl py-3 px-6 font-black text-xs uppercase cursor-pointer text-blue-600 bg-blue-50 hover:bg-blue-100">
+                        <DropdownMenuItem onClick={() => setIsManualVillageOpen(true)} className="rounded-xl py-3 px-6 font-black text-xs uppercase cursor-pointer text-blue-600 bg-blue-50 hover:bg-blue-100">
                           <PlusCircle className="size-4 mr-2" /> OTHER / MANUAL ENTRY
                         </DropdownMenuItem>
                       </ScrollArea>
@@ -491,7 +473,7 @@ function SiteEntryContent() {
         </Card>
         
         <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><Settings className="size-4 text-primary"/> Technical Details</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2 text-sm uppercase font-black tracking-widest"><Settings className="size-4 text-primary"/> Technical Details</CardTitle></CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <FormFieldItem label="16. beneficiaries" id="noOfBeneficiaries"><Input disabled={!isAllowed} type="text" value={formData.noOfBeneficiaries} onChange={(e) => updateField('noOfBeneficiaries', e.target.value)} /></FormFieldItem>
             <FormFieldItem label="17. Toposheet/GW Prospect Map" id="toposheet" className="md:col-span-2"><Input disabled={!isAllowed} value={formData.toposheet} onChange={(e) => updateField('toposheet', e.target.value)} /></FormFieldItem>
@@ -500,11 +482,12 @@ function SiteEntryContent() {
           </CardContent>
         </Card>
 
-        <Card><CardHeader><CardTitle className="flex items-center gap-2"><FileText className="size-4 text-primary"/> 20. Hydrogeology & Geology of the area</CardTitle></CardHeader><CardContent><Textarea disabled={!isAllowed} value={formData.hydrogeology} onChange={(e) => updateField('hydrogeology', e.target.value)} rows={5} /></CardContent></Card>
-        <Card><CardHeader><CardTitle className="flex items-center gap-2"><Activity className="size-4 text-primary"/> 21. Details of nearby groundwater structures</CardTitle></CardHeader>
+        <Card><CardHeader><CardTitle className="flex items-center gap-2 text-sm uppercase font-black tracking-widest"><FileText className="size-4 text-primary"/> 20. Hydrogeology & Geology of the area</CardTitle></CardHeader><CardContent><Textarea disabled={!isAllowed} value={formData.hydrogeology} onChange={(e) => updateField('hydrogeology', e.target.value)} rows={5} /></CardContent></Card>
+        
+        <Card><CardHeader><CardTitle className="flex items-center gap-2 text-sm uppercase font-black tracking-widest"><Activity className="size-4 text-primary"/> 21. Details of nearby groundwater structures</CardTitle></CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-3">
-              <Label className="text-sm font-semibold">a) Borewell Status</Label>
+              <Label className="text-[10px] font-black uppercase text-slate-500">a) Borewell Status</Label>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button type="button" variant="outline" className="w-full h-12 justify-between border-slate-200" disabled={!isAllowed}>
@@ -513,15 +496,15 @@ function SiteEntryContent() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-[300px] rounded-2xl p-2 bg-white shadow-2xl border-slate-200">
-                  <DropdownMenuItem onClick={() => handleNearbyTypeSelect('borewell', 'borewell1')}>Add Bore well-1</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleNearbyTypeSelect('borewell', 'borewell2')}>Add Bore well-2</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleNearbyTypeSelect('borewell', 'borewell3')}>Add Bore well-3</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleNearbyTypeSelect('borewell', 'none')} className="text-rose-600">There is no nearby borewells</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleNearbyTypeSelect('borewell', 'borewell1')} className="py-2.5 font-bold uppercase text-[10px]">Add Bore well-1</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleNearbyTypeSelect('borewell', 'borewell2')} className="py-2.5 font-bold uppercase text-[10px]">Add Bore well-2</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleNearbyTypeSelect('borewell', 'borewell3')} className="py-2.5 font-bold uppercase text-[10px]">Add Bore well-3</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleNearbyTypeSelect('borewell', 'none')} className="text-rose-600 py-2.5 font-bold uppercase text-[10px]">There is no nearby borewells</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
             <div className="space-y-3">
-              <Label className="text-sm font-semibold">b) Open well Status</Label>
+              <Label className="text-[10px] font-black uppercase text-slate-500">b) Open well Status</Label>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button type="button" variant="outline" className="w-full h-12 justify-between border-slate-200" disabled={!isAllowed}>
@@ -530,10 +513,10 @@ function SiteEntryContent() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-[300px] rounded-2xl p-2 bg-white shadow-2xl border-slate-200">
-                  <DropdownMenuItem onClick={() => handleNearbyTypeSelect('openwell', 'openwell1')}>Add open well-1</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleNearbyTypeSelect('openwell', 'openwell2')}>Add open well-2</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleNearbyTypeSelect('openwell', 'openwell3')}>Add open well-3</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleNearbyTypeSelect('openwell', 'none')} className="text-rose-600">There is no nearby open wells</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleNearbyTypeSelect('openwell', 'openwell1')} className="py-2.5 font-bold uppercase text-[10px]">Add open well-1</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleNearbyTypeSelect('openwell', 'openwell2')} className="py-2.5 font-bold uppercase text-[10px]">Add open well-2</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleNearbyTypeSelect('openwell', 'openwell3')} className="py-2.5 font-bold uppercase text-[10px]">Add open well-3</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleNearbyTypeSelect('openwell', 'none')} className="text-rose-600 py-2.5 font-bold uppercase text-[10px]">There is no nearby open wells</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -549,7 +532,7 @@ function SiteEntryContent() {
           <CardContent className="p-10 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
                 <FormFieldItem label="Recommendation Type" id="recommendationType" className="w-full">
-                  <Select disabled={!isAllowed} onValueChange={(val) => {updateField('recommendationType', val); handleDialogChange(setIsRecommendationDialogOpen, true);}} value={formData.recommendationType}>
+                  <Select disabled={!isAllowed} onValueChange={(val) => {updateField('recommendationType', val); setIsRecommendationDialogOpen(true);}} value={formData.recommendationType}>
                     <SelectTrigger className="h-14 border-slate-200 rounded-2xl font-black uppercase text-xs tracking-widest shadow-sm">
                       <SelectValue placeholder="ENTER THE DETAILS" />
                     </SelectTrigger>
@@ -619,7 +602,7 @@ function SiteEntryContent() {
           </CardContent>
         </Card>
 
-        <Card><CardHeader><CardTitle className="flex items-center gap-2"><Users className="size-4 text-primary"/> 23. Staff Details (Team Assignment)</CardTitle></CardHeader>
+        <Card><CardHeader><CardTitle className="flex items-center gap-2 text-sm uppercase font-black tracking-widest"><Users className="size-4 text-primary"/> 23. Staff Details (Team Assignment)</CardTitle></CardHeader>
           <CardContent className="p-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <StaffMultiSelect label="Hydrogeologist" options={filteredStaff.hg} selected={formData.staffAssignment.hydrogeologist} onChange={(names) => updateStaff('hydrogeologist', names)} max={1} disabled={!isAllowed} />
             <StaffMultiSelect label="Jr. Hydrogeologist" options={filteredStaff.jhg} selected={formData.staffAssignment.juniorHydrogeologist} onChange={(names) => updateStaff('juniorHydrogeologist', names)} max={1} disabled={!isAllowed} />
@@ -652,21 +635,23 @@ function SiteEntryContent() {
         </div>
       </div>
 
-      <NearbyStructureDialog 
-        isOpen={isNearbyDialogOpen}
-        onOpenChange={(val: boolean) => handleDialogChange(setIsNearbyDialogOpen, val)}
-        structureType={selectedNearbyStructure}
-        formData={formData}
-        updateField={updateField}
-      />
+      {/* MODALS placed at the root level for stability */}
       <RecommendationDialog
         isOpen={isRecommendationDialogOpen}
-        onOpenChange={(val: boolean) => handleDialogChange(setIsRecommendationDialogOpen, val)}
+        onOpenChange={setIsRecommendationDialogOpen}
         formData={formData}
         updateField={updateField}
       />
 
-      <Dialog open={isManualVillageOpen} onOpenChange={(val: boolean) => handleDialogChange(setIsManualVillageOpen, val)} modal={false}>
+      <NearbyStructureDialog 
+        isOpen={isNearbyDialogOpen}
+        onOpenChange={setIsNearbyDialogOpen}
+        structureType={selectedNearbyStructure}
+        formData={formData}
+        updateField={updateField}
+      />
+
+      <Dialog open={isManualVillageOpen} onOpenChange={setIsManualVillageOpen}>
         <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl">
           <DialogHeader>
             <DialogTitle className="uppercase font-black text-primary tracking-tight">Manual Village Entry</DialogTitle>
@@ -690,6 +675,7 @@ function SiteEntryContent() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
     </div>
   );
 }
@@ -702,26 +688,40 @@ const FormFieldItem = ({ label, id, children, className }: {label:string, id:str
 );
 
 const RecommendationDialog = ({isOpen, onOpenChange, formData, updateField}: any) => (
-  <Dialog open={isOpen} onOpenChange={onOpenChange} modal={false}>
+  <Dialog open={isOpen} onOpenChange={onOpenChange}>
     <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl">
       <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight text-center">RECOMMENDATION FOR {formData.recommendationType}</DialogTitle></DialogHeader>
       {(formData.recommendationType === 'borewell' || formData.recommendationType === 'tubewell' || formData.recommendationType === 'filterpoint') && (
         <div className="space-y-6 py-4">
           <div className="grid grid-cols-2 gap-6">
             <FormFieldItem label="Total Depth (m)" id="recBorewellTotalDepth"><Input value={formData.recBorewellTotalDepth} onChange={e => updateField('recBorewellTotalDepth', e.target.value)}/></FormFieldItem>
-            <FormFieldItem label="Diameter" id="recBorewellDiameter"><Select key={formData.recBorewellDiameter} onValueChange={v=>updateField('recBorewellDiameter', v)} value={formData.recBorewellDiameter}><SelectTrigger/><SelectContent>{borewellDiameterOptions.map(o=><SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent></Select></FormFieldItem>
+            <FormFieldItem label="Diameter" id="recBorewellDiameter">
+              <Select onValueChange={v=>updateField('recBorewellDiameter', v)} value={formData.recBorewellDiameter}>
+                <SelectTrigger className="h-10 text-xs bg-slate-50/50 border-slate-200"><SelectValue /></SelectTrigger>
+                <SelectContent className="rounded-xl border-slate-200">
+                  {borewellDiameterOptions.map(o=><SelectItem key={o.value} value={o.value} className="text-xs font-bold">{o.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </FormFieldItem>
           </div>
           <FormFieldItem label="Expected Overburden (m)" id="expectedOverburden"><Input value={formData.expectedOverburden} onChange={e => updateField('expectedOverburden', e.target.value)}/></FormFieldItem>
-          <FormFieldItem label="Details" id="recommendationBorewell"><Textarea value={formData.recommendationBorewell} onChange={e => updateField('recommendationBorewell', e.target.value)} className="min-h-[100px]"/></FormFieldItem>
+          <FormFieldItem label="Details" id="recommendationBorewell"><Textarea value={formData.recommendationBorewell} onChange={e => updateField('recommendationBorewell', e.target.value)} className="min-h-[100px] text-xs font-bold uppercase"/></FormFieldItem>
         </div>
       )}
       {formData.recommendationType === 'openwell' && (
         <div className="space-y-6 py-4">
           <div className="grid grid-cols-2 gap-6">
             <FormFieldItem label="Total Depth (m)" id="recOpenwellTotalDepth"><Input value={formData.recOpenwellTotalDepth} onChange={e => updateField('recOpenwellTotalDepth', e.target.value)}/></FormFieldItem>
-            <FormFieldItem label="Diameter (m)" id="recOpenwellDiameter"><Select key={formData.recOpenwellDiameter} onValueChange={v=>updateField('recOpenwellDiameter', v)} value={formData.recOpenwellDiameter}><SelectTrigger/><SelectContent>{openwellDiameterOptions.map(o=><SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent></Select></FormFieldItem>
+            <FormFieldItem label="Diameter (m)" id="recOpenwellDiameter">
+              <Select onValueChange={v=>updateField('recOpenwellDiameter', v)} value={formData.recOpenwellDiameter}>
+                <SelectTrigger className="h-10 text-xs bg-slate-50/50 border-slate-200"><SelectValue /></SelectTrigger>
+                <SelectContent className="rounded-xl border-slate-200">
+                  {openwellDiameterOptions.map(o=><SelectItem key={o.value} value={o.value} className="text-xs font-bold">{o.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </FormFieldItem>
           </div>
-          <FormFieldItem label="Details" id="recommendationOpenwell"><Textarea value={formData.recommendationOpenwell} onChange={e => updateField('recommendationOpenwell', e.target.value)} className="min-h-[100px]"/></FormFieldItem>
+          <FormFieldItem label="Details" id="recommendationOpenwell"><Textarea value={formData.recommendationOpenwell} onChange={e => updateField('recommendationOpenwell', e.target.value)} className="min-h-[100px] text-xs font-bold uppercase"/></FormFieldItem>
         </div>
       )}
       <DialogFooter className="pt-4"><Button type="button" onClick={() => onOpenChange(false)} className="w-full h-12 rounded-xl font-black uppercase text-[11px] tracking-widest shadow-lg bg-[#1e3a8a] text-white hover:bg-blue-900">Confirm Parameters</Button></DialogFooter>
@@ -734,7 +734,7 @@ const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, formData, u
   const index = structureType ? parseInt(structureType.slice(-1)) : 1;
   
   return (
-  <Dialog open={isOpen} onOpenChange={onOpenChange} modal={false}>
+  <Dialog open={isOpen} onOpenChange={onOpenChange}>
     <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl">
       <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight">DETAILS FOR {structureType}</DialogTitle></DialogHeader>
       {isBorewell ? (
@@ -749,7 +749,13 @@ const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, formData, u
           <FormFieldItem label="Water Level (m)" id={`nod_wl${index}`}><Input value={formData[`nearbyOpenwell${index}WaterLevel`]} onChange={e=>updateField(`nearbyOpenwell${index}WaterLevel`, e.target.value)} /></FormFieldItem>
           <FormFieldItem label="Parapet (m)" id={`nod_ph${index}`}><Input value={formData[`nearbyOpenwell${index}ParapetHeight`]} onChange={e=>updateField(`nearbyOpenwell${index}ParapetHeight`, e.target.value)} /></FormFieldItem>
           <FormFieldItem label="Type" id={`nod_type${index}`}>
-            <Select key={formData[`nearbyOpenwell${index}Type`]} onValueChange={v=>updateField(`nearbyOpenwell${index}Type`, v)} value={formData[`nearbyOpenwell${index}Type`]}><SelectTrigger/><SelectContent><SelectItem value="Perennial">Perennial</SelectItem><SelectItem value="Seasonal">Seasonal</SelectItem></SelectContent></Select>
+            <Select onValueChange={v=>updateField(`nearbyOpenwell${index}Type`, v)} value={formData[`nearbyOpenwell${index}Type`]}>
+                <SelectTrigger className="h-10 text-xs bg-slate-50/50 border-slate-200"><SelectValue /></SelectTrigger>
+                <SelectContent className="rounded-xl border-slate-200">
+                    <SelectItem value="Perennial" className="text-xs font-bold">Perennial</SelectItem>
+                    <SelectItem value="Seasonal" className="text-xs font-bold">Seasonal</SelectItem>
+                </SelectContent>
+            </Select>
           </FormFieldItem>
         </div>
       )}
@@ -761,11 +767,7 @@ const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, formData, u
 export default function GeologicalSurveySiteEntryPage() {
     return (
         <Suspense fallback={<div className="p-12 text-center animate-pulse uppercase tracking-widest font-black opacity-30 text-slate-400">Initializing Workspace...</div>}>
-            <UnifiedGeophysicalSurveyContent />
+            <SiteEntryContent />
         </Suspense>
     )
-}
-
-function UnifiedGeophysicalSurveyContent() {
-  return null; // Placeholder as actual content is in the same file but the parent component is exported.
 }
