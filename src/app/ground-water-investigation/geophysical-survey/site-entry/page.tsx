@@ -542,7 +542,7 @@ function UnifiedGeophysicalSurveyContent() {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
             <div className="space-y-4">
               <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Structure Recommendation Type</Label>
               <DropdownMenu>
@@ -663,8 +663,8 @@ const FormFieldItem = ({ label, id, children, className }: {label:string, id:str
 
 const RecommendationDialog = ({isOpen, onOpenChange, formData, updateField}: any) => (
   <Dialog open={isOpen} onOpenChange={onOpenChange}>
-    <DialogContent className="sm:max-w-[480px] rounded-[32px] p-8 border-none shadow-2xl">
-      <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight">Parameters for {formData.recommendationType}</DialogTitle></DialogHeader>
+    <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl">
+      <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight text-center">RECOMMENDATION FOR {formData.recommendationType}</DialogTitle></DialogHeader>
       {(formData.recommendationType === 'borewell' || formData.recommendationType === 'tubewell' || formData.recommendationType === 'filterpoint') && (
         <div className="space-y-4 py-4">
           <div className="grid grid-cols-2 gap-4">
@@ -684,7 +684,7 @@ const RecommendationDialog = ({isOpen, onOpenChange, formData, updateField}: any
           <FormFieldItem label="Details" id="recommendationOpenwell"><Textarea value={formData.recommendationOpenwell} onChange={e => updateField('recommendationOpenwell', e.target.value)}/></FormFieldItem>
         </div>
       )}
-      <DialogFooter><Button onClick={() => onOpenChange(false)} className="w-full h-12 rounded-xl">Confirm Parameters</Button></DialogFooter>
+      <DialogFooter className="pt-4"><Button onClick={() => onOpenChange(false)} className="w-full h-12 rounded-xl font-black uppercase text-[11px] tracking-widest shadow-lg bg-[#1e3a8a] text-white hover:bg-blue-900">Confirm Parameters</Button></DialogFooter>
     </DialogContent>
   </Dialog>
 );
@@ -695,8 +695,8 @@ const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, formData, u
   
   return (
   <Dialog open={isOpen} onOpenChange={onOpenChange}>
-    <DialogContent className="sm:max-w-[480px] rounded-[32px] p-8 border-none shadow-2xl">
-      <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight">Details for {structureType}</DialogTitle></DialogHeader>
+    <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl">
+      <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight text-center">DETAILS FOR {structureType}</DialogTitle></DialogHeader>
       {isBorewell ? (
         <div className="space-y-4 py-4">
           <FormFieldItem label="Total Depth (m)" id={`nbd${index}`}><Input value={formData[`nearbyBorewell${index}Depth`]} onChange={e=>updateField(`nearbyBorewell${index}Depth`, e.target.value)} /></FormFieldItem>
@@ -713,7 +713,7 @@ const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, formData, u
           </FormFieldItem>
         </div>
       )}
-      <DialogFooter><Button onClick={() => onOpenChange(false)} className="w-full h-12 rounded-xl">Save Details</Button></DialogFooter>
+      <DialogFooter className="pt-4"><Button onClick={() => onOpenChange(false)} className="w-full h-12 rounded-xl font-black uppercase text-[11px] tracking-widest shadow-lg bg-[#1e3a8a] text-white hover:bg-blue-900">Save Details</Button></DialogFooter>
     </DialogContent>
   </Dialog>
 )};
