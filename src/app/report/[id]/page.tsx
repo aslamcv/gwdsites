@@ -4,7 +4,7 @@ import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { GroundwaterReport } from '@/lib/types';
 import { use, useEffect, Suspense } from 'react';
-import { Printer, ArrowLeft, Download } from 'lucide-react';
+import { Printer, ArrowLeft, FileSearch, FileCheck, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -60,16 +60,19 @@ function ReportContent({ id }: { id: string }) {
   }
 
   const renderNearbyDetails = () => {
-    const bwExist = !report.noNearbyBorewells && (report.nearbyBorewell1Depth || report.nearbyBorewell2Depth || report.nearbyBorewell3Depth);
-    const owExist = !report.noNearbyOpenwells && (report.nearbyOpenwell1Depth || report.nearbyOpenwell2Depth || report.nearbyOpenwell3Depth);
+    const bwDataExists = !!(report.nearbyBorewell1Depth || report.nearbyBorewell2Depth || report.nearbyBorewell3Depth);
+    const owDataExists = !!(report.nearbyOpenwell1Depth || report.nearbyOpenwell2Depth || report.nearbyOpenwell3Depth);
 
-    if (!bwExist && !owExist) {
+    if (!bwDataExists && !owDataExists && !report.noNearbyBorewells && !report.noNearbyOpenwells) {
       return <p className="italic text-[10px] text-left">No nearby groundwater structures reported.</p>;
     }
 
     return (
       <div className="space-y-1 text-left">
-        {bwExist && (
+        {/* Borewell Logic */}
+        {report.noNearbyBorewells ? (
+          <p className="font-bold text-[10px] text-slate-900">There is no nearby borewell</p>
+        ) : bwDataExists ? (
           <div>
             <p className="font-bold uppercase text-[9px] underline">BOREWELLS:</p>
             <div className="pl-2 space-y-0.5 text-[9px]">
@@ -84,8 +87,12 @@ function ReportContent({ id }: { id: string }) {
               )}
             </div>
           </div>
-        )}
-        {owExist && (
+        ) : null}
+
+        {/* Openwell Logic */}
+        {report.noNearbyOpenwells ? (
+          <p className="font-bold text-[10px] text-slate-900">There is no nearby open well</p>
+        ) : owDataExists ? (
           <div className="mt-1">
             <p className="font-bold uppercase text-[9px] underline">OPEN WELLS:</p>
             <div className="pl-2 space-y-0.5 text-[9px]">
@@ -95,9 +102,12 @@ function ReportContent({ id }: { id: string }) {
               {report.nearbyOpenwell2Depth && (
                 <p><strong>OW2:</strong> Depth: {report.nearbyOpenwell2Depth}m, WL: {report.nearbyOpenwell2WaterLevel || '--'}m, Type: {report.nearbyOpenwell2Type || '--'}</p>
               )}
+              {report.nearbyOpenwell3Depth && (
+                <p><strong>OW3:</strong> Depth: {report.nearbyOpenwell3Depth}m, WL: {report.nearbyOpenwell3WaterLevel || '--'}m, Type: {report.nearbyOpenwell3Type || '--'}</p>
+              )}
             </div>
           </div>
-        )}
+        ) : null}
       </div>
     );
   };

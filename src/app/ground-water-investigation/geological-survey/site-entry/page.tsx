@@ -318,8 +318,16 @@ function SiteEntryContent() {
 
   const handleNearbyTypeSelect = (type: string, value: string) => {
     if (value === 'none') {
-        if(type === 'borewell') updateField('noNearbyBorewells', true);
-        if(type === 'openwell') updateField('noNearbyOpenwells', true);
+        if(type === 'borewell') {
+            const current = formData.noNearbyBorewells;
+            updateField('noNearbyBorewells', !current);
+            if (!current) setSelectedNearbyStructure(null);
+        }
+        if(type === 'openwell') {
+            const current = formData.noNearbyOpenwells;
+            updateField('noNearbyOpenwells', !current);
+            if (!current) setSelectedNearbyStructure(null);
+        }
     } else {
         if(type === 'borewell') updateField('noNearbyBorewells', false);
         if(type === 'openwell') updateField('noNearbyOpenwells', false);
@@ -452,7 +460,7 @@ function SiteEntryContent() {
                 <FormFieldItem label="11. LSGD" id="lsgd">
                   <Select disabled={!isAllowed} onValueChange={(v) => updateField('lsgd', v)} value={formData.lsgd}>
                     <SelectTrigger className="h-10 text-xs font-bold"><SelectValue/></SelectTrigger>
-                    <SelectContent className="max-h-[400px]">{lsgs.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
+                    <SelectContent className="max-h-[400px] rounded-2xl">{lsgs.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
                   </Select>
                 </FormFieldItem>
                 <FormFieldItem label="12. Constituency (LAC)" id="assembly">
@@ -461,13 +469,13 @@ function SiteEntryContent() {
                 <FormFieldItem label="13. Block" id="block">
                   <Select disabled={!isAllowed} onValueChange={(v) => updateField('block', v)} value={formData.block}>
                     <SelectTrigger className="h-10 text-xs font-bold"><SelectValue/></SelectTrigger>
-                    <SelectContent>{blockOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+                    <SelectContent className="rounded-xl">{blockOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
                   </Select>
                 </FormFieldItem>
                 <FormFieldItem label="14. Type Applied For" id="typeAppliedFor">
                   <Select disabled={!isAllowed} onValueChange={(v) => updateField('typeAppliedFor', v)} value={formData.typeAppliedFor}>
                     <SelectTrigger className="h-10 text-xs bg-slate-50/50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue /></SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="rounded-xl">
                       {recommendationTypeOptions.filter(o=>o.value !== 'not_feasible').map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
                     </SelectContent>
                   </Select>

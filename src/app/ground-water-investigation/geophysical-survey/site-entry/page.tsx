@@ -336,8 +336,16 @@ function UnifiedGeophysicalSurveyContent() {
 
   const handleNearbyTypeSelect = (type: string, value: string) => {
     if (value === 'none') {
-        if(type === 'borewell') updateField('noNearbyBorewells', true);
-        if(type === 'openwell') updateField('noNearbyOpenwells', true);
+        if(type === 'borewell') {
+          const current = formData.noNearbyBorewells;
+          updateField('noNearbyBorewells', !current);
+          if (!current) setSelectedNearbyStructure(null);
+        }
+        if(type === 'openwell') {
+          const current = formData.noNearbyOpenwells;
+          updateField('noNearbyOpenwells', !current);
+          if (!current) setSelectedNearbyStructure(null);
+        }
     } else {
         if(type === 'borewell') updateField('noNearbyBorewells', false);
         if(type === 'openwell') updateField('noNearbyOpenwells', false);
@@ -465,7 +473,7 @@ function UnifiedGeophysicalSurveyContent() {
             <Table className="border-collapse min-w-[1000px]">
                 <TableHeader className="bg-slate-100/50 sticky top-0 z-20">
                   <TableRow className="h-10">
-                    <TableHead className="w-[80px] border-r text-center" rowSpan={2}>Sl No</TableHead>
+                    <TableHead className="w-24 text-center border-r" rowSpan={2}>Sl No</TableHead>
                     <TableHead className="text-center border-r" colSpan={3}>Measuring Point / Spreading Direction</TableHead>
                     <TableHead className="text-center" colSpan={2}>VES Data</TableHead>
                   </TableRow>
