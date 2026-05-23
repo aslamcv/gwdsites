@@ -147,7 +147,7 @@ function BillContent() {
     };
 
     const LABEL_DRILLING = '110 മില്ലിമീറ്റർ വ്യാസമുള്ള കുഴൽക്കിണറിന്റെ ഡ്രില്ലിംഗ് ചാർജ്ജ്';
-    const LABEL_FLUSHING = 'ഫ്ലഷിംഗ് നടത്തിയ ആകെ ആഴം';
+    const LABEL_FLUSHING_CATALOG = 'കുഴൽക്കിണർ ഫ്ലഷിംഗ് ചാർജ്ജ്';
     const LABEL_PVC_6KG = '140 മില്ലിമീറ്റർ വ്യാസമുള്ള 6 കി.ഗ്രാം / ച. സെ. മീ. പിവിസി കെയ്‌സിംഗ് പൈപ്പിന്റെ വില';
     const LABEL_PVC_10KG = '140 മില്ലിമീറ്റർ വ്യാസമുള്ള 10 കി.ഗ്രാം / ച. സെ. മീ. പിവിസി കെയ്‌സിംഗ് പൈപ്പിന്റെ വില';
     const LABEL_END_CAP = '140 മില്ലിമീറ്റർ വ്യാസമുള്ള പിവിസി കുഴൽക്കിണർ അടപ്പിന്റെ വില';
@@ -168,7 +168,7 @@ function BillContent() {
     let totalGstAmount = 0;
     let totalGrandAmount = 0;
 
-    const processItem = (label: string, qty: number, isDrilling: boolean = false, customQtyStr?: string) => {
+    const processItem = (label: string, qty: number, isDrilling: boolean = false, customQtyStr?: string, customLabel?: string) => {
         const rate = findRate(label);
         if (rate === null) return { error: true, label };
         const baseAmt = qty * rate;
@@ -182,7 +182,7 @@ function BillContent() {
         const total = baseAmt + gstAmt;
         
         rows.push({ 
-            label, 
+            label: customLabel || label, 
             qtyStr: customQtyStr || (isDrilling && isFlushing ? (report.compressorWorkingHour || '2.5 hrs') : `${qty} m`), 
             rate, 
             amount: baseAmt, 
@@ -198,8 +198,10 @@ function BillContent() {
     };
 
     if (isFlushing) {
-      const hours = parseFloat((report.compressorWorkingHour || '2.5').replace(/[^0-9.]/g, '')) || 2.5;
-      const res = processItem(LABEL_FLUSHING, hours, true);
+      const displayLabel = 'കുഴൽ കിണർ ഫ്ലഷിംഗ് ചാർജ്ജ് (Compressor working time: 2.5 hours)';
+      const displayDepth = `${report.totalDepth || '0'} m`;
+      // For flushing, Amount = Rate. So calculation qty is 1.
+      const res = processItem(LABEL_FLUSHING_CATALOG, 1, true, displayDepth, displayLabel);
       if (res.error) return { error: true, missingItem: res.label };
     } else {
       const res = processItem(LABEL_DRILLING, parseFloat(report.totalDepth || '0'), true);
