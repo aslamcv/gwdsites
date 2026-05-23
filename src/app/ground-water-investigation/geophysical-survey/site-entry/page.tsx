@@ -524,56 +524,77 @@ function UnifiedGeophysicalSurveyContent() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
             <div className="space-y-4">
-              <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Structure Recommendation Type</Label>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button type="button" variant="outline" className="w-full h-14 border-slate-200 rounded-2xl font-black uppercase text-xs tracking-widest shadow-sm justify-between" disabled={!isAllowed}>
-                    <span>{formData.recommendationType ? recommendationTypeOptions.find(o => o.value === formData.recommendationType)?.label : "ENTER THE DETAILS"}</span>
-                    <ChevronDown className="size-4 opacity-50" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-[300px] rounded-2xl p-2 bg-white shadow-2xl border-slate-200">
+              <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block ml-1">Structure Recommendation Type</Label>
+              <Select disabled={!isAllowed} onValueChange={(val) => {updateField('recommendationType', val); setIsRecommendationDialogOpen(true);}} value={formData.recommendationType}>
+                <SelectTrigger className="h-14 border-slate-200 rounded-2xl font-black uppercase text-xs tracking-widest shadow-sm">
+                  <SelectValue placeholder="ENTER THE DETAILS" />
+                </SelectTrigger>
+                <SelectContent className="rounded-2xl border-slate-200 shadow-2xl">
                   {recommendationTypeOptions.map(o => (
-                    <DropdownMenuItem key={o.value} onClick={() => {updateField('recommendationType', o.value); setIsRecommendationDialogOpen(true);}} className="rounded-xl py-3 font-bold text-xs uppercase cursor-pointer">
+                    <SelectItem key={o.value} value={o.value} className="py-3 font-bold text-xs uppercase cursor-pointer">
                       {o.label}
-                    </DropdownMenuItem>
+                    </SelectItem>
                   ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
+                </SelectContent>
+              </Select>
             </div>
             
             <div className="space-y-4">
-               <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Nearby groundwater structures</Label>
-               <div className="grid grid-cols-2 gap-4">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button type="button" variant="outline" className="w-full h-12 justify-between border-slate-200" disabled={!isAllowed}>
-                        <span className="font-bold uppercase text-[10px] tracking-widest">BOREWELL STATUS</span>
-                        <ChevronDown className="size-4 opacity-50" />
+               <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block ml-1">Nearby groundwater structures</Label>
+               <div className="flex flex-col gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-[9px] font-black uppercase text-slate-400 tracking-widest ml-1">Borewell Status</Label>
+                    <div className="flex flex-wrap gap-2 p-1 bg-slate-100 rounded-2xl w-fit">
+                      {['borewell1', 'borewell2', 'borewell3'].map((val, idx) => (
+                        <Button 
+                          key={val}
+                          type="button" 
+                          variant={selectedNearbyStructure === val && !formData.noNearbyBorewells ? 'default' : 'ghost'}
+                          className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", selectedNearbyStructure === val && !formData.noNearbyBorewells ? "bg-[#1e3a8a] text-white shadow-md" : "text-slate-500")}
+                          onClick={() => handleNearbyTypeSelect('borewell', val)}
+                          disabled={!isAllowed}
+                        >
+                          BW-{idx + 1}
+                        </Button>
+                      ))}
+                      <Button 
+                        type="button" 
+                        variant={formData.noNearbyBorewells ? 'destructive' : 'ghost'}
+                        className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", formData.noNearbyBorewells ? "bg-rose-600 text-white shadow-md" : "text-slate-500")}
+                        onClick={() => handleNearbyTypeSelect('borewell', 'none')}
+                        disabled={!isAllowed}
+                      >
+                        NO BOREWELL
                       </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-[200px] rounded-2xl p-2">
-                      <DropdownMenuItem onClick={() => handleNearbyTypeSelect('borewell', 'borewell1')} className="py-2.5 font-bold uppercase text-[10px]">Add Bore well-1</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleNearbyTypeSelect('borewell', 'borewell2')} className="py-2.5 font-bold uppercase text-[10px]">Add Bore well-2</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleNearbyTypeSelect('borewell', 'borewell3')} className="py-2.5 font-bold uppercase text-[10px]">Add Bore well-3</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleNearbyTypeSelect('borewell', 'none')} className="text-rose-600 py-2.5 font-bold uppercase text-[10px]">None found</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                    </div>
+                  </div>
 
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button type="button" variant="outline" className="w-full h-12 justify-between border-slate-200" disabled={!isAllowed}>
-                        <span className="font-bold uppercase text-[10px] tracking-widest">OPENWELL STATUS</span>
-                        <ChevronDown className="size-4 opacity-50" />
+                  <div className="space-y-2">
+                    <Label className="text-[9px] font-black uppercase text-slate-400 tracking-widest ml-1">Openwell Status</Label>
+                    <div className="flex flex-wrap gap-2 p-1 bg-slate-100 rounded-2xl w-fit">
+                      {['openwell1', 'openwell2', 'openwell3'].map((val, idx) => (
+                        <Button 
+                          key={val}
+                          type="button" 
+                          variant={selectedNearbyStructure === val && !formData.noNearbyOpenwells ? 'default' : 'ghost'}
+                          className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", selectedNearbyStructure === val && !formData.noNearbyOpenwells ? "bg-emerald-600 text-white shadow-md" : "text-slate-500")}
+                          onClick={() => handleNearbyTypeSelect('openwell', val)}
+                          disabled={!isAllowed}
+                        >
+                          OW-{idx + 1}
+                        </Button>
+                      ))}
+                      <Button 
+                        type="button" 
+                        variant={formData.noNearbyOpenwells ? 'destructive' : 'ghost'}
+                        className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", formData.noNearbyOpenwells ? "bg-rose-600 text-white shadow-md" : "text-slate-500")}
+                        onClick={() => handleNearbyTypeSelect('openwell', 'none')}
+                        disabled={!isAllowed}
+                      >
+                        NO OPENWELL
                       </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-[200px] rounded-2xl p-2">
-                      <DropdownMenuItem onClick={() => handleNearbyTypeSelect('openwell', 'openwell1')} className="py-2.5 font-bold uppercase text-[10px]">Add open well-1</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleNearbyTypeSelect('openwell', 'openwell2')} className="py-2.5 font-bold uppercase text-[10px]">Add open well-2</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleNearbyTypeSelect('openwell', 'openwell3')} className="py-2.5 font-bold uppercase text-[10px]">Add open well-3</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleNearbyTypeSelect('openwell', 'none')} className="text-rose-600 py-2.5 font-bold uppercase text-[10px]">None found</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                    </div>
+                  </div>
                </div>
             </div>
           </div>
@@ -618,6 +639,7 @@ function UnifiedGeophysicalSurveyContent() {
         </div>
       </div>
 
+      {/* MODALS placed at the root level for stability */}
       <RecommendationDialog
         isOpen={isRecommendationDialogOpen}
         onOpenChange={setIsRecommendationDialogOpen}

@@ -409,7 +409,7 @@ function SiteEntryContent() {
             <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3">
                <Building className="size-4" /> 2. Location & Admin Details
             </CardTitle>
-          </CardHeader>
+          </Header>
           <CardContent className="p-10 grid grid-cols-1 md:grid-cols-4 gap-8">
                 <FormFieldItem label="8. Village" id="village">
                   <DropdownMenu>
@@ -447,24 +447,24 @@ function SiteEntryContent() {
                 <FormFieldItem label="10. Altitude" id="altitude"><Input disabled={!isAllowed} value={formData.altitude} onChange={(e) => updateField('altitude', e.target.value)} /></FormFieldItem>
                 <FormFieldItem label="11. LSGD" id="lsgd">
                   <Select disabled={!isAllowed} onValueChange={(v) => updateField('lsgd', v)} value={formData.lsgd}>
-                    <SelectTrigger className="h-10"><SelectValue/></SelectTrigger>
+                    <SelectTrigger className="h-10 text-xs font-bold"><SelectValue/></SelectTrigger>
                     <SelectContent>{lsgs.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
                   </Select>
                 </FormFieldItem>
                 <FormFieldItem label="12. Constituency (LAC)" id="assembly">
-                    <Input value={detectedLac} disabled className="bg-slate-50 font-black text-blue-600 uppercase" placeholder="Auto-populated" />
+                    <Input value={detectedLac} disabled className="bg-slate-50 font-black text-blue-600 uppercase h-10 text-xs" placeholder="Auto-populated" />
                 </FormFieldItem>
                 <FormFieldItem label="13. Block" id="block">
                   <Select disabled={!isAllowed} onValueChange={(v) => updateField('block', v)} value={formData.block}>
-                    <SelectTrigger className="h-10"><SelectValue/></SelectTrigger>
+                    <SelectTrigger className="h-10 text-xs font-bold"><SelectValue/></SelectTrigger>
                     <SelectContent>{blockOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
                   </Select>
                 </FormFieldItem>
                 <FormFieldItem label="14. Type Applied For" id="typeAppliedFor">
                   <Select disabled={!isAllowed} onValueChange={(v) => updateField('typeAppliedFor', v)} value={formData.typeAppliedFor}>
-                    <SelectTrigger className="h-10"><SelectValue/></SelectTrigger>
+                    <SelectTrigger className="h-10 text-xs font-bold"><SelectValue/></SelectTrigger>
                     <SelectContent>
-                      {recommendationTypeOptions.filter(o=>o.value !== 'not_feasible').map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                      {recommendationTypeOptions.filter(o=>o.value !== 'not_feasible').map(o => <SelectItem key={o} value={o}>{o.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </FormFieldItem>
@@ -484,41 +484,95 @@ function SiteEntryContent() {
 
         <Card><CardHeader><CardTitle className="flex items-center gap-2 text-sm uppercase font-black tracking-widest"><FileText className="size-4 text-primary"/> 20. Hydrogeology & Geology of the area</CardTitle></CardHeader><CardContent><Textarea disabled={!isAllowed} value={formData.hydrogeology} onChange={(e) => updateField('hydrogeology', e.target.value)} rows={5} /></CardContent></Card>
         
-        <Card><CardHeader><CardTitle className="flex items-center gap-2 text-sm uppercase font-black tracking-widest"><Activity className="size-4 text-primary"/> 21. Details of nearby groundwater structures</CardTitle></CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-3">
-              <Label className="text-[10px] font-black uppercase text-slate-500">a) Borewell Status</Label>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button type="button" variant="outline" className="w-full h-12 justify-between border-slate-200" disabled={!isAllowed}>
-                    <span className="font-bold uppercase text-[11px] tracking-widest">ENTER THE DETAILS</span>
-                    <ChevronDown className="size-4 opacity-50" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-[300px] rounded-2xl p-2 bg-white shadow-2xl border-slate-200">
-                  <DropdownMenuItem onClick={() => handleNearbyTypeSelect('borewell', 'borewell1')} className="py-2.5 font-bold uppercase text-[10px]">Add Bore well-1</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleNearbyTypeSelect('borewell', 'borewell2')} className="py-2.5 font-bold uppercase text-[10px]">Add Bore well-2</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleNearbyTypeSelect('borewell', 'borewell3')} className="py-2.5 font-bold uppercase text-[10px]">Add Bore well-3</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleNearbyTypeSelect('borewell', 'none')} className="text-rose-600 py-2.5 font-bold uppercase text-[10px]">There is no nearby borewells</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+        <Card>
+          <CardHeader className="bg-slate-50 border-b py-5 px-10">
+            <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3">
+              <Activity className="size-4" /> 21. Details of nearby groundwater structures
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-10 grid grid-cols-1 md:grid-cols-2 gap-12">
+            <div className="space-y-4">
+              <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest block ml-1">a) Borewell Status</Label>
+              <div className="flex flex-wrap gap-2 p-1 bg-slate-100 rounded-2xl w-fit">
+                <Button 
+                  type="button" 
+                  variant={selectedNearbyStructure === 'borewell1' && !formData.noNearbyBorewells ? 'default' : 'ghost'}
+                  className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", selectedNearbyStructure === 'borewell1' && !formData.noNearbyBorewells ? "bg-[#1e3a8a] text-white shadow-md" : "text-slate-500")}
+                  onClick={() => handleNearbyTypeSelect('borewell', 'borewell1')}
+                  disabled={!isAllowed}
+                >
+                  BW-1
+                </Button>
+                <Button 
+                  type="button" 
+                  variant={selectedNearbyStructure === 'borewell2' && !formData.noNearbyBorewells ? 'default' : 'ghost'}
+                  className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", selectedNearbyStructure === 'borewell2' && !formData.noNearbyBorewells ? "bg-[#1e3a8a] text-white shadow-md" : "text-slate-500")}
+                  onClick={() => handleNearbyTypeSelect('borewell', 'borewell2')}
+                  disabled={!isAllowed}
+                >
+                  BW-2
+                </Button>
+                <Button 
+                  type="button" 
+                  variant={selectedNearbyStructure === 'borewell3' && !formData.noNearbyBorewells ? 'default' : 'ghost'}
+                  className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", selectedNearbyStructure === 'borewell3' && !formData.noNearbyBorewells ? "bg-[#1e3a8a] text-white shadow-md" : "text-slate-500")}
+                  onClick={() => handleNearbyTypeSelect('borewell', 'borewell3')}
+                  disabled={!isAllowed}
+                >
+                  BW-3
+                </Button>
+                <Button 
+                  type="button" 
+                  variant={formData.noNearbyBorewells ? 'destructive' : 'ghost'}
+                  className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", formData.noNearbyBorewells ? "bg-rose-600 text-white shadow-md" : "text-slate-500")}
+                  onClick={() => handleNearbyTypeSelect('borewell', 'none')}
+                  disabled={!isAllowed}
+                >
+                  NO BOREWELL
+                </Button>
+              </div>
             </div>
-            <div className="space-y-3">
-              <Label className="text-[10px] font-black uppercase text-slate-500">b) Open well Status</Label>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button type="button" variant="outline" className="w-full h-12 justify-between border-slate-200" disabled={!isAllowed}>
-                    <span className="font-bold uppercase text-[11px] tracking-widest">ENTER THE DETAILS</span>
-                    <ChevronDown className="size-4 opacity-50" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-[300px] rounded-2xl p-2 bg-white shadow-2xl border-slate-200">
-                  <DropdownMenuItem onClick={() => handleNearbyTypeSelect('openwell', 'openwell1')} className="py-2.5 font-bold uppercase text-[10px]">Add open well-1</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleNearbyTypeSelect('openwell', 'openwell2')} className="py-2.5 font-bold uppercase text-[10px]">Add open well-2</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleNearbyTypeSelect('openwell', 'openwell3')} className="py-2.5 font-bold uppercase text-[10px]">Add open well-3</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleNearbyTypeSelect('openwell', 'none')} className="text-rose-600 py-2.5 font-bold uppercase text-[10px]">There is no nearby open wells</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+
+            <div className="space-y-4">
+              <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest block ml-1">b) Open well Status</Label>
+              <div className="flex flex-wrap gap-2 p-1 bg-slate-100 rounded-2xl w-fit">
+                <Button 
+                  type="button" 
+                  variant={selectedNearbyStructure === 'openwell1' && !formData.noNearbyOpenwells ? 'default' : 'ghost'}
+                  className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", selectedNearbyStructure === 'openwell1' && !formData.noNearbyOpenwells ? "bg-emerald-600 text-white shadow-md" : "text-slate-500")}
+                  onClick={() => handleNearbyTypeSelect('openwell', 'openwell1')}
+                  disabled={!isAllowed}
+                >
+                  OW-1
+                </Button>
+                <Button 
+                  type="button" 
+                  variant={selectedNearbyStructure === 'openwell2' && !formData.noNearbyOpenwells ? 'default' : 'ghost'}
+                  className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", selectedNearbyStructure === 'openwell2' && !formData.noNearbyOpenwells ? "bg-emerald-600 text-white shadow-md" : "text-slate-500")}
+                  onClick={() => handleNearbyTypeSelect('openwell', 'openwell2')}
+                  disabled={!isAllowed}
+                >
+                  OW-2
+                </Button>
+                <Button 
+                  type="button" 
+                  variant={selectedNearbyStructure === 'openwell3' && !formData.noNearbyOpenwells ? 'default' : 'ghost'}
+                  className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", selectedNearbyStructure === 'openwell3' && !formData.noNearbyOpenwells ? "bg-emerald-600 text-white shadow-md" : "text-slate-500")}
+                  onClick={() => handleNearbyTypeSelect('openwell', 'openwell3')}
+                  disabled={!isAllowed}
+                >
+                  OW-3
+                </Button>
+                <Button 
+                  type="button" 
+                  variant={formData.noNearbyOpenwells ? 'destructive' : 'ghost'}
+                  className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", formData.noNearbyOpenwells ? "bg-rose-600 text-white shadow-md" : "text-slate-500")}
+                  onClick={() => handleNearbyTypeSelect('openwell', 'none')}
+                  disabled={!isAllowed}
+                >
+                  NO OPENWELL
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
