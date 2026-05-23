@@ -34,6 +34,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
@@ -99,8 +101,8 @@ const villageOptions = [
   { label: "Perinthalmanna Taluk", options: ["Aliparamba", "Angadippuram", "Anamangad", "Arakkuparamba", "Edappatta", "Elamkulam", "Keezhattur", "Koottilangadi", "Kuruva", "Kuruvambalam", "Makkaraparamba", "Mankada", "Melattur", "Moorkkanad", "Nenmini", "Puzhakkattiri", "Thazhekkode", "Vadakkangara", "Valambur", "Vettathur"] },
   { label: "Tirur Taluk", options: ["Ananthavoor", "Athavanad", "Cheriyamundam", "Edayur", "Irimbiliyam", "Kalady", "Kalpakanchery", "Kattipparuthi", "Kurumbathur", "Kuttippuram", "Mangalam", "Marakkara", "Naduvattom", "Ponmala", "Thirunavaya", "Triprangode", "Valavannur"] },
   { label: "Tirurangadi Taluk", options: ["Thenhipalam", "Chelembra", "Cherukavu", "Moonniyur", "Nannambra", "Neduva", "Oorakam", "Parappanangadi", "Parappur", "Peruvallur", "Vallikkunnu", "Vengara", "Velimukku", "Ponmundam", "Tanalur", "Tirurangadi", "Kottakkal"] },
-  { label: "Ponnani Taluk", options: ["Alamkode", "Edappal", "Marancheri", "Nannammukku", "Perumpadappa", "Ponnani Nagaram", "Tavanur", "Vattamkulam", "Veliyankode"] },
-  { label: "Kondotty Taluk", options: ["Edarikkode", "Kizhisseri", "Kondotty", "Kuzhimanna", "Morayur", "Muthuvallur", "Nediyiruppu", "Pallikkal", "Pulikkal", "Vazhakkad", "Vazhayur"] }
+  { label: "Ponnani Taluk", options: ["Alamkode", "Edappal", "Marancheri", "Nannammukku", "Perumpadappa", "Ponnani Nagaram", "Tavanur", "Vattamകുളം", "Veliyankode"] },
+  { label: "Kondotty Taluk", options: ["Edarikkode", "Kizhisseri", "Kondotty", "Kuzhimanna", "Morayur", "Muthുവല്ലൂർ", "Nediyiruppu", "Pallikkal", "Pulikkal", "Vazhakkad", "Vazhayur"] }
 ];
 
 const blockOptions = [
@@ -464,9 +466,9 @@ function SiteEntryContent() {
                 </FormFieldItem>
                 <FormFieldItem label="14. Type Applied For" id="typeAppliedFor">
                   <Select disabled={!isAllowed} onValueChange={(v) => updateField('typeAppliedFor', v)} value={formData.typeAppliedFor}>
-                    <SelectTrigger className="h-10 text-xs font-bold"><SelectValue/></SelectTrigger>
+                    <SelectTrigger className="h-10 text-xs bg-slate-50/50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {recommendationTypeOptions.filter(o=>o.value !== 'not_feasible').map(o => <SelectItem key={o} value={o}>{o.label}</SelectItem>)}
+                      {recommendationTypeOptions.filter(o=>o.value !== 'not_feasible').map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </FormFieldItem>
@@ -491,7 +493,7 @@ function SiteEntryContent() {
             <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3">
               <Activity className="size-4" /> 21. Details of nearby groundwater structures
             </CardTitle>
-          </Header>
+          </CardHeader>
           <CardContent className="p-10 grid grid-cols-1 md:grid-cols-2 gap-12">
             <div className="space-y-4">
               <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest block ml-1">a) Borewell Status</Label>

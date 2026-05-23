@@ -7,7 +7,7 @@ import { Printer, ArrowLeft, ShieldAlert, FileOutput, Loader2, Save } from 'luci
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Link from 'next/link';
 import { useFirestore, useDoc, useMemoFirebase, useUser, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { doc, collection, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import type { GroundwaterReport } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
