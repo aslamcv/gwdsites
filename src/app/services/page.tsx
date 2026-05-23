@@ -16,7 +16,8 @@ import {
   CheckCircle2,
   Copy,
   Info,
-  Percent
+  Percent,
+  Wind
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -60,11 +61,21 @@ const INITIAL_SERVICES_DATA = [
     ],
   },
   {
+    id: "bf",
+    title: "Borewell Flushing",
+    items: [
+      { id: "bf-1", nameEn: "Borewell Flushing Charge", nameMl: "കുഴൽക്കിണർ ഫ്ലഷിംഗ് ചാർജ്ജ്", rate: 5790, dateFrom: '2024-04-01', dateTo: '2026-03-31' },
+    ],
+    description: [
+      "Development of borewell by high-pressure air compressor flushing.",
+      "Removal of silt and debris to improve yield and water clarity.",
+    ],
+  },
+  {
     id: "yt",
     title: "Yield Testing (Pumping Test)",
     items: [
       { id: "yt-1", nameEn: "Step Drawdown Test (SDT)", nameMl: "സ്റ്റെപ്പ് ഡ്രോഡൗൺ ടെസ്റ്റ് (SDT)", rate: 7490, dateFrom: '2024-04-01', dateTo: '2026-03-31' },
-      { id: "yt-2", nameEn: "Borewell Flushing", nameMl: "ഫ്ലഷിംഗ് നടത്തിയ ആകെ ആഴം", rate: 5790, dateFrom: '2024-04-01', dateTo: '2026-03-31' },
     ],
     description: [
       "Determining the sustainable yield and recovery parameters of the well.",
@@ -321,6 +332,7 @@ export default function ServicesRatesCatalog() {
               const activeItems = service.items.filter((i: any) => isItemActive(i));
               const previousItems = service.items.filter((i: any) => !isItemActive(i));
               const isGstSection = service.id === 'gst';
+              const isFlushing = service.id === 'bf';
 
               return (
                 <div
@@ -342,7 +354,7 @@ export default function ServicesRatesCatalog() {
                         "size-10 rounded-xl flex items-center justify-center transition-all",
                         openIndex === sIdx ? "bg-[#1e3a8a] text-white scale-110 shadow-lg shadow-blue-900/20" : "bg-slate-100 text-slate-400 group-hover:bg-slate-200"
                       )}>
-                        {isGstSection ? <Percent className="h-5 w-5" /> : <IndianRupee className="h-5 w-5" />}
+                        {isGstSection ? <Percent className="h-5 w-5" /> : isFlushing ? <Wind className="h-5 w-5" /> : <IndianRupee className="h-5 w-5" />}
                       </div>
                       <h2 className={cn(
                         "font-black text-lg uppercase tracking-tight",

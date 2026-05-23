@@ -506,33 +506,18 @@ function SiteEntryContent() {
             <div className="space-y-4">
               <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest block ml-1">a) Borewell Status</Label>
               <div className="flex flex-wrap gap-2 p-1 bg-slate-100 rounded-2xl w-fit">
-                <Button 
-                  type="button" 
-                  variant={selectedNearbyStructure === 'borewell1' && !formData.noNearbyBorewells ? 'default' : 'ghost'}
-                  className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", selectedNearbyStructure === 'borewell1' && !formData.noNearbyBorewells ? "bg-[#1e3a8a] text-white shadow-md" : "text-slate-500")}
-                  onClick={() => handleNearbyTypeSelect('borewell', 'borewell1')}
-                  disabled={!isAllowed}
-                >
-                  BW-1
-                </Button>
-                <Button 
-                  type="button" 
-                  variant={selectedNearbyStructure === 'borewell2' && !formData.noNearbyBorewells ? 'default' : 'ghost'}
-                  className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", selectedNearbyStructure === 'borewell2' && !formData.noNearbyBorewells ? "bg-[#1e3a8a] text-white shadow-md" : "text-slate-500")}
-                  onClick={() => handleNearbyTypeSelect('borewell', 'borewell2')}
-                  disabled={!isAllowed}
-                >
-                  BW-2
-                </Button>
-                <Button 
-                  type="button" 
-                  variant={selectedNearbyStructure === 'borewell3' && !formData.noNearbyBorewells ? 'default' : 'ghost'}
-                  className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", selectedNearbyStructure === 'borewell3' && !formData.noNearbyBorewells ? "bg-[#1e3a8a] text-white shadow-md" : "text-slate-500")}
-                  onClick={() => handleNearbyTypeSelect('borewell', 'borewell3')}
-                  disabled={!isAllowed}
-                >
-                  BW-3
-                </Button>
+                {['borewell1', 'borewell2', 'borewell3'].map((val, idx) => (
+                  <Button 
+                    key={val}
+                    type="button" 
+                    variant={selectedNearbyStructure === val && !formData.noNearbyBorewells ? 'default' : 'ghost'}
+                    className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", selectedNearbyStructure === val && !formData.noNearbyBorewells ? "bg-[#1e3a8a] text-white shadow-md" : "text-slate-500")}
+                    onClick={() => handleNearbyTypeSelect('borewell', val)}
+                    disabled={!isAllowed}
+                  >
+                    BW-{idx + 1}
+                  </Button>
+                ))}
                 <Button 
                   type="button" 
                   variant={formData.noNearbyBorewells ? 'destructive' : 'ghost'}
@@ -548,33 +533,18 @@ function SiteEntryContent() {
             <div className="space-y-4">
               <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest block ml-1">b) Open well Status</Label>
               <div className="flex flex-wrap gap-2 p-1 bg-slate-100 rounded-2xl w-fit">
-                <Button 
-                  type="button" 
-                  variant={selectedNearbyStructure === 'openwell1' && !formData.noNearbyOpenwells ? 'default' : 'ghost'}
-                  className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", selectedNearbyStructure === 'openwell1' && !formData.noNearbyOpenwells ? "bg-emerald-600 text-white shadow-md" : "text-slate-500")}
-                  onClick={() => handleNearbyTypeSelect('openwell', 'openwell1')}
-                  disabled={!isAllowed}
-                >
-                  OW-1
-                </Button>
-                <Button 
-                  type="button" 
-                  variant={selectedNearbyStructure === 'openwell2' && !formData.noNearbyOpenwells ? 'default' : 'ghost'}
-                  className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", selectedNearbyStructure === 'openwell2' && !formData.noNearbyOpenwells ? "bg-emerald-600 text-white shadow-md" : "text-slate-500")}
-                  onClick={() => handleNearbyTypeSelect('openwell', 'openwell2')}
-                  disabled={!isAllowed}
-                >
-                  OW-2
-                </Button>
-                <Button 
-                  type="button" 
-                  variant={selectedNearbyStructure === 'openwell3' && !formData.noNearbyOpenwells ? 'default' : 'ghost'}
-                  className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", selectedNearbyStructure === 'openwell3' && !formData.noNearbyOpenwells ? "bg-emerald-600 text-white shadow-md" : "text-slate-500")}
-                  onClick={() => handleNearbyTypeSelect('openwell', 'openwell3')}
-                  disabled={!isAllowed}
-                >
-                  OW-3
-                </Button>
+                {['openwell1', 'openwell2', 'openwell3'].map((val, idx) => (
+                  <Button 
+                    key={val}
+                    type="button" 
+                    variant={selectedNearbyStructure === val && !formData.noNearbyOpenwells ? 'default' : 'ghost'}
+                    className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", selectedNearbyStructure === val && !formData.noNearbyOpenwells ? "bg-emerald-600 text-white shadow-md" : "text-slate-500")}
+                    onClick={() => handleNearbyTypeSelect('openwell', val)}
+                    disabled={!isAllowed}
+                  >
+                    OW-{idx + 1}
+                  </Button>
+                ))}
                 <Button 
                   type="button" 
                   variant={formData.noNearbyOpenwells ? 'destructive' : 'ghost'}

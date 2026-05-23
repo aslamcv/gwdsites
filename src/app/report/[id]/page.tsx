@@ -63,6 +63,15 @@ function ReportContent({ id }: { id: string }) {
     const bwDataExists = !!(report.nearbyBorewell1Depth || report.nearbyBorewell2Depth || report.nearbyBorewell3Depth);
     const owDataExists = !!(report.nearbyOpenwell1Depth || report.nearbyOpenwell2Depth || report.nearbyOpenwell3Depth);
 
+    if (report.noNearbyBorewells && report.noNearbyOpenwells) {
+        return (
+            <div className="space-y-1 text-left">
+                <p className="font-bold text-[10px] text-slate-900">There is no nearby borewell</p>
+                <p className="font-bold text-[10px] text-slate-900">There is no nearby open well</p>
+            </div>
+        );
+    }
+
     if (!bwDataExists && !owDataExists && !report.noNearbyBorewells && !report.noNearbyOpenwells) {
       return <p className="italic text-[10px] text-left">No nearby groundwater structures reported.</p>;
     }
