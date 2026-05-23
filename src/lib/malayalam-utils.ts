@@ -25,7 +25,7 @@ export function numberToMalayalamWords(num: number): string {
     "പതിനഞ്ച്",
     "പതിനാറ്",
     "പതിനേഴ്",
-    "പതിനൊന്ന്",
+    "പതിനെട്ട്",
     "പത്തൊൻപത്",
   ];
 

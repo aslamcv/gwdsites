@@ -353,22 +353,24 @@ function SiteEntryContent() {
             
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4 w-full lg:w-auto">
               <div className="space-y-1">
-                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter">Start Date</Label>
+                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
+                  <CalendarIcon className="size-3 pointer-events-none" /> Start Date
+                </Label>
                 <Input disabled={!isAllowed} type="date" value={formData.startDate || ''} onChange={(e) => updateField('startDate', e.target.value)} className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl focus:bg-white" />
               </div>
               <div className="space-y-1">
-                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter">End Date (Opt)</Label>
+                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><CalendarIcon className="size-3 pointer-events-none" /> End Date (Opt)</Label>
                 <Input disabled={!isAllowed} type="date" value={formData.endDate || ''} onChange={(e) => updateField('endDate', e.target.value)} className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl focus:bg-white" />
               </div>
               <div className="space-y-1">
-                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter">Conveyance</Label>
+                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><Truck className="size-3" /> Conveyance</Label>
                 <Select disabled={!isAllowed} onValueChange={(v) => updateField('conveyance', v)} value={formData.conveyance || ''}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">{conveyanceOptions.map(o => <SelectItem key={o} value={o} className="text-xs font-bold">{o}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter">Sector</Label>
+                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><Building className="size-3" /> Sector</Label>
                 <Select disabled={!isAllowed} onValueChange={(v) => updateField('sector', v)} value={formData.sector || ''}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">
@@ -377,7 +379,7 @@ function SiteEntryContent() {
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter">Sub Category</Label>
+                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><SearchCode className="size-3" /> Sub Category</Label>
                 <Select disabled={!isAllowed} onValueChange={(v) => updateField('category', v)} value={formData.category || ''}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">
@@ -392,7 +394,7 @@ function SiteEntryContent() {
 
       <div className='space-y-8'>
         <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2 text-sm uppercase font-black tracking-widest"><MapPin className="size-4 text-primary" /> Basic Site Details</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2 text-sm uppercase font-black tracking-widest"><MapPin className="size-4 text-primary" /> 1. Basic Site Details</CardTitle></CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <FormFieldItem label="1. Name of Site" id="nameOfSite"><Input disabled={!isAllowed} value={formData.nameOfSite} onChange={(e) => updateField('nameOfSite', e.target.value)} /></FormFieldItem>
             <FormFieldItem label="2. Address" id="address"><Input disabled={!isAllowed} value={formData.address} onChange={(e) => updateField('address', e.target.value)} /></FormFieldItem>
@@ -409,7 +411,7 @@ function SiteEntryContent() {
             <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3">
                <Building className="size-4" /> 2. Location & Admin Details
             </CardTitle>
-          </Header>
+          </CardHeader>
           <CardContent className="p-10 grid grid-cols-1 md:grid-cols-4 gap-8">
                 <FormFieldItem label="8. Village" id="village">
                   <DropdownMenu>
@@ -448,7 +450,7 @@ function SiteEntryContent() {
                 <FormFieldItem label="11. LSGD" id="lsgd">
                   <Select disabled={!isAllowed} onValueChange={(v) => updateField('lsgd', v)} value={formData.lsgd}>
                     <SelectTrigger className="h-10 text-xs font-bold"><SelectValue/></SelectTrigger>
-                    <SelectContent>{lsgs.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
+                    <SelectContent className="max-h-[400px]">{lsgs.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
                   </Select>
                 </FormFieldItem>
                 <FormFieldItem label="12. Constituency (LAC)" id="assembly">
@@ -473,7 +475,7 @@ function SiteEntryContent() {
         </Card>
         
         <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2 text-sm uppercase font-black tracking-widest"><Settings className="size-4 text-primary"/> Technical Details</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2 text-sm uppercase font-black tracking-widest"><Settings className="size-4 text-primary"/> 3. Technical Details</CardTitle></CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <FormFieldItem label="16. beneficiaries" id="noOfBeneficiaries"><Input disabled={!isAllowed} type="text" value={formData.noOfBeneficiaries} onChange={(e) => updateField('noOfBeneficiaries', e.target.value)} /></FormFieldItem>
             <FormFieldItem label="17. Toposheet/GW Prospect Map" id="toposheet" className="md:col-span-2"><Input disabled={!isAllowed} value={formData.toposheet} onChange={(e) => updateField('toposheet', e.target.value)} /></FormFieldItem>
@@ -489,7 +491,7 @@ function SiteEntryContent() {
             <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3">
               <Activity className="size-4" /> 21. Details of nearby groundwater structures
             </CardTitle>
-          </CardHeader>
+          </Header>
           <CardContent className="p-10 grid grid-cols-1 md:grid-cols-2 gap-12">
             <div className="space-y-4">
               <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest block ml-1">a) Borewell Status</Label>
@@ -689,7 +691,6 @@ function SiteEntryContent() {
         </div>
       </div>
 
-      {/* MODALS placed at the root level for stability */}
       <RecommendationDialog
         isOpen={isRecommendationDialogOpen}
         onOpenChange={setIsRecommendationDialogOpen}
