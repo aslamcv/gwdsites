@@ -62,7 +62,7 @@ const INITIAL_SERVICES_DATA = [
   },
   {
     id: "bf",
-    title: "Borewell Flushing",
+    title: "BOREWELL FLUSHING",
     items: [
       { id: "bf-1", nameEn: "Borewell Flushing Charge", nameMl: "കുഴൽക്കിണർ ഫ്ലഷിംഗ് ചാർജ്ജ്", rate: 5790, dateFrom: '2024-04-01', dateTo: '2026-03-31' },
     ],

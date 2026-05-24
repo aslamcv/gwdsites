@@ -67,7 +67,7 @@ function ReportContent({ id }: { id: string }) {
       <div className="space-y-1 text-left">
         {/* Borewell Logic */}
         {report.noNearbyBorewells ? (
-          <p className="font-bold text-[10px] text-slate-900">There is no nearby borewell</p>
+          <p className="font-bold text-[10px] text-slate-900 uppercase">There is no nearby borewell</p>
         ) : bwDataExists ? (
           <div>
             <p className="font-bold uppercase text-[9px] underline">BOREWELLS:</p>
@@ -87,7 +87,7 @@ function ReportContent({ id }: { id: string }) {
 
         {/* Openwell Logic */}
         {report.noNearbyOpenwells ? (
-          <p className="font-bold text-[10px] text-slate-900">There is no nearby open well</p>
+          <p className="font-bold text-[10px] text-slate-900 uppercase">There is no nearby open well</p>
         ) : owDataExists ? (
           <div className="mt-1">
             <p className="font-bold uppercase text-[9px] underline">OPEN WELLS:</p>

@@ -168,10 +168,10 @@ function BillContent() {
     let totalGstAmount = 0;
     let totalGrandAmount = 0;
 
-    const processItem = (label: string, qty: number, isDrilling: boolean = false, customQtyStr?: string, customLabel?: string) => {
+    const processItem = (label: string, qty: number, isDrilling: boolean = false, customQtyStr?: string, customLabel?: string, forceFlatAmt: boolean = false) => {
         const rate = findRate(label);
         if (rate === null) return { error: true, label };
-        const baseAmt = qty * rate;
+        const baseAmt = forceFlatAmt ? rate : (qty * rate);
         
         let gstPercent = 0;
         if (!isDrilling && isGstThresholdMet) {
@@ -200,8 +200,8 @@ function BillContent() {
     if (isFlushing) {
       const displayLabel = 'കുഴൽ കിണർ ഫ്ലഷിംഗ് ചാർജ്ജ് (Compressor working time: 2.5 hours)';
       const displayDepth = `${report.totalDepth || '0'} m`;
-      // For flushing, Amount = Rate. So calculation qty is 1.
-      const res = processItem(LABEL_FLUSHING_CATALOG, 1, true, displayDepth, displayLabel);
+      // For flushing, Amount = Rate. So we force flat amount by passing true
+      const res = processItem(LABEL_FLUSHING_CATALOG, 1, true, displayDepth, displayLabel, true);
       if (res.error) return { error: true, missingItem: res.label };
     } else {
       const res = processItem(LABEL_DRILLING, parseFloat(report.totalDepth || '0'), true);
