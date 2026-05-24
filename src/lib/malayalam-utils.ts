@@ -100,3 +100,14 @@ export function numberToMalayalamWords(num: number): string {
     .replace(/ലക്ഷം\s+/g, " ലക്ഷത്തി ")
     .replace(/കോടി\s+/g, " കോടി ");
 }
+
+export function formatToTechnicalDate(dateStr: string | undefined | null): string {
+  if (!dateStr) return '--';
+  const trimmed = dateStr.trim();
+  const parts = trimmed.split(/[-/]/);
+  if (parts.length === 3) {
+    if (parts[0].length === 4) return `${parts[2]}-${parts[1]}-${parts[0]}`;
+    return `${parts[0]}-${parts[1]}-${parts[2]}`;
+  }
+  return dateStr;
+}

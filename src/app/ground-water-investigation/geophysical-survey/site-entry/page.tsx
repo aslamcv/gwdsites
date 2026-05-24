@@ -366,7 +366,7 @@ function UnifiedGeophysicalSurveyContent() {
           
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
             <div className="flex items-center gap-5">
-              <Button variant="ghost" size="icon" asChild className="rounded-full h-12 w-12 border border-slate-200 text-slate-600 hover:bg-slate-50">
+              <Button type="button" variant="ghost" size="icon" asChild className="rounded-full h-12 w-12 border border-slate-200 text-slate-600 hover:bg-slate-50">
                 <Link href="/ground-water-investigation"><ArrowLeft className="size-5" /></Link>
               </Button>
             </div>

@@ -14,24 +14,7 @@ import { cn } from '@/lib/utils';
 import { PDFDocument } from 'pdf-lib';
 import { format, parseISO, isValid } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import { numberToMalayalamWords } from '@/lib/malayalam-utils';
-
-const formatTechnicalDate = (dateStr: string) => {
-  if (!dateStr) return '';
-  const trimmed = dateStr.trim();
-  const parts = trimmed.split(/[-/]/);
-  if (parts.length === 3) {
-    if (parts[0].length <= 2 && parts[2].length === 4) {
-      return `${parts[0]}-${parts[1]}-${parts[2]}`;
-    }
-    if (parts[0].length === 4) {
-      return `${parts[2]}-${parts[1]}-${parts[0]}`;
-    }
-  }
-  const date = parseISO(dateStr);
-  if (isValid(date)) return format(date, 'dd-MM-yyyy');
-  return dateStr;
-};
+import { numberToMalayalamWords, formatToTechnicalDate } from '@/lib/malayalam-utils';
 
 function BillContent() {
   const searchParams = useSearchParams();
@@ -183,7 +166,7 @@ function BillContent() {
         
         rows.push({ 
             label: customLabel || label, 
-            qtyStr: customQtyStr || (isDrilling && isFlushing ? (report.compressorWorkingHour || '2.5 hrs') : `${qty} m`), 
+            qtyStr: customQtyStr || `${qty} m`, 
             rate, 
             amount: baseAmt, 
             gst: gstAmt, 
@@ -200,7 +183,6 @@ function BillContent() {
     if (isFlushing) {
       const displayLabel = 'കുഴൽ കിണർ ഫ്ലഷിംഗ് ചാർജ്ജ് (Compressor working time: 2.5 hours)';
       const displayDepth = `${report.totalDepth || '0'} m`;
-      // For flushing, Amount = Rate. So we force flat amount by passing true
       const res = processItem(LABEL_FLUSHING_CATALOG, 1, true, displayDepth, displayLabel, true);
       if (res.error) return { error: true, missingItem: res.label };
     } else {
@@ -274,7 +256,7 @@ function BillContent() {
 
       const mapping: Record<string, string | undefined> = {
         'file_no': report.fileNo,
-        'date': formatTechnicalDate(data.reportDate),
+        'date': formatToTechnicalDate(data.reportDate),
         'site_name': report.nameOfSite,
         'lsgd': report.lsgd,
         'address': report.address,
@@ -380,7 +362,7 @@ function BillContent() {
 
           <div className="grid grid-cols-2 border border-black mb-6 text-[13px] text-left">
             <div className="border-r border-black p-2 px-4 flex justify-between"><span>ഫയൽ നമ്പർ:</span> <span className="font-bold">{report.fileNo}</span></div>
-            <div className="p-2 px-4 flex justify-between"><span>തീയതി:</span> <span className="font-bold">{formatTechnicalDate(data.reportDate)}</span></div>
+            <div className="p-2 px-4 flex justify-between"><span>തീയതി:</span> <span className="font-bold">{formatToTechnicalDate(data.reportDate)}</span></div>
           </div>
 
           <div className="mb-6 border border-black text-left text-[11px]">

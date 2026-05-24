@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useSearchParams } from 'next/navigation';
@@ -12,6 +11,7 @@ import type { GroundwaterReport } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { formatToTechnicalDate } from '@/lib/malayalam-utils';
 
 function ReportContent() {
   const searchParams = useSearchParams();
@@ -38,8 +38,8 @@ function ReportContent() {
         overburden: report.overburden || '',
         discharge: report.discharge || '0',
         waterLevel: report.waterLevel || '0',
-        workStart: report.dateOfInvestigation?.split(' - ')[0] || '',
-        workEnd: report.dateOfInvestigation?.split(' - ')[1] || '',
+        workStart: formatToTechnicalDate(report.dateOfInvestigation?.split(' - ')[0]),
+        workEnd: formatToTechnicalDate(report.dateOfInvestigation?.split(' - ')[1]),
         compressorWorkingHour: report.compressorWorkingHour || '',
         remarks: report.remarks || '',
         observations: report.observations || '',
@@ -49,26 +49,7 @@ function ReportContent() {
         staff: report.staffAssignment || {}
       };
     }
-    return {
-        fileNo: '',
-        wellNumber: '',
-        borewellSize: '',
-        nameOfSite: '',
-        lsgd: '',
-        totalDepth: '',
-        overburden: '',
-        discharge: '0',
-        waterLevel: '0',
-        workStart: '',
-        workEnd: '',
-        compressorWorkingHour: '',
-        remarks: '',
-        observations: '',
-        purpose: 'Well Flushing / Private / Drinking',
-        sector: 'PRIVATE',
-        category: 'FLUSHING',
-        staff: {}
-    };
+    return null;
   }, [report]);
 
   useEffect(() => {
@@ -77,6 +58,16 @@ function ReportContent() {
       document.title = `Flushing-Report-${report.fileNo}`;
     }
   }, [report]);
+
+  if (isLoading && id) {
+    return (
+      <div className="min-h-screen bg-slate-50 p-8 flex flex-col items-center">
+        <Skeleton className="h-[1000px] w-full max-w-[800px] bg-white shadow-xl rounded-none" />
+      </div>
+    );
+  }
+
+  if (!data) return null;
 
   const technicalData = [
     { label: '1) ഫയൽ നമ്പർ', value: data.fileNo },
@@ -87,139 +78,94 @@ function ReportContent() {
     { label: '6) ഓവർബർഡൻ (OB)', value: `${data.overburden} m` },
     { label: '7) ഏകദേശ ജല ലഭ്യത (Yield)', value: `${data.discharge} LPH` },
     { label: '8) സ്ഥിര ജലനിരപ്പ് (SWL)', value: `${data.waterLevel} m` },
-    { label: '9) പ്രവർത്തന കാലയളവ്', value: `${data.workStart} ${data.workEnd ? '- ' + data.workEnd : ''}` },
+    { label: '9) പ്രവർത്തന കാലയളവ്', value: data.workStart },
     { label: '10) കംപ്രസ്സർ പ്രവർത്തിച്ച സമയം', value: data.compressorWorkingHour },
     { label: '11) റിമാർക്സ്', value: data.remarks, upper: true },
   ];
 
-  if (isLoading && id) {
-    return (
-      <div className="min-h-screen bg-slate-50 p-8 flex flex-col items-center">
-        <Skeleton className="h-[1000px] w-full max-w-[800px] bg-white shadow-xl rounded-none" />
-      </div>
-    );
-  }
-
   return (
-    <>
-      <style jsx global>{`
-        @media print {
-          @page {
-            size: A4 portrait;
-            margin: 12mm;
-          }
-          body {
-            margin: 0;
-            padding: 0;
-            background: white !important;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-          }
-          .report-container {
-            width: 100%;
-            height: auto;
-            padding: 0 !important;
-            margin: 0 !important;
-            border: none !important;
-            box-shadow: none !important;
-            page-break-after: avoid;
-          }
-          .no-print {
-            display: none !important;
-          }
-        }
-      `}</style>
-      
-      <div className="min-h-screen bg-slate-100 py-4 px-4 pt-12 print:bg-white print:p-0 font-malayalam text-black">
-        <div className="max-w-[210mm] mx-auto mb-2 flex items-center justify-between print:hidden">
-          <Button variant="ghost" asChild className="gap-2 text-slate-600 h-8 text-xs">
-            <Link href="/well-drilling">
-              <ArrowLeft className="h-3 w-3" />
-              Back to Portal
-            </Link>
-          </Button>
-          <Button onClick={() => window.print()} className="gap-2 font-bold bg-primary text-white h-8 text-xs">
-            <Printer className="h-3 w-3" />
-            Print Report
-          </Button>
+    <div className="min-h-screen bg-slate-100 py-4 px-4 pt-12 print:bg-white print:p-0 font-malayalam text-black">
+      <div className="max-w-[210mm] mx-auto mb-2 flex items-center justify-between print:hidden">
+        <Button variant="ghost" asChild className="gap-2 text-slate-600 h-8 text-xs">
+          <Link href="/well-drilling">
+            <ArrowLeft className="h-3 w-3" />
+            Back to Portal
+          </Link>
+        </Button>
+        <Button onClick={() => window.print()} className="gap-2 font-bold bg-primary text-white h-8 text-xs">
+          <Printer className="h-3 w-3" />
+          Print Report
+        </Button>
+      </div>
+
+      <div className="bg-white mx-auto w-full max-w-[210mm] min-h-[297mm] shadow-xl print:shadow-none p-[12mm] flex flex-col text-[12px] leading-tight text-black border border-slate-200 print:border-none overflow-hidden relative">
+        
+        <div className="absolute top-10 left-10 text-left">
+          <p className="text-[12px] font-black text-black leading-none">
+            ({data.wellNumber || '12'})
+          </p>
+          <p className="text-[9px] font-bold text-slate-400 mt-1">{currentDate}</p>
         </div>
 
-        <div className="report-container bg-white mx-auto w-full max-w-[210mm] min-h-[297mm] shadow-xl print:shadow-none p-[12mm] flex flex-col text-[12px] leading-tight text-black border border-slate-200 print:border-none overflow-hidden relative">
-          
-          <div className="absolute top-10 left-10 text-left uppercase">
-            <p className="text-[12px] font-black text-black leading-none">
-              ({data.wellNumber || 'WELL NUMBER'})
-            </p>
-          </div>
+        <div className="absolute top-10 right-10 text-right uppercase">
+          <p className="text-[12px] font-bold text-black leading-none">
+            {data.sector.toUpperCase()}/WELL FLUSHING
+          </p>
+        </div>
 
-          <div className="absolute top-10 right-10 text-right uppercase">
-            <p className="text-[12px] font-bold text-black leading-none">
-              {data.sector.toUpperCase()}/{data.category.toUpperCase()}
-            </p>
-          </div>
+        <div className="text-center space-y-1 mb-8 pt-6">
+          <h1 className="text-[16px] font-bold">ഭൂജല വകുപ്പ്, ജില്ലാ ഓഫീസ്, മലപ്പുറം.</h1>
+          <h2 className="text-[14px] font-bold">കുഴൽ കിണർ ഫ്ലഷിംഗ് പൂർത്തീകരണ റിപ്പോർട്ട്</h2>
+          <p className="text-[10px] text-slate-600 font-bold">വകുപ്പ് വാഹനം (SKE DTH റിഗ്) ഉപയോഗിച്ച് നടത്തിയ കുഴൽ കിണർ ഫ്ലഷിംഗ് പ്രവർത്തി</p>
+        </div>
 
-          <div className="flex justify-between items-center mb-2 pb-1 border-b border-slate-100">
-            <div className="text-[9px] font-bold text-slate-500 w-1/3 text-left">{currentDate}</div>
-            <div className="text-center w-1/3">
-              <h2 className="text-[13px] font-bold underline underline-offset-4 invisible">Flushing Report – {data.fileNo}</h2>
+        <div className="space-y-2 mb-8 px-4">
+          {technicalData.map((item, index) => (
+            <div key={index} className="grid grid-cols-[300px_1fr] gap-x-2 items-center border-b border-slate-100 pb-1">
+              <span className="font-bold text-slate-700">{item.label} :</span>
+              <span className={cn("font-black text-right pr-4", item.upper && "uppercase")}>
+                {item.value || '--'}
+              </span>
             </div>
-            <div className="text-right w-1/3"></div>
-          </div>
-          
-          <div className="text-center space-y-0.5 mb-4">
-            <h1 className="text-[15px] font-bold">ഭൂജല വകുപ്പ്, ജില്ലാ ഓഫീസ്, മലപ്പുറം.</h1>
-            <h2 className="text-[12px] font-bold">കുഴൽ കിണർ ഫ്ലഷിംഗ് പൂർത്തീകരണ റിപ്പോർട്ട്</h2>
-            <p className="text-[10px] text-slate-600">വകുപ്പ് വാഹനം (SKE DTH റിഗ്) ഉപയോഗിച്ച് നടത്തിയ കുഴൽ കിണർ ഫ്ലഷിംഗ് പ്രവർത്തി</p>
-          </div>
+          ))}
+        </div>
 
-          <div className="space-y-1.5 mb-4 px-2 text-left">
-            {technicalData.map((item, index) => (
-              <div key={index} className="flex justify-between border-b border-slate-100 pb-0.5">
-                <span className="font-medium text-slate-700">{item.label} :</span>
-                <span className={cn("font-bold text-right", item.upper && "uppercase")}>
-                  {item.value || '--'}
-                </span>
-              </div>
-            ))}
-          </div>
+        <div className="mb-10 px-4 text-left">
+          <h3 className="font-black uppercase text-[11px] mb-2">Field Observations & Remarks:</h3>
+          <p className="italic leading-normal text-justify text-[11px] border-l-2 border-slate-200 pl-4 py-1">
+            {data.observations || 'No additional observations recorded.'}
+          </p>
+        </div>
 
-          <div className="mb-4 px-2 text-left">
-            <h3 className="font-bold underline underline-offset-4 text-[11px] mb-1">Field Observations & Remarks:</h3>
-            <p className="italic leading-snug text-justify text-[11px]">
-              {data.observations || 'No additional observations recorded.'}
-            </p>
-          </div>
-
-          <div className="mt-12 pb-2">
-            <div className="grid grid-cols-4 gap-2 text-[8px] text-center font-bold mb-4">
-              <div className="flex flex-col items-center">
-                <div className="h-10 flex items-end justify-center font-black uppercase text-[10px]">
-                  ({data.staff.unitInCharge || 'UNIT IN CHARGE'})
-                </div>
-                <p className="w-full border-t border-black pt-1 uppercase">Unit In-Charge<br/>(SKE DTH RIG)</p>
+        <div className="mt-auto pb-6">
+          <div className="grid grid-cols-4 gap-4 text-[8px] text-center font-bold">
+            <div className="flex flex-col items-center">
+              <div className="h-10 flex items-end justify-center font-black uppercase text-[10px]">
+                ({data.staff.unitInCharge || 'UNIT IN CHARGE'})
               </div>
-              <div className="flex flex-col items-center">
-                <div className="h-10"></div>
-                <p className="w-full border-t border-black pt-1 uppercase">Assistant<br/>Engineer</p>
-              </div>
-              <div className="flex flex-col items-center">
-                <div className="h-10"></div>
-                <p className="w-full border-t border-black pt-1 uppercase">Asst. Executive<br/>Engineer</p>
-              </div>
-              <div className="flex flex-col items-center">
-                <div className="h-10"></div>
-                <p className="w-full border-t border-black pt-1 uppercase">District<br/>Officer</p>
-              </div>
+              <p className="w-full border-t border-black pt-1 uppercase leading-tight font-black">Unit In-Charge<br/>(SKE DTH RIG)</p>
             </div>
-
-            <div className="pt-1 border-t border-slate-200 text-[8px] text-muted-foreground flex justify-between uppercase tracking-widest font-sans font-bold">
-              <span>GROUND WATER DEPARTMENT DISTRICT OFFICE, MALAPPURAM</span>
-              <span>SYSTEM GENERATED TECHNICAL RECORD</span>
+            <div className="flex flex-col items-center">
+              <div className="h-10"></div>
+              <p className="w-full border-t border-black pt-1 uppercase font-black">Assistant<br/>Engineer</p>
             </div>
+            <div className="flex flex-col items-center">
+              <div className="h-10"></div>
+              <p className="w-full border-t border-black pt-1 uppercase font-black">Asst. Executive<br/>Engineer</p>
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="h-10"></div>
+              <p className="w-full border-t border-black pt-1 uppercase font-black">District<br/>Officer</p>
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-slate-200 flex justify-between text-[8px] text-muted-foreground uppercase tracking-widest font-sans font-black">
+            <span>GROUND WATER DEPARTMENT DISTRICT OFFICE, MALAPPURAM</span>
+            <span>SYSTEM GENERATED TECHNICAL RECORD</span>
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 

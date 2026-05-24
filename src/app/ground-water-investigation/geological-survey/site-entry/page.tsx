@@ -208,6 +208,7 @@ function SiteEntryContent() {
     nearbyOpenwell1Depth: '', nearbyOpenwell1WaterLevel: '', nearbyOpenwell1ParapetHeight: '', nearbyOpenwell1Type: 'Perennial',
     nearbyOpenwell2Depth: '', nearbyOpenwell2WaterLevel: '', nearbyOpenwell2ParapetHeight: '', nearbyOpenwell2Type: 'Perennial',
     nearbyOpenwell3Depth: '', nearbyOpenwell3WaterLevel: '', nearbyOpenwell3ParapetHeight: '', nearbyOpenwell3Type: 'Perennial',
+    noNearbyOpenwells: false,
     recommendationType: '',
     recBorewellTotalDepth: '',
     recBorewellDiameter: '',
@@ -353,7 +354,7 @@ function SiteEntryContent() {
           
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
             <div className="flex items-center gap-5">
-              <Button variant="ghost" size="icon" asChild className="rounded-full h-12 w-12 border border-slate-200 text-slate-600 hover:bg-slate-50">
+              <Button type="button" variant="ghost" size="icon" asChild className="rounded-full h-12 w-12 border border-slate-200 text-slate-600 hover:bg-slate-50">
                 <Link href="/ground-water-investigation"><ArrowLeft className="size-5" /></Link>
               </Button>
             </div>
@@ -791,7 +792,7 @@ const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, formData, u
           </FormFieldItem>
         </div>
       )}
-      <DialogFooter className="pt-4"><Button type="button" onClick={() => onOpenChange(false)} className="w-full h-12 rounded-xl font-black uppercase text-[11px] tracking-widest shadow-lg bg-[#1e3a8a] text-white hover:bg-blue-900">Save Details</Button></DialogFooter>
+      <DialogFooter className="pt-4"><Button type="button" onClick={() => onOpenChange(false)} className="w-full h-12 rounded-xl font-black uppercase text-[11px] tracking-widest shadow-lg bg-[#1e3a8a] text-white hover:bg-blue-900">Save Details</Button></DropdownMenuContent>
     </DialogContent>
   </Dialog>
 )};
