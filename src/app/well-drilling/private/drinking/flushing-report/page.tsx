@@ -53,7 +53,7 @@ function ReportContent() {
   }, [report]);
 
   useEffect(() => {
-    setCurrentDate(format(new Date(), 'dd/MM/yyyy, HH:mm:ss'));
+    setCurrentDate(format(new Date(), 'dd-MM-yyyy, HH:mm:ss'));
     if (report?.fileNo) {
       document.title = `Flushing-Report-${report.fileNo}`;
     }
@@ -119,11 +119,11 @@ function ReportContent() {
           <p className="text-[10px] text-slate-600 font-bold">വകുപ്പ് വാഹനം (SKE DTH റിഗ്) ഉപയോഗിച്ച് നടത്തിയ കുഴൽ കിണർ ഫ്ലഷിംഗ് പ്രവർത്തി</p>
         </div>
 
-        <div className="space-y-2 mb-8 px-4">
+        <div className="space-y-1.5 mb-8 px-4 text-left">
           {technicalData.map((item, index) => (
-            <div key={index} className="grid grid-cols-[300px_1fr] gap-x-2 items-center border-b border-slate-100 pb-1">
-              <span className="font-bold text-slate-700">{item.label} :</span>
-              <span className={cn("font-black text-right pr-4", item.upper && "uppercase")}>
+            <div key={index} className="flex items-baseline border-b border-slate-50 pb-0.5">
+              <span className="font-bold text-slate-700 min-w-[280px]">{item.label} :</span>
+              <span className={cn("font-black text-slate-900 ml-2", item.upper && "uppercase")}>
                 {item.value || '--'}
               </span>
             </div>
@@ -131,14 +131,14 @@ function ReportContent() {
         </div>
 
         <div className="mb-10 px-4 text-left">
-          <h3 className="font-black uppercase text-[11px] mb-2">Field Observations & Remarks:</h3>
-          <p className="italic leading-normal text-justify text-[11px] border-l-2 border-slate-200 pl-4 py-1">
+          <h3 className="font-black uppercase text-[11px] mb-2 underline">Field Observations & Remarks:</h3>
+          <p className="italic leading-normal text-justify text-[11px] border-l-2 border-slate-200 pl-4 py-1 uppercase font-bold">
             {data.observations || 'No additional observations recorded.'}
           </p>
         </div>
 
         <div className="mt-auto pb-6">
-          <div className="grid grid-cols-4 gap-4 text-[8px] text-center font-bold">
+          <div className="grid grid-cols-4 gap-4 text-[9px] text-center font-bold">
             <div className="flex flex-col items-center">
               <div className="h-10 flex items-end justify-center font-black uppercase text-[10px]">
                 ({data.staff.unitInCharge || 'UNIT IN CHARGE'})
@@ -161,7 +161,7 @@ function ReportContent() {
 
           <div className="pt-4 border-t border-slate-200 flex justify-between text-[8px] text-muted-foreground uppercase tracking-widest font-sans font-black">
             <span>GROUND WATER DEPARTMENT DISTRICT OFFICE, MALAPPURAM</span>
-            <span>SYSTEM GENERATED TECHNICAL RECORD</span>
+            <span>OFFICIAL TECHNICAL COMPLETION RECORD</span>
           </div>
         </div>
       </div>
