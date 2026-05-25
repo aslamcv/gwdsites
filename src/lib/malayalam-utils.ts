@@ -107,6 +107,7 @@ export function numberToMalayalamWords(num: number): string {
 export function formatToTechnicalDate(dateStr: string | undefined | null): string {
   if (!dateStr) return '--/--/----';
   const trimmed = dateStr.trim();
+  
   // Handle ISO strings or YYYY-MM-DD
   const parts = trimmed.split(/[-/]/);
   if (parts.length === 3) {

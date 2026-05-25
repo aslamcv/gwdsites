@@ -279,16 +279,19 @@ function SiteEntryContent() {
   useEffect(() => {
     if (cloudReport) {
       const sa = cloudReport.staffAssignment || {};
-      setStaffFormData((prev: any) => ({
-        ...prev,
-        ...cloudReport,
+      setStaffFormData({
+        startDate: cloudReport.reportDate || cloudReport.startDate || new Date().toISOString().split('T')[0],
+        endDate: cloudReport.endDate || '',
+        conveyance: cloudReport.conveyance || '',
+        sector: cloudReport.sector || 'private',
+        category: cloudReport.category || 'Domestic',
         staffAssignment: {
           hydrogeologist: Array.isArray(sa.hydrogeologist) ? sa.hydrogeologist : (sa.hydrogeologist ? (sa.hydrogeologist as string).split(', ') : []),
           juniorHydrogeologist: Array.isArray(sa.juniorHydrogeologist) ? sa.juniorHydrogeologist : (sa.juniorHydrogeologist ? (sa.juniorHydrogeologist as string).split(', ') : []),
           geologicalAssistant: Array.isArray(sa.geologicalAssistant) ? sa.geologicalAssistant : (sa.geologicalAssistant ? (sa.geologicalAssistant as string).split(', ') : []),
           otherStaff: Array.isArray(sa.otherStaff) ? sa.otherStaff : (sa.otherStaff ? (sa.otherStaff as string).split(', ') : [])
         }
-      }));
+      });
     }
   }, [cloudReport]);
 
@@ -316,8 +319,8 @@ function SiteEntryContent() {
       const dateOfInvestigation = `${staffFormData.startDate}${staffFormData.endDate ? ' - ' + staffFormData.endDate : ''}`;
 
       const reportData = {
-        ...values,
-        ...staffFormData,
+        ...staffFormData, // Sector, Category, Conveyance, Base Dates
+        ...values,        // Form details (Name of Site, Address, Recommendation, etc.)
         id: reportId,
         reportDate: staffFormData.startDate,
         applicantName: values.applicantNameAddress?.split('\n')[0] || values.nameOfSite,
@@ -458,7 +461,15 @@ function SiteEntryContent() {
                             </div>
                           ))}
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => setIsManualVillageOpen(true)} className="rounded-xl py-3 px-6 font-black text-xs uppercase cursor-pointer text-blue-600 bg-blue-50 hover:bg-blue-100"><PlusCircle className="size-4 mr-2" /> MANUAL ENTRY</DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onSelect={(e) => {
+                              e.preventDefault();
+                              setIsManualVillageOpen(true);
+                            }} 
+                            className="rounded-xl py-3 px-6 font-black text-xs uppercase cursor-pointer text-blue-600 bg-blue-50 hover:bg-blue-100"
+                          >
+                            <PlusCircle className="size-4 mr-2" /> MANUAL ENTRY
+                          </DropdownMenuItem>
                         </ScrollArea>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -471,7 +482,9 @@ function SiteEntryContent() {
                     <FormLabel className="text-[10px] font-black uppercase text-slate-500">11. LSGD</FormLabel> 
                     <Select disabled={!isAllowed} onValueChange={field.onChange} value={field.value}>
                       <FormControl><SelectTrigger className="h-10 text-xs font-bold uppercase"><SelectValue placeholder="SELECT LSGD" /></SelectTrigger></FormControl>
-                      <SelectContent className="max-h-[400px] rounded-2xl">{lsgs.map(l => <SelectItem key={l} value={l} className="text-[10px] font-bold uppercase">{l}</SelectItem>)}</SelectContent>
+                      <SelectContent className="max-h-[400px] rounded-2xl">
+                        {lsgs.map(l => <SelectItem key={l} value={l} className="text-[10px] font-bold uppercase">{l}</SelectItem>)}
+                      </SelectContent>
                     </Select>
                   </FormItem> 
                 )} />
@@ -486,7 +499,9 @@ function SiteEntryContent() {
                     <FormLabel className="text-[10px] font-black uppercase text-slate-500">13. Block</FormLabel> 
                     <Select disabled={!isAllowed} onValueChange={field.onChange} value={field.value}>
                       <FormControl><SelectTrigger className="h-10 text-xs font-bold uppercase"><SelectValue/></SelectTrigger></FormControl>
-                      <SelectContent className="rounded-xl">{blockOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+                      <SelectContent className="rounded-xl">
+                        {blockOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                      </SelectContent>
                     </Select>
                   </FormItem> 
                 )} />
@@ -528,7 +543,7 @@ function SiteEntryContent() {
               </CardHeader>
               <CardContent className="p-10 grid grid-cols-1 md:grid-cols-2 gap-12 text-left">
                 <div className="space-y-4">
-                  <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest block ml-1">a) Borewell Status</Label>
+                  <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block ml-1">a) Borewell Status</Label>
                   <div className="flex flex-wrap gap-2 p-1 bg-slate-100 rounded-2xl w-fit">
                     {['borewell1', 'borewell2', 'borewell3'].map((val, idx) => (
                       <Button key={val} type="button" variant={selectedNearbyStructure === val && !form.getValues('noNearbyBorewells') ? 'default' : 'ghost'} className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", selectedNearbyStructure === val && !form.getValues('noNearbyBorewells') ? "bg-[#1e3a8a] text-white shadow-md" : "text-slate-500")} onClick={() => handleNearbyTypeSelect('borewell', val)} disabled={!isAllowed}>BW-{idx + 1}</Button>
@@ -537,7 +552,7 @@ function SiteEntryContent() {
                   </div>
                 </div>
                 <div className="space-y-4">
-                  <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest block ml-1">b) Open well Status</Label>
+                  <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block ml-1">b) Open well Status</Label>
                   <div className="flex flex-wrap gap-2 p-1 bg-slate-100 rounded-2xl w-fit">
                     {['openwell1', 'openwell2', 'openwell3'].map((val, idx) => (
                       <Button key={val} type="button" variant={selectedNearbyStructure === val && !form.getValues('noNearbyOpenwells') ? 'default' : 'ghost'} className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", selectedNearbyStructure === val && !form.getValues('noNearbyOpenwells') ? "bg-emerald-600 text-white shadow-md" : "text-slate-500")} onClick={() => handleNearbyTypeSelect('openwell', val)} disabled={!isAllowed}>OW-{idx + 1}</Button>
@@ -699,7 +714,7 @@ const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, updateField
           </div>
         </div>
       )}
-      <DialogFooter className="pt-4"><Button type="button" onClick={() => onOpenChange(false)} className="w-full h-12 rounded-xl font-black uppercase text-[11px] bg-[#1e3a8a] text-white hover:bg-blue-900">Save Details</Button></DialogFooter>
+      <DialogFooter className="pt-4"><Button type="button" onClick={() => onOpenChange(false)} className="w-full h-12 rounded-xl font-black uppercase text-[11px] bg-[#1e3a8a] text-white">Save Details</Button></DialogFooter>
     </DialogContent>
   </Dialog>
 )};
