@@ -129,12 +129,12 @@ function ReportContent() {
           <p><span className="font-bold">റിമാർക്സ് :</span> <span className="font-bold uppercase ml-1">{data.remarks || 'NIL'}</span></p>
         </div>
 
-        <div className="space-y-1 mb-12 px-4">
+        <div className="space-y-1 mb-8 px-4">
           <h3 className="font-bold underline underline-offset-4 text-[13px]">Field Observations & Remarks:</h3>
           <p className="italic leading-normal text-justify whitespace-pre-wrap uppercase font-bold text-slate-700">{data.observations || 'WORK EXECUTED ACCORDING TO DEPARTMENTAL STANDARDS. YIELD RECORDED DURING CONSTRUCTION.'}</p>
         </div>
 
-        <div className="mt-auto">
+        <div className="mt-4">
           <div className="grid grid-cols-4 gap-4 text-[9.5px] text-center font-black pb-8">
             <div className="flex flex-col items-center">
               <div className="h-10 flex items-end justify-center font-black uppercase text-[10.5px]">({(typeof data.staffAssignment?.unitInCharge === 'string' ? data.staffAssignment.unitInCharge : (Array.isArray(data.staffAssignment?.unitInCharge) ? data.staffAssignment.unitInCharge[0] : '')) || '---'})</div>

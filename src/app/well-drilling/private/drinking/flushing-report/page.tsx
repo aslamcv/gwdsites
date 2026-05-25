@@ -127,14 +127,14 @@ function ReportContent() {
           ))}
         </div>
 
-        <div className="mb-12 px-4">
+        <div className="mb-8 px-4">
           <h3 className="font-black uppercase text-[11px] mb-3 underline underline-offset-4">Field Observations & Strata Notes:</h3>
           <p className="italic leading-relaxed text-justify text-[11px] border-l-[3px] border-slate-300 pl-5 py-2 uppercase font-bold text-slate-600 bg-slate-50/50 rounded-r-xl">
             {data.observations || 'WORK EXECUTED ACCORDING TO DEPARTMENTAL STANDARDS. YIELD RECORDED DURING DEVELOPMENT.'}
           </p>
         </div>
 
-        <div className="mt-auto">
+        <div className="mt-4">
           <div className="grid grid-cols-4 gap-6 text-[9.5px] text-center font-black pb-8">
             <div className="flex flex-col items-center">
               <div className="h-12 flex items-end justify-center font-black uppercase text-[10.5px]">({(typeof data.staff.unitInCharge === 'string' ? data.staff.unitInCharge : (Array.isArray(data.staff.unitInCharge) ? data.staff.unitInCharge[0] : '')) || '---'})</div>
