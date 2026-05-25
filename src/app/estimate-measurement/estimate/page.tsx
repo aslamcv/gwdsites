@@ -19,7 +19,8 @@ import {
   PlusCircle,
   Table as TableIcon,
   Trash2,
-  ClipboardList
+  ClipboardList,
+  MapPin
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -40,7 +41,6 @@ import {
   DialogTitle, 
   DialogFooter,
   DialogDescription,
-  DialogTrigger
 } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
@@ -372,13 +372,15 @@ export default function EstimateEntryPage() {
             <Badge variant="outline" className="h-6 px-3 bg-white text-[9px] font-black text-slate-400 uppercase tracking-widest">{formData.sites.length} ENTRIES</Badge>
           </div>
           
-          <Dialog open={isSiteDialogOpen} onOpenChange={setIsSiteDialogOpen}>
-            <DialogTrigger asChild>
-                <Button className="h-12 px-8 rounded-2xl bg-[#1e3a8a] hover:bg-blue-900 text-white font-black uppercase tracking-widest text-[10px] gap-2 shadow-xl shadow-blue-900/20 transition-all hover:scale-[1.02] active:scale-95">
-                    <PlusCircle className="size-4" /> ADD TECHNICAL WORK ENTRY
-                </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px] rounded-[32px] p-8 border-none shadow-2xl">
+          <div className="flex items-center gap-2">
+            <Button onClick={() => setIsSiteDialogOpen(true)} className="h-12 px-8 rounded-2xl bg-[#1e3a8a] hover:bg-blue-900 text-white font-black uppercase tracking-widest text-[10px] gap-2 shadow-xl shadow-blue-900/20 transition-all hover:scale-[1.02] active:scale-95">
+                <PlusCircle className="size-4" /> ADD TECHNICAL WORK ENTRY
+            </Button>
+          </div>
+        </div>
+
+        <Dialog open={isSiteDialogOpen} onOpenChange={setIsSiteDialogOpen}>
+            <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl">
                 <DialogHeader>
                     <DialogTitle className="text-xl font-black uppercase tracking-tight text-slate-900">Technical Site Entry</DialogTitle>
                     <DialogDescription className="text-[10px] font-bold uppercase text-slate-400 tracking-widest mt-1">Specify site location and nature of work for estimation.</DialogDescription>
@@ -403,13 +405,12 @@ export default function EstimateEntryPage() {
                         <Textarea value={newSite.remarks} onChange={(e) => setNewSite({...newSite, remarks: e.target.value})} placeholder="Technical justifications or specific measurements..." className="rounded-xl border-slate-200 min-h-[100px]" />
                     </div>
                 </div>
-                <DialogFooter>
-                    <Button variant="ghost" onClick={() => setIsSiteDialogOpen(false)} className="rounded-xl font-black uppercase text-[10px]">Cancel</Button>
-                    <Button onClick={handleAddSite} className="h-12 px-8 rounded-xl bg-primary text-white font-black uppercase tracking-widest text-[10px]">SAVE WORK ENTRY</Button>
+                <DialogFooter className="flex flex-col sm:flex-row gap-3">
+                    <Button type="button" variant="ghost" onClick={() => setIsSiteDialogOpen(false)} className="rounded-xl font-black uppercase text-[10px]">Cancel</Button>
+                    <Button type="button" onClick={handleAddSite} className="h-12 px-8 rounded-xl bg-primary text-white font-black uppercase tracking-widest text-[10px]">SAVE WORK ENTRY</Button>
                 </DialogFooter>
             </DialogContent>
-          </Dialog>
-        </div>
+        </Dialog>
 
         <Card className="rounded-[32px] border-none shadow-sm ring-1 ring-slate-200 bg-white overflow-hidden">
             <CardContent className="p-0">
@@ -473,4 +474,3 @@ export default function EstimateEntryPage() {
     </div>
   );
 }
-

@@ -44,7 +44,7 @@ function ReportContent({ id }: { id: string }) {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-50 p-8 flex flex-col items-center">
-        <Skeleton className="h-[1000px] w-full max-w-[800px] bg-white shadow-xl rounded-none" />
+        <Skeleton className="h-[1000px] w-full max-w-[210mm] bg-white shadow-xl rounded-none" />
       </div>
     );
   }
