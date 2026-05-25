@@ -188,7 +188,7 @@ function FeasibilityContent({ id }: { id: string }) {
             <div className="text-center min-w-[200px] space-y-1">
                 <p className="font-bold">വിശ്വസ്തതയോടെ,</p>
                 <div className="h-20"></div>
-                <p className="font-bold text-[15px] uppercase">ജില്ലാ ഓഫീസർ.</p>
+                <p className="font-bold text-[15px] uppercase border-t border-black pt-1">ജില്ലാ ഓഫീസർ.</p>
             </div>
         </div>
 

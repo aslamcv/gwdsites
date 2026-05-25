@@ -256,7 +256,7 @@ function SiteEntryContent() {
     }
   }, [cloudReport, form, defaultValues]);
 
-  // AUTO-POPULATE LAC logic
+  // LAC auto-population logic
   const watchedLsgd = form.watch('lsgd');
   useEffect(() => {
     if (watchedLsgd && lsgMappings) {
@@ -650,7 +650,6 @@ function SiteEntryContent() {
         isOpen={isNearbyDialogOpen}
         onOpenChange={setIsNearbyDialogOpen}
         structureType={selectedNearbyStructure}
-        formData={formData}
         updateField={(k:any, v:any) => form.setValue(k, v)}
         watchedValues={form.watch()}
       />

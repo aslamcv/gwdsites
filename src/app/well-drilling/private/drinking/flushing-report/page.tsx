@@ -119,7 +119,7 @@ function ReportContent() {
         <div className="space-y-2 mb-10 px-4">
           {technicalData.map((item, index) => (
             <div key={index} className="flex items-baseline border-b border-slate-50 pb-1">
-              <span className="font-bold text-slate-700 min-w-[220px] text-[13px]">{item.label} :</span>
+              <span className="font-bold text-slate-700 min-w-[240px] text-[13px]">{item.label} :</span>
               <span className={cn("font-black text-slate-900 ml-1 text-[13px]", item.upper && "uppercase")}>
                 {item.value || '--'}
               </span>

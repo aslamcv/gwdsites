@@ -115,7 +115,7 @@ function ReportContent() {
         <div className="space-y-2 mb-8 px-4">
           {technicalRows.map((item, index) => (
             <div key={index} className="flex items-baseline">
-              <span className={cn("min-w-[320px] font-medium", item.boldUnderline && "font-bold underline underline-offset-2")}>
+              <span className={cn("min-w-[240px] font-medium", item.boldUnderline && "font-bold underline underline-offset-2")}>
                 {item.label} :
               </span>
               <span className={cn("font-bold ml-1", item.upper && "uppercase", item.boldUnderline && "underline underline-offset-2")}>
