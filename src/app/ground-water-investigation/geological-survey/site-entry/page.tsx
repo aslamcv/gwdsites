@@ -76,7 +76,6 @@ import { StaffMultiSelect } from '@/components/investigation/staff-multi-select'
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/logo';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { formatToTechnicalDate } from '@/lib/malayalam-utils';
 
 const reportSchema = z.object({
   nameOfSite: z.string().min(1, 'Name of site is required.'),
@@ -257,7 +256,7 @@ function SiteEntryContent() {
     }
   }, [cloudReport, form, defaultValues]);
 
-  // AUTO-POPULATE CONSTITUENCY (LAC) FROM LSGD
+  // AUTO-POPULATE LAC logic
   const watchedLsgd = form.watch('lsgd');
   useEffect(() => {
     if (watchedLsgd && lsgMappings) {
@@ -276,6 +275,22 @@ function SiteEntryContent() {
     category: 'Domestic',
     staffAssignment: { hydrogeologist: [], juniorHydrogeologist: [], geologicalAssistant: [], otherStaff: [] }
   });
+
+  useEffect(() => {
+    if (cloudReport) {
+      const sa = cloudReport.staffAssignment || {};
+      setStaffFormData((prev: any) => ({
+        ...prev,
+        ...cloudReport,
+        staffAssignment: {
+          hydrogeologist: Array.isArray(sa.hydrogeologist) ? sa.hydrogeologist : (sa.hydrogeologist ? (sa.hydrogeologist as string).split(', ') : []),
+          juniorHydrogeologist: Array.isArray(sa.juniorHydrogeologist) ? sa.juniorHydrogeologist : (sa.juniorHydrogeologist ? (sa.juniorHydrogeologist as string).split(', ') : []),
+          geologicalAssistant: Array.isArray(sa.geologicalAssistant) ? sa.geologicalAssistant : (sa.geologicalAssistant ? (sa.geologicalAssistant as string).split(', ') : []),
+          otherStaff: Array.isArray(sa.otherStaff) ? sa.otherStaff : (sa.otherStaff ? (sa.otherStaff as string).split(', ') : [])
+        }
+      }));
+    }
+  }, [cloudReport]);
 
   const updateStaffField = (key: string, value: any) => setStaffFormData((p:any) => ({ ...p, [key]: value }));
   const updateStaff = (role: string, names: string[]) => setStaffFormData((p:any) => ({ ...p, staffAssignment: { ...p.staffAssignment, [role]: names } }));
@@ -455,7 +470,7 @@ function SiteEntryContent() {
                   <FormItem> 
                     <FormLabel className="text-[10px] font-black uppercase text-slate-500">11. LSGD</FormLabel> 
                     <Select disabled={!isAllowed} onValueChange={field.onChange} value={field.value}>
-                      <FormControl><SelectTrigger className="h-10 text-xs font-bold"><SelectValue placeholder="SELECT LSGD" /></SelectTrigger></FormControl>
+                      <FormControl><SelectTrigger className="h-10 text-xs font-bold uppercase"><SelectValue placeholder="SELECT LSGD" /></SelectTrigger></FormControl>
                       <SelectContent className="max-h-[400px] rounded-2xl">{lsgs.map(l => <SelectItem key={l} value={l} className="text-[10px] font-bold uppercase">{l}</SelectItem>)}</SelectContent>
                     </Select>
                   </FormItem> 
@@ -470,7 +485,7 @@ function SiteEntryContent() {
                   <FormItem> 
                     <FormLabel className="text-[10px] font-black uppercase text-slate-500">13. Block</FormLabel> 
                     <Select disabled={!isAllowed} onValueChange={field.onChange} value={field.value}>
-                      <FormControl><SelectTrigger className="h-10 text-xs font-bold"><SelectValue/></SelectTrigger></FormControl>
+                      <FormControl><SelectTrigger className="h-10 text-xs font-bold uppercase"><SelectValue/></SelectTrigger></FormControl>
                       <SelectContent className="rounded-xl">{blockOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
                     </Select>
                   </FormItem> 
@@ -480,7 +495,7 @@ function SiteEntryContent() {
                     <FormLabel className="text-[10px] font-black uppercase text-slate-500">14. Type Applied For</FormLabel> 
                     <Select disabled={!isAllowed} onValueChange={field.onChange} value={field.value}>
                       <FormControl><SelectTrigger className="h-10 text-xs bg-slate-50/50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue /></SelectTrigger></FormControl>
-                      <SelectContent className="rounded-xl">{recommendationTypeOptions.filter(o=>o.value !== 'not_feasible').map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+                      <SelectContent className="rounded-xl">{recommendationTypeOptions.filter(o=>o.value !== 'not_feasible').map(o => <SelectItem key={o.value} value={o.value} className="text-[10px] font-bold uppercase">{o.label}</SelectItem>)}</SelectContent>
                     </Select>
                   </FormItem> 
                 )} />

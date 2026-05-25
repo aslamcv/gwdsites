@@ -225,22 +225,6 @@ function ReportContent({ id }: { id: string }) {
             </div>
         </div>
 
-        {report.recommendedToGpSurvey && (
-          <div className="border-[3px] border-black p-4 mb-4">
-            <p className="text-[12px] font-bold text-center uppercase">
-              recommended to GP survey - ({report.gpSurveyLocation || 'As per site observations'})
-            </p>
-          </div>
-        )}
-
-        {report.recommendedToPumpingTest && (
-          <div className="border-[3px] border-black p-4 mb-4">
-            <p className="text-[12px] font-bold text-center uppercase">
-              recommended to pumping test
-            </p>
-          </div>
-        )}
-
         <div className="flex-grow"></div>
 
         <div className="grid grid-cols-4 gap-4 text-center text-[9px] pt-12">
