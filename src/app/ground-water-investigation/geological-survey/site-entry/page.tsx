@@ -70,7 +70,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, updateDoc, setDoc } from '@/firebase';
+import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import type { GroundwaterReport, Employee } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
@@ -132,6 +132,7 @@ const reportSchema = z.object({
   expectedOverburden: z.string().optional(),
   recOpenwellTotalDepth: z.string().optional(),
   recOpenwellDiameter: z.string().optional(),
+  recommendationOpenwellText: z.string().optional(),
   recommendedToGpSurvey: z.boolean().default(false),
   gpSurveyLocation: z.string().optional(),
   recommendedToPumpingTest: z.boolean().default(false),
@@ -211,7 +212,6 @@ function SiteEntryContent() {
   const [isPending, startTransition] = useTransition();
 
   const id = searchParams.get('id');
-  const [generatedReportId, setGeneratedReportId] = useState<string | null>(id);
 
   const [isRecommendationDialogOpen, setIsRecommendationDialogOpen] = useState(false);
   const [isNearbyDialogOpen, setIsNearbyDialogOpen] = useState(false);
@@ -473,7 +473,7 @@ function SiteEntryContent() {
                     )} />
                     <FormField control={form.control} name="assembly" render={({ field }) => ( 
                       <FormItem> 
-                        <FormLabel className="text-[10px] font-black uppercase text-slate-500">12. Constituency (LAC)</Label> 
+                        <FormLabel className="text-[10px] font-black uppercase text-slate-500">12. Constituency (LAC)</FormLabel> 
                         <FormControl><Input {...field} disabled className="bg-slate-50 font-black text-blue-600 uppercase h-10 text-xs" /></FormControl>
                       </FormItem> 
                     )} />
@@ -591,7 +591,6 @@ function SiteEntryContent() {
         </form>
       </Form>
 
-      {/* RE-SCOPED DIALOGS */}
       <Dialog open={isRecommendationDialogOpen} onOpenChange={setIsRecommendationDialogOpen}>
         <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl">
           <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight text-center">TECHNICAL RECOMMENDATION</DialogTitle></DialogHeader>
@@ -603,7 +602,9 @@ function SiteEntryContent() {
                     <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-400">Diameter</Label>
                       <Select onValueChange={v=>form.setValue('recBorewellDiameter', v)} value={form.watch('recBorewellDiameter')}>
                         <SelectTrigger className="h-10 text-xs font-bold"><SelectValue/></SelectTrigger>
-                        <SelectContent className="rounded-xl">{borewellDiameterOptions.map(o=><SelectItem key={o.value} value={o.value} className="font-bold text-xs uppercase">{o.label}</SelectItem>)}</SelectContent>
+                        <SelectContent className="rounded-xl border-slate-200">
+                           {borewellDiameterOptions.map(o=><SelectItem key={o.value} value={o.value} className="font-bold text-xs uppercase">{o.label}</SelectItem>)}
+                        </SelectContent>
                       </Select>
                     </div>
                   </div>
@@ -632,21 +633,21 @@ function SiteEntryContent() {
 
       <Dialog open={isNearbyDialogOpen} onOpenChange={setIsNearbyDialogOpen}>
         <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl">
-          <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight">NEARBY STRUCTURE: {selectedNearbyStructure}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight">DETAILS FOR {selectedNearbyStructure}</DialogTitle></DialogHeader>
           <div className="space-y-6 py-4">
             {selectedNearbyStructure?.startsWith('borewell') ? (
               <div className="space-y-4">
-                <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-400">Total Depth (m)</Label><Input {...form.register(selectedNearbyStructure === 'borewell1' ? 'nearbyBorewell1Depth' : selectedNearbyStructure === 'borewell2' ? 'nearbyBorewell2Depth' : 'nearbyBorewell3Depth')}/></div>
-                <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-400">Diameter</Label><Input {...form.register(selectedNearbyStructure === 'borewell1' ? 'nearbyBorewell1Diameter' : selectedNearbyStructure === 'borewell2' ? 'nearbyBorewell2Diameter' : 'nearbyBorewell3Diameter')}/></div>
-                <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-400">Fracture Zones</Label><Input {...form.register(selectedNearbyStructure === 'borewell1' ? 'nearbyBorewell1Zones' : selectedNearbyStructure === 'borewell2' ? 'nearbyBorewell2Zones' : 'nearbyBorewell3Zones')}/></div>
+                <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Total Depth (m)</Label><Input value={form.watch(`nearbyBorewell${selectedNearbyStructure.slice(-1)}Depth` as any)} onChange={e=>form.setValue(`nearbyBorewell${selectedNearbyStructure.slice(-1)}Depth` as any, e.target.value)} /></div>
+                <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Diameter</Label><Input value={form.watch(`nearbyBorewell${selectedNearbyStructure.slice(-1)}Diameter` as any)} onChange={e=>form.setValue(`nearbyBorewell${selectedNearbyStructure.slice(-1)}Diameter` as any, e.target.value)} /></div>
+                <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Fracture Zones</Label><Input value={form.watch(`nearbyBorewell${selectedNearbyStructure.slice(-1)}Zones` as any)} onChange={e=>form.setValue(`nearbyBorewell${selectedNearbyStructure.slice(-1)}Zones` as any, e.target.value)} /></div>
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-400">Total Depth (m)</Label><Input {...form.register(selectedNearbyStructure === 'openwell1' ? 'nearbyOpenwell1Depth' : selectedNearbyStructure === 'openwell2' ? 'nearbyOpenwell2Depth' : 'nearbyOpenwell3Depth')}/></div>
-                <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-400">Water Level (m)</Label><Input {...form.register(selectedNearbyStructure === 'openwell1' ? 'nearbyOpenwell1WaterLevel' : selectedNearbyStructure === 'openwell2' ? 'nearbyOpenwell2WaterLevel' : 'nearbyOpenwell3WaterLevel')}/></div>
-                <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-400">Parapet (m)</Label><Input {...form.register(selectedNearbyStructure === 'openwell1' ? 'nearbyOpenwell1ParapetHeight' : selectedNearbyStructure === 'openwell2' ? 'nearbyOpenwell2ParapetHeight' : 'nearbyOpenwell3ParapetHeight')}/></div>
-                <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-400">Seasonality</Label>
-                  <Select onValueChange={v => form.setValue(selectedNearbyStructure === 'openwell1' ? 'nearbyOpenwell1Type' : selectedNearbyStructure === 'openwell2' ? 'nearbyOpenwell2Type' : 'nearbyOpenwell3Type' as any, v)} value={form.watch(selectedNearbyStructure === 'openwell1' ? 'nearbyOpenwell1Type' : selectedNearbyStructure === 'openwell2' ? 'nearbyOpenwell2Type' : 'nearbyOpenwell3Type' as any)}>
+                <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Total Depth (m)</Label><Input value={form.watch(`nearbyOpenwell${selectedNearbyStructure?.slice(-1)}Depth` as any)} onChange={e=>form.setValue(`nearbyOpenwell${selectedNearbyStructure?.slice(-1)}Depth` as any, e.target.value)} /></div>
+                <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Water Level (m)</Label><Input value={form.watch(`nearbyOpenwell${selectedNearbyStructure?.slice(-1)}WaterLevel` as any)} onChange={e=>form.setValue(`nearbyOpenwell${selectedNearbyStructure?.slice(-1)}WaterLevel` as any, e.target.value)} /></div>
+                <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Parapet (m)</Label><Input value={form.watch(`nearbyOpenwell${selectedNearbyStructure?.slice(-1)}ParapetHeight` as any)} onChange={e=>form.setValue(`nearbyOpenwell${selectedNearbyStructure?.slice(-1)}ParapetHeight` as any, e.target.value)} /></div>
+                <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Type</Label>
+                  <Select onValueChange={v => form.setValue(`nearbyOpenwell${selectedNearbyStructure?.slice(-1)}Type` as any, v)} value={form.watch(`nearbyOpenwell${selectedNearbyStructure?.slice(-1)}Type` as any)}>
                     <SelectTrigger className="h-10 text-xs font-bold"><SelectValue/></SelectTrigger>
                     <SelectContent className="rounded-xl"><SelectItem value="Perennial" className="font-bold text-xs uppercase">Perennial</SelectItem><SelectItem value="Seasonal" className="font-bold text-xs uppercase">Seasonal</SelectItem></SelectContent>
                   </Select>
@@ -654,7 +655,7 @@ function SiteEntryContent() {
               </div>
             )}
           </div>
-          <DialogFooter><Button type="button" onClick={() => setIsNearbyDialogOpen(false)} className="w-full h-12 rounded-xl font-black uppercase text-[11px] bg-[#1e3a8a] text-white">Save Site Details</Button></DialogFooter>
+          <DialogFooter><Button type="button" onClick={() => setIsNearbyDialogOpen(false)} className="w-full h-12 rounded-xl font-black uppercase text-[11px] bg-[#1e3a8a] text-white">Save Details</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 

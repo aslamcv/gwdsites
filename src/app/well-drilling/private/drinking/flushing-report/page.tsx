@@ -51,7 +51,6 @@ function ReportContent() {
         compressorWorkingHour: report.compressorWorkingHour || '',
         remarks: report.remarks || '',
         observations: report.observations || '',
-        purpose: report.purpose || 'Well Flushing / Private / Drinking',
         sector: report.sector || 'PRIVATE',
         category: report.category || 'FLUSHING',
         staff: report.staffAssignment || {}
@@ -95,7 +94,10 @@ function ReportContent() {
     <div className="min-h-screen bg-slate-100 py-4 px-4 pt-12 print:bg-white print:p-0 font-malayalam text-black">
       <div className="max-w-[210mm] mx-auto mb-2 flex items-center justify-between print:hidden">
         <Button variant="ghost" asChild className="gap-2 text-slate-600 h-8 text-xs">
-          <Link href="/well-drilling"><ArrowLeft className="h-3 w-3" /> Back to Portal</Link>
+          <Link href="/well-drilling">
+            <ArrowLeft className="h-3 w-3" />
+            Back to Portal
+          </Link>
         </Button>
         <Button onClick={() => window.print()} className="gap-2 font-bold bg-primary text-white h-8 text-xs px-6">
           <Printer className="h-3 w-3" /> Print Report
@@ -121,11 +123,11 @@ function ReportContent() {
           <p className="text-[11px] text-slate-700 font-bold uppercase mt-2">SKE DTH RIG UNIT (TECHNICAL LOG)</p>
         </div>
 
-        <div className="space-y-2 mb-10 px-4 text-left">
+        <div className="space-y-3 mb-10 px-4 text-left">
           {technicalData.map((item, index) => (
-            <div key={index} className="flex items-baseline border-b border-slate-100 pb-1">
-              <span className="font-bold text-slate-700 min-w-[240px] text-[12.5px]">{item.label} :</span>
-              <span className={cn("font-black text-slate-900 ml-3 text-[12.5px]", item.upper && "uppercase")}>
+            <div key={index} className="flex items-baseline border-b border-slate-50 pb-1">
+              <span className="font-bold text-slate-700 min-w-[240px] text-[13px]">{item.label} :</span>
+              <span className={cn("font-black text-slate-900 ml-2 text-[13px]", item.upper && "uppercase")}>
                 {item.value || '--'}
               </span>
             </div>
