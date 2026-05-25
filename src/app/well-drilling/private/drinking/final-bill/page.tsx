@@ -79,7 +79,7 @@ function BillContent() {
         category: report.category || 'DRINKING',
         subCategory: report.subCategory || '',
         staff: report.staffAssignment || {},
-        reportDate: format(new Date(), 'yyyy-MM-dd')
+        reportDate: new Date().toISOString().split('T')[0]
       };
     }
     return null;
@@ -118,11 +118,7 @@ function BillContent() {
       for (const service of cloudRates.services) {
         for (const item of service.items) {
           if (normalizeStr(item.nameMl) === target || normalizeStr(item.nameEn) === target) {
-            const from = item.dateFrom || '0000-00-00';
-            const to = item.dateTo || '9999-99-99';
-            const today = format(new Date(), 'yyyy-MM-dd');
-            const effectiveDateForLookup = today > '2025-03-31' ? '2025-03-31' : today;
-            if (effectiveDateForLookup >= from && effectiveDateForLookup <= to) return item.rate;
+            return item.rate;
           }
         }
       }

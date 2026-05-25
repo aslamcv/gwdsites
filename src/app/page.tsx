@@ -69,6 +69,7 @@ import {
 } from '@/components/ui/dialog';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { formatToTechnicalDate } from '@/lib/malayalam-utils';
 
 // Helper to safely parse dates from various formats
 const safeParseDate = (dateString: string | undefined | null): Date | null => {
@@ -339,7 +340,7 @@ export default function DashboardPage() {
               <CardTitle className="text-[#1e3a8a] uppercase text-xs font-black tracking-[0.2em] flex items-center gap-2">
                 <Activity className="size-4" /> Work Details
               </CardTitle>
-              <CardDescription className="font-bold text-[10px] uppercase text-slate-400">Technical activities for {format(selectedDate, "dd/MM/yyyy")}</CardDescription>
+              <CardDescription className="font-bold text-[10px] uppercase text-slate-400">Technical activities for {formatToTechnicalDate(format(selectedDate, 'yyyy-MM-dd'))}</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               <ScrollArea className="h-[400px]">
@@ -389,7 +390,7 @@ export default function DashboardPage() {
               <CardTitle className="text-emerald-800 uppercase text-xs font-black tracking-[0.2em] flex items-center gap-2">
                 <Users className="size-4" /> Staff Attendance
               </CardTitle>
-              <CardDescription className="font-bold text-[10px] uppercase text-slate-400">Personnel deployed on {format(selectedDate, "dd/MM/yyyy")}</CardDescription>
+              <CardDescription className="font-bold text-[10px] uppercase text-slate-400">Personnel deployed on {formatToTechnicalDate(format(selectedDate, 'yyyy-MM-dd'))}</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               <ScrollArea className="h-[400px]">

@@ -530,14 +530,14 @@ export default function ServicesRatesCatalog() {
                                      {isAdmin ? (
                                        <Input type="date" value={item.dateFrom || ''} onChange={(e) => updateItem(service.id, item.id, 'dateFrom', e.target.value)} className="h-8 text-[9px] px-1 border-slate-200" />
                                      ) : (
-                                       <span className="text-[9px] font-bold text-slate-500 block text-center">{item.dateFrom || '---'}</span>
+                                       <span className="text-[9px] font-bold text-slate-500 block text-center">{formatToTechnicalDate(item.dateFrom) || '---'}</span>
                                      )}
                                   </td>
                                   <td className="border-r px-2">
                                      {isAdmin ? (
                                        <Input type="date" value={item.dateTo || ''} onChange={(e) => updateItem(service.id, item.id, 'dateTo', e.target.value)} className="h-8 text-[9px] px-1 border-slate-200" />
                                      ) : (
-                                       <span className="text-[9px] font-bold text-slate-500 block text-center">{item.dateTo || 'PRESENT'}</span>
+                                       <span className="text-[9px] font-bold text-slate-500 block text-center">{formatToTechnicalDate(item.dateTo) || 'PRESENT'}</span>
                                      )}
                                   </td>
                                   {isAdmin && (
@@ -653,14 +653,14 @@ export default function ServicesRatesCatalog() {
                                       {isAdmin ? (
                                         <Input type="date" value={item.dateFrom || ''} onChange={(e) => updateItem(service.id, item.id, 'dateFrom', e.target.value)} className="h-8 text-[9px] px-1 border-slate-200" />
                                       ) : (
-                                        <span className="text-center block text-[9px] font-medium text-slate-400">{item.dateFrom}</span>
+                                        <span className="text-center block text-[9px] font-medium text-slate-400">{formatToTechnicalDate(item.dateFrom)}</span>
                                       )}
                                     </td>
                                     <td className="border-r px-2">
                                       {isAdmin ? (
                                         <Input type="date" value={item.dateTo || ''} onChange={(e) => updateItem(service.id, item.id, 'dateTo', e.target.value)} className="h-8 text-[9px] px-1 border-slate-200" />
                                       ) : (
-                                        <span className="text-center block text-[9px] font-medium text-slate-400">{item.dateTo}</span>
+                                        <span className="text-center block text-[9px] font-medium text-slate-400">{formatToTechnicalDate(item.dateTo)}</span>
                                       )}
                                     </td>
                                     {isAdmin && (

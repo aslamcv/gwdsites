@@ -76,6 +76,7 @@ import { StaffMultiSelect } from '@/components/investigation/staff-multi-select'
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/logo';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { formatToTechnicalDate } from '@/lib/malayalam-utils';
 
 const reportSchema = z.object({
   nameOfSite: z.string().min(1, 'Name of site is required.'),
@@ -479,7 +480,7 @@ function SiteEntryContent() {
                     <FormLabel className="text-[10px] font-black uppercase text-slate-500">14. Type Applied For</FormLabel> 
                     <Select disabled={!isAllowed} onValueChange={field.onChange} value={field.value}>
                       <FormControl><SelectTrigger className="h-10 text-xs bg-slate-50/50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue /></SelectTrigger></FormControl>
-                      <SelectContent className="rounded-xl">{recommendationTypeOptions.filter(o=>o.value !== 'not_feasible').map(o => <SelectItem key={o} value={o}>{o.label}</SelectItem>)}</SelectContent>
+                      <SelectContent className="rounded-xl">{recommendationTypeOptions.filter(o=>o.value !== 'not_feasible').map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
                     </Select>
                   </FormItem> 
                 )} />

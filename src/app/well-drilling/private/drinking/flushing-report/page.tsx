@@ -10,7 +10,6 @@ import { doc } from 'firebase/firestore';
 import type { GroundwaterReport } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
 import { formatToTechnicalDate } from '@/lib/malayalam-utils';
 
 function ReportContent() {
@@ -40,8 +39,8 @@ function ReportContent() {
         overburden: report.overburden || '',
         discharge: report.discharge || '0',
         waterLevel: report.waterLevel || '0',
-        workStart: formatToTechnicalDate(dateParts[0]),
-        workEnd: formatToTechnicalDate(dateParts[1]),
+        workStart: dateParts[0] || '',
+        workEnd: dateParts[1] || '',
         compressorWorkingHour: report.compressorWorkingHour || '',
         remarks: report.remarks || '',
         observations: report.observations || '',
@@ -55,7 +54,7 @@ function ReportContent() {
 
   useEffect(() => {
     if (data) {
-        setCurrentDate(format(new Date(), 'dd/MM/yyyy'));
+        setCurrentDate(formatToTechnicalDate(new Date().toISOString().split('T')[0]));
         document.title = `Flushing-Report-${data.fileNo}`;
     }
   }, [data]);
@@ -79,7 +78,7 @@ function ReportContent() {
     { label: '6) ഓവർബർഡൻ (OB)', value: `${data.overburden} m` },
     { label: '7) ഏകദേശ ജല ലഭ്യത (Yield)', value: `${data.discharge} LPH` },
     { label: '8) സ്ഥിര ജലനിരപ്പ് (SWL)', value: `${data.waterLevel} m` },
-    { label: '9) പ്രവർത്തന കാലയളവ്', value: data.workStart },
+    { label: '9) പ്രവർത്തന കാലയളവ്', value: formatToTechnicalDate(data.workStart) },
     { label: '10) കംപ്രസ്സർ പ്രവർത്തിച്ച സമയം', value: data.compressorWorkingHour },
     { label: '11) റിമാർക്സ്', value: data.remarks, upper: true },
   ];
