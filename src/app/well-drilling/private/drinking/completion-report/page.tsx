@@ -22,41 +22,13 @@ function ReportContent() {
     return doc(firestore, 'groundwaterReports', id);
   }, [firestore, id]);
 
-  const { data: cloudReport, isLoading } = useDoc<GroundwaterReport>(reportRef);
-
-  const data = useMemo(() => {
-    if (cloudReport) {
-      return {
-        fileNo: cloudReport.fileNo || '',
-        wellNumber: cloudReport.wellNumber || '',
-        borewellSize: cloudReport.borewellSize || '',
-        nameOfSite: cloudReport.nameOfSite || cloudReport.applicantName || '',
-        lsgd: cloudReport.lsgd || '',
-        totalDepth: cloudReport.totalDepth || '',
-        overburden: cloudReport.overburden || '',
-        pvc6kg: cloudReport.pvc6kg || '0',
-        pvc10kg: report?.pvc10kg || '0',
-        discharge: report?.discharge || '0',
-        zoneDepth: report?.zoneDepth || '0',
-        waterLevel: report?.waterLevel || '0',
-        workStart: report?.dateOfInvestigation?.split(' - ')[0] || '',
-        workEnd: report?.dateOfInvestigation?.split(' - ')[1] || '',
-        remarks: report?.remarks || '',
-        observations: report?.observations || '',
-        purpose: report?.purpose || 'Well Drilling / Private / Drinking',
-        sector: report?.sector || 'PRIVATE',
-        category: report?.category || 'DRINKING',
-        staff: report?.staffAssignment || {}
-      };
-    }
-    return null;
-  }, [cloudReport]);
+  const { data: report, isLoading } = useDoc<GroundwaterReport>(reportRef);
 
   useEffect(() => {
-    if (data?.fileNo) {
-      document.title = `Completion-Report-${data.fileNo}`;
+    if (report?.fileNo) {
+      document.title = `Completion-Report-${report.fileNo}`;
     }
-  }, [data?.fileNo]);
+  }, [report?.fileNo]);
 
   if (isLoading) {
     return (
@@ -66,29 +38,36 @@ function ReportContent() {
     );
   }
 
-  if (!data) return null;
+  if (!report) return (
+    <div className="min-h-screen flex flex-col items-center justify-center p-4">
+      <h1 className="text-xl font-bold text-slate-800 uppercase tracking-tight">Record Not Found</h1>
+      <Button asChild className="mt-8 px-10 rounded-xl font-bold uppercase text-xs h-12">
+        <Link href="/well-drilling">Back to Portal</Link>
+      </Button>
+    </div>
+  );
 
-  const totalPvcValue = (parseFloat(data.pvc6kg) || 0) + (parseFloat(data.pvc10kg) || 0);
+  const totalPvcValue = (parseFloat(report.pvc6kg || '0') || 0) + (parseFloat(report.pvc10kg || '0') || 0);
 
   const technicalRows = [
-    { label: '1) ഫയൽ നമ്പർ', value: data.fileNo },
+    { label: '1) ഫയൽ നമ്പർ', value: report.fileNo },
     { label: '2) റിഗ്ഗിന്റെ പേര്', value: 'SKE DTH RIG Unit (Department Rig)' },
-    { label: '3) കുഴൽ കിണറിന്റെ വ്യാസം', value: data.borewellSize },
-    { label: '4) സൈറ്റിന്റെ പേര്', value: data.nameOfSite, upper: true },
-    { label: '5) പഞ്ചായത്ത് / നഗരസഭ', value: data.lsgd, upper: true },
-    { label: '6) ആകെ കുഴിച്ച ആഴം', value: `${data.totalDepth} m` },
-    { label: '7) overburden കുഴിച്ചത്', value: `${data.overburden} m` },
-    { label: '8) 140 mm 6 kg/cm², PVC പൈപ്പ് ഉപയോഗിച്ചത്', value: `${data.pvc6kg} m` },
-    { label: '9) 140 mm 10 kg/cm², PVC പൈപ്പ് ഉപയോഗിച്ചത്', value: `${data.pvc10kg} m` },
+    { label: '3) കുഴൽ കിണറിന്റെ വ്യാസം', value: report.borewellSize },
+    { label: '4) സൈറ്റിന്റെ പേര്', value: report.nameOfSite || report.applicantName, upper: true },
+    { label: '5) പഞ്ചായത്ത് / നഗരസഭ', value: report.lsgd, upper: true },
+    { label: '6) ആകെ കുഴിച്ച ആഴം', value: report.totalDepth ? `${report.totalDepth} m` : '' },
+    { label: '7) overburden കുഴിച്ചത്', value: report.overburden ? `${report.overburden} m` : '' },
+    { label: '8) 140 mm 6 kg/cm², PVC പൈപ്പ് ഉപയോഗിച്ചത്', value: report.pvc6kg ? `${report.pvc6kg} m` : '' },
+    { label: '9) 140 mm 10 kg/cm², PVC പൈപ്പ് ഉപയോഗിച്ചത്', value: report.pvc10kg ? `${report.pvc10kg} m` : '' },
     { label: '10) ആകെ PVC പൈപ്പ് ഉപയോഗിച്ചത്', value: `${totalPvcValue.toFixed(2)} m`, boldUnderline: true },
-    { label: '11) ഏകദേശ ഡ്രില്ലിംഗ് സമയത്തെ ജല ലഭ്യത (Yield)', value: `${data.discharge} LPH` },
-    { label: '12) ജലധാര മേഖലയുടെ വിവരങ്ങൾ (Zones)', value: `${data.zoneDepth} m` },
-    { label: '13) സ്ഥിര ജലനിരപ്പ് (Static water level)', value: `${data.waterLevel} m` },
-    { label: '14) പ്രവൃത്തിയുടെ കാലയളവ്', value: formatToTechnicalDate(data.workStart) },
+    { label: '11) ഏകദേശ ഡ്രില്ലിംഗ് സമയത്തെ ജല ലഭ്യത (Yield)', value: report.discharge ? `${report.discharge} LPH` : '' },
+    { label: '12) ജലധാര മേഖലയുടെ വിവരങ്ങൾ (Zones)', value: report.zoneDepth ? `${report.zoneDepth} m` : '' },
+    { label: '13) സ്ഥിര ജലനിരപ്പ് (Static water level)', value: report.waterLevel ? `${report.waterLevel} m` : '' },
+    { label: '14) പ്രവൃത്തിയുടെ കാലയളവ്', value: formatToTechnicalDate(report.dateOfInvestigation?.split(' - ')[0]) },
   ];
 
   return (
-    <div className="min-h-screen bg-slate-100/50 py-4 px-4 pt-12 print:bg-white print:p-0 font-malayalam text-black text-left">
+    <div className="min-h-screen bg-slate-100/50 py-4 px-4 pt-12 print:bg-white print:p-0 font-malayalam text-black text-left text-[12px]">
       <div className="max-w-[210mm] mx-auto mb-2 flex items-center justify-between print:hidden">
         <Button variant="ghost" asChild className="gap-2 text-slate-600 h-8 text-xs">
           <Link href="/well-drilling">
@@ -112,7 +91,7 @@ function ReportContent() {
 
         <div className="absolute top-10 right-10 text-right uppercase">
           <p className="text-[12px] font-bold text-black leading-none">
-            {data.sector.toUpperCase()}/WELL DRILLING
+            {(report.sector || 'PRIVATE').toUpperCase()}/WELL DRILLING
           </p>
         </div>
 
@@ -135,18 +114,18 @@ function ReportContent() {
         </div>
 
         <div className="mb-4 px-4">
-          <p><span className="font-bold">റിമാർക്സ് :</span> <span className="font-bold uppercase ml-1">{data.remarks || 'NIL'}</span></p>
+          <p><span className="font-bold">റിമാർക്സ് :</span> <span className="font-bold uppercase ml-1">{report.remarks || 'NIL'}</span></p>
         </div>
 
         <div className="space-y-1 mb-12 px-4">
           <h3 className="font-bold underline underline-offset-4 text-[13px]">Field Observations & Remarks:</h3>
-          <p className="italic leading-normal text-justify whitespace-pre-wrap uppercase font-bold text-slate-700">{data.observations || 'No additional observations recorded.'}</p>
+          <p className="italic leading-normal text-justify whitespace-pre-wrap uppercase font-bold text-slate-700">{report.observations || 'WORK EXECUTED ACCORDING TO DEPARTMENTAL STANDARDS. YIELD RECORDED DURING CONSTRUCTION.'}</p>
         </div>
 
         <div className="mt-auto">
           <div className="grid grid-cols-4 gap-4 text-[9.5px] text-center font-black pb-8">
             <div className="flex flex-col items-center">
-              <div className="h-10 flex items-end justify-center font-black uppercase text-[10px]">({(typeof data.staff.unitInCharge === 'string' ? data.staff.unitInCharge : (Array.isArray(data.staff.unitInCharge) ? data.staff.unitInCharge[0] : '')) || '---'})</div>
+              <div className="h-10 flex items-end justify-center font-black uppercase text-[10px]">({(typeof report.staffAssignment?.unitInCharge === 'string' ? report.staffAssignment.unitInCharge : (Array.isArray(report.staffAssignment?.unitInCharge) ? report.staffAssignment.unitInCharge[0] : '')) || '---'})</div>
               <div className="w-full border-t border-black pt-2 uppercase leading-tight">Unit In-Charge<br/>(SKE DTH RIG UNIT)</div>
             </div>
             <div className="flex flex-col items-center">

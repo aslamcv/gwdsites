@@ -68,7 +68,7 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { collection, doc, updateDoc, setDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, updateDoc } from 'firebase/firestore';
 import type { GroundwaterReport, Employee } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -495,7 +495,9 @@ function SiteEntryContent() {
                     <FormLabel className="text-[10px] font-black uppercase text-slate-500">14. Type Applied For</FormLabel> 
                     <Select disabled={!isAllowed} onValueChange={field.onChange} value={field.value}>
                       <FormControl><SelectTrigger className="h-10 text-xs bg-slate-50/50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue /></SelectTrigger></FormControl>
-                      <SelectContent className="rounded-xl">{recommendationTypeOptions.filter(o=>o.value !== 'not_feasible').map(o => <SelectItem key={o.value} value={o.value} className="text-[10px] font-bold uppercase">{o.label}</SelectItem>)}</SelectContent>
+                      <SelectContent className="rounded-xl">
+                        {recommendationTypeOptions.filter(o=>o.value !== 'not_feasible').map(o => <SelectItem key={o.value} value={o.value} className="text-[10px] font-bold uppercase">{o.label}</SelectItem>)}
+                      </SelectContent>
                     </Select>
                   </FormItem> 
                 )} />
@@ -644,33 +646,14 @@ function SiteEntryContent() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isNearbyDialogOpen} onOpenChange={setIsNearbyDialogOpen}>
-        <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl">
-          <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight text-left">DETAILS FOR {selectedNearbyStructure}</DialogTitle></DialogHeader>
-          <div className="space-y-6 py-4 text-left">
-            {selectedNearbyStructure?.startsWith('borewell') ? (
-              <div className="space-y-4">
-                <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Total Depth (m)</Label><Input value={form.watch(`nearbyBorewell${selectedNearbyStructure.slice(-1)}Depth` as any)} onChange={e=>form.setValue(`nearbyBorewell${selectedNearbyStructure.slice(-1)}Depth` as any, e.target.value)} /></div>
-                <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Diameter</Label><Input value={form.watch(`nearbyBorewell${selectedNearbyStructure.slice(-1)}Diameter` as any)} onChange={e=>form.setValue(`nearbyBorewell${selectedNearbyStructure.slice(-1)}Diameter` as any, e.target.value)} /></div>
-                <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Fracture Zones</Label><Input value={form.watch(`nearbyBorewell${selectedNearbyStructure.slice(-1)}Zones` as any)} onChange={e=>form.setValue(`nearbyBorewell${selectedNearbyStructure.slice(-1)}Zones` as any, e.target.value)} /></div>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Total Depth (m)</Label><Input value={form.watch(`nearbyOpenwell${selectedNearbyStructure?.slice(-1)}Depth` as any)} onChange={e=>form.setValue(`nearbyOpenwell${selectedNearbyStructure?.slice(-1)}Depth` as any, e.target.value)} /></div>
-                <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Water Level (m)</Label><Input value={form.watch(`nearbyOpenwell${selectedNearbyStructure?.slice(-1)}WaterLevel` as any)} onChange={e=>form.setValue(`nearbyOpenwell${selectedNearbyStructure?.slice(-1)}WaterLevel` as any, e.target.value)} /></div>
-                <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Parapet (m)</Label><Input value={form.watch(`nearbyOpenwell${selectedNearbyStructure?.slice(-1)}ParapetHeight` as any)} onChange={e=>form.setValue(`nearbyOpenwell${selectedNearbyStructure?.slice(-1)}ParapetHeight` as any, e.target.value)} /></div>
-                <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Type</Label>
-                  <Select onValueChange={v => form.setValue(`nearbyOpenwell${selectedNearbyStructure?.slice(-1)}Type` as any, v)} value={form.watch(`nearbyOpenwell${selectedNearbyStructure?.slice(-1)}Type` as any)}>
-                    <SelectTrigger className="h-10 text-xs font-bold"><SelectValue/></SelectTrigger>
-                    <SelectContent className="rounded-xl"><SelectItem value="Perennial" className="font-bold text-xs uppercase">Perennial</SelectItem><SelectItem value="Seasonal" className="font-bold text-xs uppercase">Seasonal</SelectItem></SelectContent>
-                  </Select>
-                </div>
-              </div>
-            )}
-          </div>
-          <DialogFooter><Button type="button" onClick={() => setIsNearbyDialogOpen(false)} className="w-full h-12 rounded-xl font-black uppercase text-[11px] bg-[#1e3a8a] text-white">Save Details</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <NearbyStructureDialog 
+        isOpen={isNearbyDialogOpen}
+        onOpenChange={setIsNearbyDialogOpen}
+        structureType={selectedNearbyStructure}
+        formData={formData}
+        updateField={(k:any, v:any) => form.setValue(k, v)}
+        watchedValues={form.watch()}
+      />
 
       <Dialog open={isManualVillageOpen} onOpenChange={setIsManualVillageOpen}>
         <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl">
@@ -686,6 +669,41 @@ function SiteEntryContent() {
     </div>
   );
 }
+
+const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, updateField, watchedValues}: any) => {
+  const isBorewell = structureType?.startsWith('borewell');
+  const index = structureType ? parseInt(structureType.slice(-1)) : 1;
+  
+  return (
+  <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl">
+      <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight text-left">DETAILS FOR {structureType?.toUpperCase()}</DialogTitle></DialogHeader>
+      {isBorewell ? (
+        <div className="space-y-6 py-4">
+          <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Total Depth (m)</Label><Input value={watchedValues[`nearbyBorewell${index}Depth`]} onChange={e=>updateField(`nearbyBorewell${index}Depth`, e.target.value)} /></div>
+          <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Diameter</Label><Input value={watchedValues[`nearbyBorewell${index}Diameter`]} onChange={e=>updateField(`nearbyBorewell${index}Diameter`, e.target.value)} /></div>
+          <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Fracture Zones</Label><Input value={watchedValues[`nearbyBorewell${index}Zones`]} onChange={e=>updateField(`nearbyBorewell${index}Zones`, e.target.value)} /></div>
+        </div>
+      ) : (
+         <div className="space-y-6 py-4">
+          <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Total Depth (m)</Label><Input value={watchedValues[`nearbyOpenwell${index}Depth`]} onChange={e=>updateField(`nearbyOpenwell${index}Depth`, e.target.value)} /></div>
+          <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Water Level (m)</Label><Input value={watchedValues[`nearbyOpenwell${index}WaterLevel`]} onChange={e=>updateField(`nearbyOpenwell${index}WaterLevel`, e.target.value)} /></div>
+          <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Parapet (m)</Label><Input value={watchedValues[`nearbyOpenwell${index}ParapetHeight`]} onChange={e=>updateField(`nearbyOpenwell${index}ParapetHeight`, e.target.value)} /></div>
+          <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Type</Label>
+            <Select onValueChange={v=>updateField(`nearbyOpenwell${index}Type`, v)} value={watchedValues[`nearbyOpenwell${index}Type`]}>
+                <SelectTrigger className="h-10 text-xs bg-slate-50/50 border-slate-200"><SelectValue /></SelectTrigger>
+                <SelectContent className="rounded-xl border-slate-200">
+                    <SelectItem value="Perennial" className="text-xs font-bold uppercase">Perennial</SelectItem>
+                    <SelectItem value="Seasonal" className="text-xs font-bold uppercase">Seasonal</SelectItem>
+                </SelectContent>
+            </Select>
+          </div>
+        </div>
+      )}
+      <DialogFooter className="pt-4"><Button type="button" onClick={() => onOpenChange(false)} className="w-full h-12 rounded-xl font-black uppercase text-[11px] bg-[#1e3a8a] text-white hover:bg-blue-900">Save Details</Button></DialogFooter>
+    </DialogContent>
+  </Dialog>
+)};
 
 export default function GeologicalSurveySiteEntryPage() {
     return <Suspense fallback={<div className="p-12 text-center animate-pulse uppercase tracking-widest font-black opacity-30 text-slate-400">Initializing Workspace...</div>}><SiteEntryContent /></Suspense>;

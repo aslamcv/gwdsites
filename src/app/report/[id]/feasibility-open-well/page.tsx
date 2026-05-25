@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { formatToTechnicalDate } from '@/lib/malayalam-utils';
 
 function FeasibilityContent({ id }: { id: string }) {
   const firestore = useFirestore();
@@ -90,7 +91,7 @@ function FeasibilityContent({ id }: { id: string }) {
                 <p>മലപ്പുറം - 676 505</p>
                 <p>ഫോൺ നമ്പർ - 0483-2731450</p>
                 <p>ഇമെയിൽ: gwdmpm@gmail.com</p>
-                <p className="pt-2">തീയതി: <span className="font-bold border-b border-black min-w-[120px] inline-block text-center">{report.dateOfFeasibility || report.reportDate}</span></p>
+                <p className="pt-2">തീയതി: <span className="font-bold border-b border-black min-w-[120px] inline-block text-center">{formatToTechnicalDate(report.dateOfFeasibility || report.reportDate)}</span></p>
             </div>
         </div>
 
@@ -117,11 +118,11 @@ function FeasibilityContent({ id }: { id: string }) {
             </div>
             <div className="flex gap-4">
                 <span className="font-bold shrink-0 min-w-[70px]">സൂചന :</span>
-                <span>താങ്കളുടെ <span className="font-bold border-b border-black px-4">{report.applicationDate || '--'}</span> തീയതിയിലെ അപേക്ഷ.</span>
+                <span>താങ്കളുടെ <span className="font-bold border-b border-black px-4">{formatToTechnicalDate(report.applicationDate) || '--'}</span> തീയതിയിലെ അപേക്ഷ.</span>
             </div>
         </div>
 
-        <p className="mb-8 indent-20 text-justify">
+        <p className="mb-8 indent-20 text-justify text-[12px] leading-relaxed">
             മേൽ സൂചനയിലേക്ക് ശ്രദ്ധ ക്ഷണിക്കുന്നു. താങ്കൾ അപേക്ഷിച്ച സ്ഥലത്ത് ഭൂജല സർവ്വേ പൂർത്തിയാക്കി ഫിസിബിലിറ്റി റിപ്പോർട്ട് താഴെ നൽകുന്നു.
         </p>
 
@@ -148,7 +149,7 @@ function FeasibilityContent({ id }: { id: string }) {
             <h4 className="font-bold underline underline-offset-4 text-[13px]">നിബന്ധനകൾ</h4>
             <div className="space-y-4 text-[11.5px] leading-relaxed text-justify pr-2">
                 <p>
-                    1. കിണർ നിർമ്മിക്കാൻ ഉദ്ദേശിക്കുന്ന സ്ഥലത്തിന്റെ 7.5 മീറ്റർ ദൂരപരിധിയിൽ ഉള്ള വീട്, റോഡ്, മലിനീകരണസ്രോതസ്സുകളായ സെപ്റ്റിക് ടാങ്ക്, വേസ്റ്റ് ടാങ്ക് തുടങ്ങിയ എല്ലാ നിർമ്മിതികളും ലൊക്കേഷൻ സ്കെച്ചിൽ, ആയതിൽ നിന്നുള്ള ദൂരം ഉൾപ്പെടെ, രേഖപ്പെടുത്തി ഒരു അംഗീകൃത സിവിൽ എഞ്ചിനീയർ സാക്ഷ്യപ്പെടുത്തി ലഭ്യമാക്കി, നിയമപ്രകാരമുള്ള ദൂര പരിധി പാലിക്കുന്നുണ്ട് എന്ന് ഉറപ്പ് വരുത്തിയാൽ മാത്രം, കിണർ നിർമ്മാണം പരിഗണിക്കുന്നതാണ് ഉചിതം.
+                    1. കിണർ നിർമ്മിക്കാൻ ഉദ്ദേശിക്കുന്ന സ്ഥലത്തിന്റെ 7.5 മീറ്റർ ദൂരപരിധിയിൽ ഉള്ള വീട്, റോഡ്, മലിനീകരണസ്രോതസ്സുകളായ സപ്റ്റിക് ടാങ്ക്, വേസ്റ്റ് ടാങ്ക് തുടങ്ങിയ എല്ലാ നിർമ്മിതികളും ലൊക്കേഷൻ സ്കെച്ചിൽ, ആയതിൽ നിന്നുള്ള ദൂരം ഉൾപ്പെടെ, രേഖപ്പെടുത്തി ഒരു അംഗീകൃത സിവിൽ എഞ്ചിനീയർ സാക്ഷ്യപ്പെടുത്തി ലഭ്യമാക്കി, നിയമപ്രകാരമുള്ള ദൂര പരിധി പാലിക്കുന്നുണ്ട് എന്ന് ഉറപ്പ് വരുത്തിയാൽ മാത്രം, കിണർ നിർമ്മാണം പരിഗണിക്കുന്നതാണ് ഉചിതം.
                 </p>
                 <p>
                     2. കിണർ നിർമ്മാണം വേനൽ കാലത്ത് പൂർത്തീകരിക്കേണ്ടതും കിണറിന്റെ താഴ്ച നിർമ്മാണ സമയത്തു കിണറിൽ 4 മീറ്റർ കനത്തിൽ വെള്ളം ഉണ്ടാകുന്ന രീതിയിലോ കട്ടിയുള്ള കളിമണ്ണ് കാണുന്ന രീതിയിലോ ഏതാണോ കുറവ് അത്രയും താഴ്ചയിൽ നിജപ്പെടുത്താവുന്നതാണ്.
@@ -166,7 +167,7 @@ function FeasibilityContent({ id }: { id: string }) {
             <div className="text-center min-w-[200px] space-y-1">
                 <p className="font-bold">വിശ്വസ്തതയോടെ,</p>
                 <div className="h-20"></div>
-                <p className="font-bold text-[15px] uppercase">ജില്ലാ ഓഫീസർ.</p>
+                <p className="font-bold text-[15px] uppercase border-t border-black pt-1">ജില്ലാ ഓഫീസർ.</p>
             </div>
         </div>
 

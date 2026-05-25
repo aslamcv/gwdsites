@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { formatToTechnicalDate } from '@/lib/malayalam-utils';
 
 function FeasibilityContent({ id }: { id: string }) {
   const firestore = useFirestore();
@@ -90,7 +91,7 @@ function FeasibilityContent({ id }: { id: string }) {
                 <p>മലപ്പുറം - 676 505</p>
                 <p>ഫോൺ നമ്പർ - 0483-2731450</p>
                 <p>ഇമെയിൽ: gwdmpm@gmail.com</p>
-                <p className="pt-2">തീയതി: <span className="font-bold border-b border-black min-w-[120px] inline-block text-center">{report.dateOfFeasibility || report.reportDate}</span></p>
+                <p className="pt-2">തീയതി: <span className="font-bold border-b border-black min-w-[120px] inline-block text-center">{formatToTechnicalDate(report.dateOfFeasibility || report.reportDate)}</span></p>
             </div>
         </div>
 
@@ -117,7 +118,7 @@ function FeasibilityContent({ id }: { id: string }) {
             </div>
             <div className="flex gap-4">
                 <span className="font-bold shrink-0 min-w-[70px]">സൂചന :</span>
-                <span>താങ്കളുടെ <span className="font-bold border-b border-black px-4">{report.applicationDate || '--'}</span> തീയതിയിലെ അപേക്ഷ.</span>
+                <span>താങ്കളുടെ <span className="font-bold border-b border-black px-4">{formatToTechnicalDate(report.applicationDate) || '--'}</span> തീയതിയിലെ അപേക്ഷ.</span>
             </div>
         </div>
 
