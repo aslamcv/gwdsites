@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,15 +13,13 @@ import {
   Loader2, 
   Users, 
   Truck, 
-  Calendar,
-  Construction,
-  Waves,
-  Wrench,
-  Droplets,
   ShieldCheck,
   X,
   Mountain,
-  ChevronDown
+  PlusCircle,
+  Table as TableIcon,
+  Trash2,
+  ClipboardList
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -35,12 +33,31 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogFooter,
+  DialogDescription,
+  DialogTrigger
+} from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import type { Employee } from '@/lib/types';
-import { ReportDialog } from '@/components/estimate-measurement/report-dialog';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Logo } from '@/components/logo';
+import { formatToTechnicalDate } from '@/lib/malayalam-utils';
+
+const workOptions = [
+  "Borewell Construction",
+  "Borewell Flushing",
+  "MWSS",
+  "MWSS Renovation",
+  "HPS",
+  "HPR",
+  "ARS",
+  "Remarks"
+];
 
 export default function EstimateEntryPage() {
   const { toast } = useToast();
@@ -48,6 +65,9 @@ export default function EstimateEntryPage() {
   const firestore = useFirestore();
   const { user } = useUser();
   const [isPending, startTransition] = useTransition();
+
+  const [isSiteDialogOpen, setIsSiteDialogOpen] = useState(false);
+  const [newSite, setNewSite] = useState({ siteName: '', workName: 'Borewell Construction', remarks: '' });
 
   // Centralized employees list
   const employeesQuery = useMemoFirebase(() => {
@@ -70,10 +90,7 @@ export default function EstimateEntryPage() {
     clr: [] as string[],
     driver: '',
     remarks: '',
-    borewellSites: Array(5).fill(''),
-    mwssSites: Array(5).fill(''),
-    hpsSites: Array(5).fill(''),
-    arsSites: Array(5).fill('')
+    sites: [] as { siteName: string, workName: string, remarks: string }[]
   });
 
   const aes = useMemo(() => employees?.filter(e => e.designation === 'Assistant Engineer') || [], [employees]);
@@ -82,7 +99,6 @@ export default function EstimateEntryPage() {
   const clrs = useMemo(() => employees?.filter(e => e.designation === 'CLR' || e.designation === 'CLR (Employment)') || [], [employees]);
   const drivers = useMemo(() => employees?.filter(e => e.designation.includes('Driver')) || [], [employees]);
   
-  // Specialized Filter for "Other Staff" dropdown
   const otherStaffOptions = useMemo(() => {
     if (!employees) return [];
     const excluded = [
@@ -95,21 +111,12 @@ export default function EstimateEntryPage() {
       'CLR',
       'CLR (Employment)'
     ];
-    
-    // Filter out people already selected in any field of the current form
     const currentlySelected = [
-      formData.ae,
-      formData.aee,
-      formData.driver,
-      ...formData.slr,
-      ...formData.clr,
-      ...formData.otherStaff
+      formData.ae, formData.aee, formData.driver,
+      ...formData.slr, ...formData.clr, ...formData.otherStaff
     ].filter(Boolean);
 
-    return employees.filter(e => 
-      !excluded.includes(e.designation) && 
-      !currentlySelected.includes(e.name)
-    );
+    return employees.filter(e => !excluded.includes(e.designation) && !currentlySelected.includes(e.name));
   }, [employees, formData]);
 
   const updateField = (key: string, value: any) => {
@@ -134,71 +141,49 @@ export default function EstimateEntryPage() {
     }));
   };
 
-  const updateSiteData = (pillar: string, index: number, value: string) => {
-    setFormData(prev => {
-      const next = { ...prev };
-      (next as any)[pillar][index] = value;
-      return next;
-    });
+  const handleAddSite = () => {
+    if (!newSite.siteName) {
+      toast({ title: "Name of Site Required", variant: "destructive" });
+      return;
+    }
+    setFormData(prev => ({
+      ...prev,
+      sites: [...prev.sites, { ...newSite }]
+    }));
+    setNewSite({ siteName: '', workName: 'Borewell Construction', remarks: '' });
+    setIsSiteDialogOpen(false);
   };
 
-  const pillars = [
-    { id: 'borewellSites', label: 'Borewell Construction / Flushing', icon: Construction, color: 'text-blue-600', bgColor: 'bg-blue-50' },
-    { id: 'mwssSites', label: 'MWSS / MWSS Renovation', icon: Waves, color: 'text-emerald-600', bgColor: 'bg-emerald-50' },
-    { id: 'hpsSites', label: 'HPS / HPR (Repair)', icon: Wrench, color: 'text-amber-600', bgColor: 'bg-amber-50' },
-    { id: 'arsSites', label: 'ARS (Recharge)', icon: Droplets, color: 'text-purple-600', bgColor: 'bg-purple-50' },
-  ];
-
-  // Map form to structured report data
-  const currentReportData = useMemo(() => {
-    const worksList: any[] = [];
-    pillars.forEach(p => {
-      (formData as any)[p.id].forEach((detail: string, idx: number) => {
-        if (detail.trim()) {
-          worksList.push({
-            description: `${p.label} - Site ${idx + 1}: ${detail}`,
-            qty: 1,
-            unit: 'Job',
-            rate: 0,
-            amount: 0
-          });
-        }
-      });
-    });
-
-    return {
-      ...formData,
-      category: "ESTIMATE_MEASUREMENT",
-      reportType: "ESTIMATE" as const,
-      applicantName: formData.nameOfSite || formData.contractorName,
-      reportTitle: `Estimate: ${formData.fileNo}`,
-      nameOfContractor: formData.contractorName,
-      works: worksList,
-      totalAmount: 0,
-      staffAssignment: {
-        assistantEngineer: formData.ae,
-        assistantExecutiveEngineer: formData.aee,
-        supervisor: formData.otherStaff[0] || 'Unassigned',
-        otherStaff: formData.otherStaff,
-        slr: formData.slr,
-        clr: formData.clr,
-        drivers: formData.driver,
-        conveyance: formData.conveyance
-      }
-    };
-  }, [formData]);
+  const removeSite = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      sites: prev.sites.filter((_, i) => i !== index)
+    }));
+  };
 
   const handleSave = () => {
     if (!user || !firestore) return;
     startTransition(() => {
       const docRef = doc(collection(firestore, 'groundwaterReports'));
       const reportData = {
-        ...currentReportData,
+        ...formData,
         id: docRef.id,
+        category: "ESTIMATE_MEASUREMENT",
+        reportType: "ESTIMATE",
         status: "Published",
-        purpose: "Estimate / Measurement",
+        purpose: "Estimate Portal Entry",
         uploadedBy: user.uid,
         createdAt: new Date().toISOString(),
+        staffAssignment: {
+          assistantEngineer: formData.ae,
+          assistantExecutiveEngineer: formData.aee,
+          supervisor: formData.otherStaff[0] || 'Unassigned',
+          otherStaff: formData.otherStaff,
+          slr: formData.slr,
+          clr: formData.clr,
+          drivers: formData.driver,
+          conveyance: formData.conveyance
+        }
       };
 
       setDocumentNonBlocking(docRef, reportData, { merge: true });
@@ -212,7 +197,7 @@ export default function EstimateEntryPage() {
       
       {/* Header Section */}
       <div className="bg-white border border-slate-200 p-8 rounded-[32px] shadow-sm ring-1 ring-slate-200/50">
-        <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+        <div className="flex flex-col md:flex-row justify-between items-center gap-6 text-left">
           <div className="flex items-center gap-5">
             <Button variant="ghost" size="icon" asChild className="rounded-full h-12 w-12 border border-slate-200 shadow-sm text-black">
               <Link href="/estimate-measurement"><ArrowLeft className="size-5" /></Link>
@@ -223,20 +208,26 @@ export default function EstimateEntryPage() {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <Input type="date" value={formData.reportDate} onChange={(e) => updateField('reportDate', e.target.value)} className="h-12 w-44 rounded-xl font-bold bg-white text-black" />
-            <Select onValueChange={(v) => updateField('conveyance', v)} value={formData.conveyance}>
-              <SelectTrigger className="h-12 w-56 rounded-xl bg-slate-50 text-black border-slate-200"><SelectValue placeholder="Conveyance Mode" /></SelectTrigger>
-              <SelectContent className="bg-white border-slate-200 text-black">
-                <SelectItem value="department">Department Vehicle</SelectItem>
-                <SelectItem value="rented">Rented Vehicle</SelectItem>
-                <SelectItem value="private">Private Vehicle</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="space-y-1">
+                <Label className="text-[9px] font-black uppercase text-slate-400">Estimate Date</Label>
+                <Input type="date" value={formData.reportDate} onChange={(e) => updateField('reportDate', e.target.value)} className="h-10 w-44 rounded-xl font-bold bg-white text-black" />
+            </div>
+            <div className="space-y-1">
+                <Label className="text-[9px] font-black uppercase text-slate-400">Conveyance Mode</Label>
+                <Select onValueChange={(v) => updateField('conveyance', v)} value={formData.conveyance}>
+                <SelectTrigger className="h-10 w-56 rounded-xl bg-slate-50 text-black border-slate-200"><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectContent className="bg-white border-slate-200 text-black">
+                    <SelectItem value="department">Department Vehicle</SelectItem>
+                    <SelectItem value="rented">Rented Vehicle</SelectItem>
+                    <SelectItem value="private">Private Vehicle</SelectItem>
+                </SelectContent>
+                </Select>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
         {/* Oversight */}
         <Card className="rounded-3xl border-none shadow-sm ring-1 ring-slate-200 bg-white overflow-hidden">
           <CardHeader className="bg-blue-50/50 border-b py-4 px-6">
@@ -252,7 +243,7 @@ export default function EstimateEntryPage() {
                   <SelectValue placeholder="Select AE" />
                 </SelectTrigger>
                 <SelectContent className="bg-white border-slate-200 text-black">
-                  {aes.length > 0 ? aes.map(e => <SelectItem key={e.id} value={e.name}>{e.name}</SelectItem>) : <SelectItem value="none" disabled>No AEs found</SelectItem>}
+                  {aes.map(e => <SelectItem key={e.id} value={e.name}>{e.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -263,7 +254,7 @@ export default function EstimateEntryPage() {
                   <SelectValue placeholder="Select AEE" />
                 </SelectTrigger>
                 <SelectContent className="bg-white border-slate-200 text-black">
-                  {aees.length > 0 ? aees.map(e => <SelectItem key={e.id} value={e.name}>{e.name}</SelectItem>) : <SelectItem value="none" disabled>No AEEs found</SelectItem>}
+                  {aees.map(e => <SelectItem key={e.id} value={e.name}>{e.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -283,18 +274,15 @@ export default function EstimateEntryPage() {
                 <Label className="text-[9px] font-black uppercase text-slate-400">SLR</Label>
                 <div className="space-y-2">
                   <Select onValueChange={(v) => addStaff('slr', v)}>
-                    <SelectTrigger className="h-10 bg-slate-50/50 text-black border-slate-200">
-                      <SelectValue placeholder="Add SLR" />
-                    </SelectTrigger>
+                    <SelectTrigger className="h-10 bg-slate-50/50 text-black border-slate-200"><SelectValue placeholder="Add" /></SelectTrigger>
                     <SelectContent className="bg-white border-slate-200 text-black">
-                      {slrs.length > 0 ? slrs.map(e => <SelectItem key={e.id} value={e.name} disabled={formData.slr.includes(e.name)}>{e.name}</SelectItem>) : <SelectItem value="none" disabled>None</SelectItem>}
+                      {slrs.map(e => <SelectItem key={e.id} value={e.name} disabled={formData.slr.includes(e.name)}>{e.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
                   <div className="flex flex-wrap gap-1">
                     {formData.slr.map(name => (
                       <Badge key={name} variant="secondary" className="text-[10px] py-0 h-5 px-1.5 gap-1 font-bold bg-slate-100 text-slate-700">
-                        {name}
-                        <X className="h-3 w-3 cursor-pointer hover:text-destructive" onClick={() => removeStaff('slr', name)} />
+                        {name} <X className="h-3 w-3 cursor-pointer" onClick={() => removeStaff('slr', name)} />
                       </Badge>
                     ))}
                   </div>
@@ -304,18 +292,15 @@ export default function EstimateEntryPage() {
                 <Label className="text-[9px] font-black uppercase text-slate-400">CLR</Label>
                 <div className="space-y-2">
                   <Select onValueChange={(v) => addStaff('clr', v)}>
-                    <SelectTrigger className="h-10 bg-slate-50/50 text-black border-slate-200">
-                      <SelectValue placeholder="Add CLR" />
-                    </SelectTrigger>
+                    <SelectTrigger className="h-10 bg-slate-50/50 text-black border-slate-200"><SelectValue placeholder="Add" /></SelectTrigger>
                     <SelectContent className="bg-white border-slate-200 text-black">
-                      {clrs.length > 0 ? clrs.map(e => <SelectItem key={e.id} value={e.name} disabled={formData.clr.includes(e.name)}>{e.name}</SelectItem>) : <SelectItem value="none" disabled>None</SelectItem>}
+                      {clrs.map(e => <SelectItem key={e.id} value={e.name} disabled={formData.clr.includes(e.name)}>{e.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
                   <div className="flex flex-wrap gap-1">
                     {formData.clr.map(name => (
                       <Badge key={name} variant="secondary" className="text-[10px] py-0 h-5 px-1.5 gap-1 font-bold bg-slate-100 text-slate-700">
-                        {name}
-                        <X className="h-3 w-3 cursor-pointer hover:text-destructive" onClick={() => removeStaff('clr', name)} />
+                        {name} <X className="h-3 w-3 cursor-pointer" onClick={() => removeStaff('clr', name)} />
                       </Badge>
                     ))}
                   </div>
@@ -326,20 +311,15 @@ export default function EstimateEntryPage() {
               <Label className="text-[9px] font-black uppercase text-slate-400">Other Staff</Label>
               <div className="space-y-2">
                 <Select onValueChange={(v) => addStaff('otherStaff', v)}>
-                  <SelectTrigger className="h-10 bg-slate-50/50 text-black border-slate-200">
-                    <SelectValue placeholder="Add Staff" />
-                  </SelectTrigger>
+                  <SelectTrigger className="h-10 bg-slate-50/50 text-black border-slate-200"><SelectValue placeholder="Add Staff" /></SelectTrigger>
                   <SelectContent className="bg-white border-slate-200 text-black">
-                    {otherStaffOptions.length > 0 ? otherStaffOptions.map(e => (
-                      <SelectItem key={e.id} value={e.name}>{e.name} ({e.designation})</SelectItem>
-                    )) : <SelectItem value="none" disabled>No available staff</SelectItem>}
+                    {otherStaffOptions.map(e => <SelectItem key={e.id} value={e.name}>{e.name} ({e.designation})</SelectItem>)}
                   </SelectContent>
                 </Select>
                 <div className="flex flex-wrap gap-1">
                   {formData.otherStaff.map(name => (
                     <Badge key={name} variant="secondary" className="text-[10px] py-0 h-5 px-1.5 gap-1 font-bold bg-slate-100 text-slate-700">
-                        {name}
-                        <X className="h-3 w-3 cursor-pointer hover:text-destructive" onClick={() => removeStaff('otherStaff', name)} />
+                        {name} <X className="h-3 w-3 cursor-pointer" onClick={() => removeStaff('otherStaff', name)} />
                     </Badge>
                   ))}
                 </div>
@@ -357,20 +337,18 @@ export default function EstimateEntryPage() {
           </CardHeader>
           <CardContent className="p-6 space-y-4">
             <div className="space-y-1.5">
-              <Label className="text-[9px] font-black uppercase text-slate-400">Name of Site</Label>
+              <Label className="text-[9px] font-black uppercase text-slate-400">Primary Site Name</Label>
               <div className="relative">
                 <Mountain className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-blue-500" />
-                <Input value={formData.nameOfSite} onChange={(e) => updateField('nameOfSite', e.target.value)} className="h-10 pl-9 border-blue-200 bg-blue-50/30 font-black uppercase text-blue-700" placeholder="ENTER PRIMARY SITE NAME" />
+                <Input value={formData.nameOfSite} onChange={(e) => updateField('nameOfSite', e.target.value)} className="h-10 pl-9 border-blue-200 bg-blue-50/30 font-black uppercase text-blue-700" placeholder="ENTER PRIMARY SITE" />
               </div>
             </div>
             <div className="space-y-1.5">
               <Label className="text-[9px] font-black uppercase text-slate-400">Driver Name</Label>
               <Select onValueChange={(v) => updateField('driver', v)} value={formData.driver}>
-                <SelectTrigger className="h-10 bg-slate-50/50 text-black border-slate-200">
-                  <SelectValue placeholder="Select Driver" />
-                </SelectTrigger>
+                <SelectTrigger className="h-10 bg-slate-50/50 text-black border-slate-200"><SelectValue placeholder="Select Driver" /></SelectTrigger>
                 <SelectContent className="bg-white border-slate-200 text-black">
-                  {drivers.length > 0 ? drivers.map(e => <SelectItem key={e.id} value={e.name}>{e.name}</SelectItem>) : <SelectItem value="none" disabled>No Drivers found</SelectItem>}
+                  {drivers.map(e => <SelectItem key={e.id} value={e.name}>{e.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -386,65 +364,113 @@ export default function EstimateEntryPage() {
         </Card>
       </div>
 
-      <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter leading-none">PRE-CONSTRUCTION ESTIMATE DATA</h2>
-          <Separator className="flex-1 bg-slate-200" />
+      <div className="space-y-6 text-left">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter leading-none">PRE-CONSTRUCTION ESTIMATE DATA</h2>
+            <Separator orientation="vertical" className="h-6 bg-slate-200" />
+            <Badge variant="outline" className="h-6 px-3 bg-white text-[9px] font-black text-slate-400 uppercase tracking-widest">{formData.sites.length} ENTRIES</Badge>
+          </div>
+          
+          <Dialog open={isSiteDialogOpen} onOpenChange={setIsSiteDialogOpen}>
+            <DialogTrigger asChild>
+                <Button className="h-12 px-8 rounded-2xl bg-[#1e3a8a] hover:bg-blue-900 text-white font-black uppercase tracking-widest text-[10px] gap-2 shadow-xl shadow-blue-900/20 transition-all hover:scale-[1.02] active:scale-95">
+                    <PlusCircle className="size-4" /> ADD TECHNICAL WORK ENTRY
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px] rounded-[32px] p-8 border-none shadow-2xl">
+                <DialogHeader>
+                    <DialogTitle className="text-xl font-black uppercase tracking-tight text-slate-900">Technical Site Entry</DialogTitle>
+                    <DialogDescription className="text-[10px] font-bold uppercase text-slate-400 tracking-widest mt-1">Specify site location and nature of work for estimation.</DialogDescription>
+                </DialogHeader>
+                <div className="py-6 space-y-6">
+                    <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase text-slate-500 ml-1">Name of Site</Label>
+                        <div className="relative">
+                            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-300" />
+                            <Input value={newSite.siteName} onChange={(e) => setNewSite({...newSite, siteName: e.target.value.toUpperCase()})} placeholder="e.g. GHSS PULLIKKAL" className="h-12 pl-10 border-slate-200 rounded-xl font-bold uppercase" />
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase text-slate-500 ml-1">Name of Work</Label>
+                        <Select onValueChange={(v) => setNewSite({...newSite, workName: v})} value={newSite.workName}>
+                            <SelectTrigger className="h-12 border-slate-200 rounded-xl font-bold uppercase"><SelectValue /></SelectTrigger>
+                            <SelectContent className="rounded-xl">{workOptions.map(opt => <SelectItem key={opt} value={opt} className="font-bold text-xs uppercase">{opt}</SelectItem>)}</SelectContent>
+                        </Select>
+                    </div>
+                    <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase text-slate-500 ml-1">Field Remarks / Parameters</Label>
+                        <Textarea value={newSite.remarks} onChange={(e) => setNewSite({...newSite, remarks: e.target.value})} placeholder="Technical justifications or specific measurements..." className="rounded-xl border-slate-200 min-h-[100px]" />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button variant="ghost" onClick={() => setIsSiteDialogOpen(false)} className="rounded-xl font-black uppercase text-[10px]">Cancel</Button>
+                    <Button onClick={handleAddSite} className="h-12 px-8 rounded-xl bg-primary text-white font-black uppercase tracking-widest text-[10px]">SAVE WORK ENTRY</Button>
+                </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {pillars.map((pillar) => (
-            <Collapsible key={pillar.id} defaultOpen className="group">
-              <Card className="rounded-[32px] border-none shadow-sm ring-1 ring-slate-200 bg-white overflow-hidden">
-                <CollapsibleTrigger className="w-full">
-                  <CardHeader className={cn("border-b py-4 px-8 flex flex-row items-center justify-between", pillar.bgColor)}>
-                    <CardTitle className={cn("text-xs font-black uppercase tracking-[0.2em] flex items-center gap-2", pillar.color)}>
-                      <pillar.icon className="size-4" /> {pillar.label}
-                    </CardTitle>
-                    <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                  </CardHeader>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <CardContent className="p-8 space-y-4">
-                    {(formData as any)[pillar.id].map((site: string, idx: number) => (
-                      <div key={idx} className="flex items-center gap-4">
-                        <span className="text-[9px] font-black text-slate-300 w-12 shrink-0">SITE {idx + 1}</span>
-                        <Input 
-                          value={site} 
-                          onChange={(e) => updateSiteData(pillar.id, idx, e.target.value)} 
-                          className="h-10 text-[11px] bg-slate-50/50 border-slate-200 text-black"
-                          placeholder="Enter site specific details/measurements..."
-                        />
-                      </div>
-                    ))}
-                  </CardContent>
-                </CollapsibleContent>
-              </Card>
-            </Collapsible>
-          ))}
-        </div>
+        <Card className="rounded-[32px] border-none shadow-sm ring-1 ring-slate-200 bg-white overflow-hidden">
+            <CardContent className="p-0">
+                <Table>
+                    <TableHeader className="bg-slate-50/80 border-b">
+                        <TableRow className="h-12">
+                            <TableHead className="w-16 text-center font-black text-[9px] uppercase">SL</TableHead>
+                            <TableHead className="w-[300px] font-black text-[9px] uppercase">SITE LOCATION</TableHead>
+                            <TableHead className="w-[240px] font-black text-[9px] uppercase">NATURE OF WORK</TableHead>
+                            <TableHead className="font-black text-[9px] uppercase">TECHNICAL REMARKS</TableHead>
+                            <TableHead className="w-20 text-right pr-10 font-black text-[9px] uppercase">REMOVE</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {formData.sites.length > 0 ? formData.sites.map((site, idx) => (
+                            <TableRow key={idx} className="h-16 hover:bg-slate-50/50 transition-colors border-slate-100/50">
+                                <TableCell className="text-center font-black text-slate-300 text-[11px]">{idx + 1}</TableCell>
+                                <TableCell className="font-black text-xs uppercase text-slate-800">{site.siteName}</TableCell>
+                                <TableCell>
+                                    <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-100 text-[8px] font-black uppercase tracking-tighter px-3 h-6 rounded-full">{site.workName}</Badge>
+                                </TableCell>
+                                <TableCell className="text-[11px] font-medium text-slate-500 italic max-w-[400px] truncate">{site.remarks || 'No remarks recorded'}</TableCell>
+                                <TableCell className="text-right pr-10">
+                                    <Button variant="ghost" size="icon" onClick={() => removeSite(idx)} className="size-8 text-rose-200 hover:text-rose-600 hover:bg-rose-50 rounded-lg"><Trash2 className="size-4" /></Button>
+                                </TableCell>
+                            </TableRow>
+                        )) : (
+                            <TableRow>
+                                <TableCell colSpan={5} className="h-40 text-center text-slate-300">
+                                    <ClipboardList className="size-10 mx-auto mb-3 opacity-20" />
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em]">No technical entries added yet. Use the button above to start.</p>
+                                </TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
+            </CardContent>
+        </Card>
       </div>
 
       <Card className="rounded-[32px] border-none shadow-sm ring-1 ring-slate-200 bg-white">
         <CardHeader className="bg-slate-50/50 border-b py-4 px-8">
-          <CardTitle className="text-[10px] font-black uppercase text-slate-500">TECHNICAL OBSERVATIONS & REMARKS</CardTitle>
+          <CardTitle className="text-[10px] font-black uppercase text-slate-500">GLOBAL TECHNICAL OBSERVATIONS</CardTitle>
         </CardHeader>
         <CardContent className="p-8">
           <Textarea 
             value={formData.remarks} 
             onChange={(e) => updateField('remarks', e.target.value)} 
-            className="min-h-[120px] font-medium text-black border-slate-200 bg-white" 
-            placeholder="Record technical justifications for the estimate..." 
+            className="min-h-[100px] font-medium text-black border-slate-200 bg-white" 
+            placeholder="Record technical justifications for the global estimate..." 
           />
         </CardContent>
       </Card>
 
       <div className="flex justify-end pt-4">
-        <Button onClick={handleSave} disabled={isPending} className="h-12 px-8 rounded-full bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/20 gap-2">
-          {isPending ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />} 
-          SYNCHRONIZE RECORD
+        <Button onClick={handleSave} disabled={isPending} className="h-16 px-16 rounded-full bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/30 gap-3 hover:bg-blue-900 transition-all hover:scale-[1.02] active:scale-95">
+          {isPending ? <Loader2 className="size-5 animate-spin" /> : <Save className="size-5" />} 
+          SYNCHRONIZE TO LEDGER
         </Button>
       </div>
     </div>
   );
 }
+
