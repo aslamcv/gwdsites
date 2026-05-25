@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useMemo } from 'react';
@@ -21,7 +22,8 @@ import {
   MapPin,
   Ruler,
   ShieldCheck,
-  SearchCode
+  SearchCode,
+  Pencil
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -48,7 +50,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import type { Employee } from '@/lib/types';
-import { formatToTechnicalDate } from '@/lib/malayalam-utils';
 
 const workOptions = [
   "Borewell Construction",
@@ -69,6 +70,7 @@ export default function MeasurementEntryPage() {
   const [isPending, startTransition] = useTransition();
 
   const [isSiteDialogOpen, setIsSiteDialogOpen] = useState(false);
+  const [editingSiteIndex, setEditingSiteIndex] = useState<number | null>(null);
   const [newSite, setNewSite] = useState({ siteName: '', workName: 'Borewell Construction', remarks: '' });
 
   // Centralized employees list
@@ -148,12 +150,27 @@ export default function MeasurementEntryPage() {
       toast({ title: "Name of Site Required", variant: "destructive" });
       return;
     }
-    setFormData(prev => ({
-      ...prev,
-      sites: [...prev.sites, { ...newSite }]
-    }));
+
+    if (editingSiteIndex !== null) {
+      const updatedSites = [...formData.sites];
+      updatedSites[editingSiteIndex] = { ...newSite };
+      setFormData(prev => ({ ...prev, sites: updatedSites }));
+      setEditingSiteIndex(null);
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        sites: [...prev.sites, { ...newSite }]
+      }));
+    }
+
     setNewSite({ siteName: '', workName: 'Borewell Construction', remarks: '' });
     setIsSiteDialogOpen(false);
+  };
+
+  const handleEditSite = (index: number) => {
+    setEditingSiteIndex(index);
+    setNewSite({ ...formData.sites[index] });
+    setIsSiteDialogOpen(true);
   };
 
   const removeSite = (index: number) => {
@@ -269,6 +286,33 @@ export default function MeasurementEntryPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6 space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-[9px] font-black uppercase text-slate-400">Primary Site Name</Label>
+              <div className="relative">
+                <Mountain className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-emerald-500" />
+                <Input value={formData.nameOfSite} onChange={(e) => updateField('nameOfSite', e.target.value)} className="h-10 pl-9 border-emerald-200 bg-emerald-50/30 font-black uppercase text-emerald-700" placeholder="ENTER PRIMARY SITE" />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-[9px] font-black uppercase text-slate-400">Other Staff</Label>
+              <div className="space-y-2">
+                <Select onValueChange={(v) => addStaff('otherStaff', v)}>
+                  <SelectTrigger className="h-10 bg-slate-50/50 text-black border-slate-200"><SelectValue placeholder="Add Staff" /></SelectTrigger>
+                  <SelectContent className="bg-white border-slate-200 text-black">
+                    {otherStaffOptions.map(e => <SelectItem key={e.id} value={e.name}>{e.name} ({e.designation})</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <div className="flex flex-wrap gap-1">
+                  {formData.otherStaff.map(name => (
+                    <Badge key={name} variant="secondary" className="text-[10px] py-0 h-5 px-1.5 gap-1 font-bold bg-slate-100 text-slate-700">
+                        {name} <X className="h-3 w-3 cursor-pointer" onClick={() => removeStaff('otherStaff', name)} />
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label className="text-[9px] font-black uppercase text-slate-400">SLR</Label>
@@ -307,23 +351,20 @@ export default function MeasurementEntryPage() {
                 </div>
               </div>
             </div>
+
             <div className="space-y-1.5">
-              <Label className="text-[9px] font-black uppercase text-slate-400">Other Staff</Label>
-              <div className="space-y-2">
-                <Select onValueChange={(v) => addStaff('otherStaff', v)}>
-                  <SelectTrigger className="h-10 bg-slate-50/50 text-black border-slate-200"><SelectValue placeholder="Add Staff" /></SelectTrigger>
-                  <SelectContent className="bg-white border-slate-200 text-black">
-                    {otherStaffOptions.map(e => <SelectItem key={e.id} value={e.name}>{e.name} ({e.designation})</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <div className="flex flex-wrap gap-1">
-                  {formData.otherStaff.map(name => (
-                    <Badge key={name} variant="secondary" className="text-[10px] py-0 h-5 px-1.5 gap-1 font-bold bg-slate-100 text-slate-700">
-                        {name} <X className="h-3 w-3 cursor-pointer" onClick={() => removeStaff('otherStaff', name)} />
-                    </Badge>
-                  ))}
-                </div>
-              </div>
+              <Label className="text-[9px] font-black uppercase text-slate-400">Driver Name</Label>
+              <Select onValueChange={(v) => updateField('driver', v)} value={formData.driver}>
+                <SelectTrigger className="h-10 bg-slate-50/50 text-black border-slate-200"><SelectValue placeholder="Select Driver" /></SelectTrigger>
+                <SelectContent className="bg-white border-slate-200 text-black">
+                  {drivers.map(e => <SelectItem key={e.id} value={e.name}>{e.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-[9px] font-black uppercase text-slate-400">File Reference</Label>
+              <Input value={formData.fileNo} onChange={(e) => updateField('fileNo', e.target.value)} className="h-10 bg-slate-50/50 border-slate-200" placeholder="MPM/GWD/..." />
             </div>
           </CardContent>
         </Card>
@@ -336,28 +377,8 @@ export default function MeasurementEntryPage() {
           </CardHeader>
           <CardContent className="p-6 space-y-4">
             <div className="space-y-1.5">
-              <Label className="text-[9px] font-black uppercase text-slate-400">Primary Site Name</Label>
-              <div className="relative">
-                <Mountain className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-emerald-500" />
-                <Input value={formData.nameOfSite} onChange={(e) => updateField('nameOfSite', e.target.value)} className="h-10 pl-9 border-emerald-200 bg-emerald-50/30 font-black uppercase text-emerald-700" placeholder="ENTER PRIMARY SITE" />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-[9px] font-black uppercase text-slate-400">Driver Name</Label>
-              <Select onValueChange={(v) => updateField('driver', v)} value={formData.driver}>
-                <SelectTrigger className="h-10 bg-slate-50/50 text-black border-slate-200"><SelectValue placeholder="Select Driver" /></SelectTrigger>
-                <SelectContent className="bg-white border-slate-200 text-black">
-                  {drivers.map(e => <SelectItem key={e.id} value={e.name}>{e.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
               <Label className="text-[9px] font-black uppercase text-slate-400">Name of Contractor</Label>
               <Input value={formData.contractorName} onChange={(e) => updateField('contractorName', e.target.value)} className="h-10 border-slate-200 bg-white font-bold" />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-[9px] font-black uppercase text-slate-400">File Reference</Label>
-              <Input value={formData.fileNo} onChange={(e) => updateField('fileNo', e.target.value)} className="h-10 bg-slate-50/50 border-slate-200" placeholder="MPM/GWD/..." />
             </div>
           </CardContent>
         </Card>
@@ -371,15 +392,17 @@ export default function MeasurementEntryPage() {
             <Badge variant="outline" className="h-6 px-3 bg-white text-[9px] font-black text-slate-400 uppercase tracking-widest">{formData.sites.length} ENTRIES</Badge>
           </div>
           
-          <Dialog open={isSiteDialogOpen} onOpenChange={setIsSiteDialogOpen}>
-            <DialogTrigger asChild>
-                <Button className="h-12 px-8 rounded-2xl bg-[#1e3a8a] hover:bg-blue-900 text-white font-black uppercase tracking-widest text-[10px] gap-2 shadow-xl shadow-blue-900/20 transition-all hover:scale-[1.02] active:scale-95">
-                    <PlusCircle className="size-4" /> ADD MEASUREMENT LOG
-                </Button>
-            </DialogTrigger>
+          <div className="flex items-center gap-2">
+            <Button onClick={() => { setEditingSiteIndex(null); setNewSite({ siteName: '', workName: 'Borewell Construction', remarks: '' }); setIsSiteDialogOpen(true); }} className="h-12 px-8 rounded-2xl bg-[#1e3a8a] hover:bg-blue-900 text-white font-black uppercase tracking-widest text-[10px] gap-2 shadow-xl shadow-blue-900/20 transition-all hover:scale-[1.02] active:scale-95">
+                <PlusCircle className="size-4" /> ADD MEASUREMENT LOG
+            </Button>
+          </div>
+        </div>
+
+        <Dialog open={isSiteDialogOpen} onOpenChange={setIsSiteDialogOpen}>
             <DialogContent className="sm:max-w-[500px] rounded-[32px] p-8 border-none shadow-2xl">
                 <DialogHeader>
-                    <DialogTitle className="text-xl font-black uppercase tracking-tight text-slate-900">Technical Measurement Log</DialogTitle>
+                    <DialogTitle className="text-xl font-black uppercase tracking-tight text-slate-900">{editingSiteIndex !== null ? 'Edit Measurement Log' : 'Technical Measurement Log'}</DialogTitle>
                     <DialogDescription className="text-[10px] font-bold uppercase text-slate-400 tracking-widest mt-1">Specify site location and nature of work for final billing.</DialogDescription>
                 </DialogHeader>
                 <div className="py-6 space-y-6">
@@ -403,12 +426,11 @@ export default function MeasurementEntryPage() {
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button variant="ghost" onClick={() => setIsSiteDialogOpen(false)} className="rounded-xl font-black uppercase text-[10px]">Cancel</Button>
-                    <Button onClick={handleAddSite} className="h-12 px-8 rounded-xl bg-primary text-white font-black uppercase tracking-widest text-[10px]">SAVE LOG ENTRY</Button>
+                    <Button variant="ghost" onClick={() => { setIsSiteDialogOpen(false); setEditingSiteIndex(null); }} className="rounded-xl font-black uppercase text-[10px]">Cancel</Button>
+                    <Button onClick={handleAddSite} className="h-12 px-8 rounded-xl bg-primary text-white font-black uppercase tracking-widest text-[10px]">{editingSiteIndex !== null ? 'UPDATE LOG' : 'SAVE LOG ENTRY'}</Button>
                 </DialogFooter>
             </DialogContent>
-          </Dialog>
-        </div>
+        </Dialog>
 
         <Card className="rounded-[32px] border-none shadow-sm ring-1 ring-slate-200 bg-white overflow-hidden">
             <CardContent className="p-0">
@@ -419,7 +441,7 @@ export default function MeasurementEntryPage() {
                             <TableHead className="w-[300px] font-black text-[9px] uppercase">SITE LOCATION</TableHead>
                             <TableHead className="w-[240px] font-black text-[9px] uppercase">NATURE OF WORK</TableHead>
                             <TableHead className="font-black text-[9px] uppercase">FIELD MEASUREMENTS</TableHead>
-                            <TableHead className="w-20 text-right pr-10 font-black text-[9px] uppercase">REMOVE</TableHead>
+                            <TableHead className="w-40 text-right pr-10 font-black text-[9px] uppercase">ACTIONS</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -432,7 +454,10 @@ export default function MeasurementEntryPage() {
                                 </TableCell>
                                 <TableCell className="text-[11px] font-medium text-slate-500 italic max-w-[400px] truncate">{site.remarks || 'No measurements recorded'}</TableCell>
                                 <TableCell className="text-right pr-10">
-                                    <Button variant="ghost" size="icon" onClick={() => removeSite(idx)} className="size-8 text-rose-200 hover:text-rose-600 hover:bg-rose-50 rounded-lg"><Trash2 className="size-4" /></Button>
+                                    <div className="flex items-center justify-end gap-2">
+                                        <Button variant="ghost" size="icon" onClick={() => handleEditSite(idx)} className="size-8 text-slate-400 hover:text-primary hover:bg-blue-50 rounded-lg"><Pencil className="size-4" /></Button>
+                                        <Button variant="ghost" size="icon" onClick={() => removeSite(idx)} className="size-8 text-rose-200 hover:text-rose-600 hover:bg-rose-50 rounded-lg"><Trash2 className="size-4" /></Button>
+                                    </div>
                                 </TableCell>
                             </TableRow>
                         )) : (
@@ -448,20 +473,6 @@ export default function MeasurementEntryPage() {
             </CardContent>
         </Card>
       </div>
-
-      <Card className="rounded-[32px] border-none shadow-sm ring-1 ring-slate-200 bg-white">
-        <CardHeader className="bg-slate-50/50 border-b py-4 px-8">
-          <CardTitle className="text-[10px] font-black uppercase text-slate-500">FIELD OBSERVATIONS & REMARKS</CardTitle>
-        </CardHeader>
-        <CardContent className="p-8">
-          <Textarea 
-            value={formData.remarks} 
-            onChange={(e) => updateField('remarks', e.target.value)} 
-            className="min-h-[120px] font-medium text-black border-slate-200 bg-white" 
-            placeholder="Record site-specific observations during measurement..." 
-          />
-        </CardContent>
-      </Card>
       
       <div className="flex justify-end pt-4">
         <Button onClick={handleSave} disabled={isPending} className="h-16 px-16 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-emerald-200 gap-2 transition-all hover:scale-[1.02] active:scale-95">
@@ -472,4 +483,3 @@ export default function MeasurementEntryPage() {
     </div>
   );
 }
-
