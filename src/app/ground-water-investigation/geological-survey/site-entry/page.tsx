@@ -36,7 +36,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
-  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import {
   Form,
@@ -46,6 +45,13 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -61,14 +67,6 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
@@ -466,8 +464,8 @@ function SiteEntryContent() {
                       <FormItem> 
                         <FormLabel className="text-[10px] font-black uppercase text-slate-500">11. LSGD</FormLabel> 
                         <Select disabled={!isAllowed} onValueChange={field.onChange} value={field.value}>
-                          <FormControl><SelectTrigger className="h-10 text-xs font-bold"><SelectValue/></SelectTrigger></FormControl>
-                          <SelectContent className="max-h-[400px] rounded-2xl">{lsgs.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
+                          <FormControl><SelectTrigger className="h-10 text-xs font-bold"><SelectValue placeholder="SELECT LSGD" /></SelectTrigger></FormControl>
+                          <SelectContent className="max-h-[400px] rounded-2xl">{lsgs.map(l => <SelectItem key={l} value={l} className="text-[10px] font-bold uppercase">{l}</SelectItem>)}</SelectContent>
                         </Select>
                       </FormItem> 
                     )} />
@@ -547,8 +545,14 @@ function SiteEntryContent() {
                       <FormItem className="w-full">
                         <FormLabel className="text-[10px] font-black uppercase text-slate-400">Recommendation Type</FormLabel>
                         <Select disabled={!isAllowed} onValueChange={(val) => {field.onChange(val); setIsRecommendationDialogOpen(true);}} value={field.value}>
-                          <FormControl><SelectTrigger className="h-14 border-slate-200 rounded-2xl font-black uppercase text-xs shadow-sm"><SelectValue placeholder="SELECT" /></SelectTrigger></FormControl>
-                          <SelectContent className="rounded-2xl">{recommendationTypeOptions.map(o => (<SelectItem key={o.value} value={o.value} className="font-bold text-xs uppercase">{o.label}</SelectItem>))}</SelectContent>
+                          <FormControl><SelectTrigger className="h-14 border-slate-200 rounded-2xl font-black uppercase text-xs tracking-widest shadow-sm"><SelectValue placeholder="SELECT" /></SelectTrigger></FormControl>
+                          <SelectContent className="rounded-2xl border-slate-200 shadow-2xl">
+                            {recommendationTypeOptions.map(o => (
+                              <SelectItem key={o.value} value={o.value} className="py-3 font-bold text-xs uppercase cursor-pointer">
+                                {o.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
                         </Select>
                       </FormItem>
                     )} />
