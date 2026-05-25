@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useEffect, useMemo, Suspense } from 'react';
@@ -37,6 +38,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useLsgdData } from '@/hooks/use-lsgd-data';
@@ -58,8 +70,8 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
-import { collection, doc, setDoc, updateDoc } from 'firebase/firestore';
+import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, updateDoc, setDoc } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
 import type { GroundwaterReport, Employee } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -67,6 +79,65 @@ import { StaffMultiSelect } from '@/components/investigation/staff-multi-select'
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/logo';
 import { ScrollArea } from '@/components/ui/scroll-area';
+
+const reportSchema = z.object({
+  nameOfSite: z.string().min(1, 'Name of site is required.'),
+  address: z.string().optional(),
+  latitude: z.string().optional(),
+  longitude: z.string().optional(),
+  fileNo: z.string().optional(),
+  applicantNameAddress: z.string().optional(),
+  applicationDate: z.string().optional(),
+  village: z.string().optional(),
+  ward: z.string().optional(),
+  altitude: z.string().optional(),
+  lsgd: z.string().optional(),
+  assembly: z.string().optional(),
+  block: z.string().optional(),
+  typeAppliedFor: z.enum(['borewell', 'openwell', 'filterpoint', 'tubewell']).optional(),
+  dateOfFeasibility: z.string().optional(),
+  noOfBeneficiaries: z.string().optional(),
+  toposheet: z.string().optional(),
+  surveyNoArea: z.string().optional(),
+  microWatershed: z.string().optional(),
+  hydrogeology: z.string().optional(),
+  nearbyBorewell1Depth: z.string().optional(),
+  nearbyBorewell1Diameter: z.string().optional(),
+  nearbyBorewell1Zones: z.string().optional(),
+  nearbyBorewell2Depth: z.string().optional(),
+  nearbyBorewell2Diameter: z.string().optional(),
+  nearbyBorewell2Zones: z.string().optional(),
+  nearbyBorewell3Depth: z.string().optional(),
+  nearbyBorewell3Diameter: z.string().optional(),
+  nearbyBorewell3Zones: z.string().optional(),
+  noNearbyBorewells: z.boolean().default(false),
+  nearbyOpenwell1Depth: z.string().optional(),
+  nearbyOpenwell1WaterLevel: z.string().optional(),
+  nearbyOpenwell1ParapetHeight: z.string().optional(),
+  nearbyOpenwell1Type: z.string().optional(),
+  nearbyOpenwell2Depth: z.string().optional(),
+  nearbyOpenwell2WaterLevel: z.string().optional(),
+  nearbyOpenwell2ParapetHeight: z.string().optional(),
+  nearbyOpenwell2Type: z.string().optional(),
+  nearbyOpenwell3Depth: z.string().optional(),
+  nearbyOpenwell3WaterLevel: z.string().optional(),
+  nearbyOpenwell3ParapetHeight: z.string().optional(),
+  nearbyOpenwell3Type: z.string().optional(),
+  noNearbyOpenwells: z.boolean().default(false),
+  recommendationType: z.string().optional(),
+  recommendationBorewell: z.string().optional(),
+  recommendationOpenwell: z.string().optional(),
+  recBorewellTotalDepth: z.string().optional(),
+  recBorewellDiameter: z.string().optional(),
+  expectedOverburden: z.string().optional(),
+  recOpenwellTotalDepth: z.string().optional(),
+  recOpenwellDiameter: z.string().optional(),
+  recommendedToGpSurvey: z.boolean().default(false),
+  gpSurveyLocation: z.string().optional(),
+  recommendedToPumpingTest: z.boolean().default(false),
+});
+
+type ReportFormValues = z.infer<typeof reportSchema>;
 
 const MASTER_ADMIN_EMAIL = 'gwdmpm@gmail.com';
 
@@ -140,6 +211,7 @@ function SiteEntryContent() {
   const [isPending, startTransition] = useTransition();
 
   const id = searchParams.get('id');
+  const [generatedReportId, setGeneratedReportId] = useState<string | null>(id);
 
   const [isRecommendationDialogOpen, setIsRecommendationDialogOpen] = useState(false);
   const [isNearbyDialogOpen, setIsNearbyDialogOpen] = useState(false);
@@ -172,90 +244,43 @@ function SiteEntryContent() {
 
   const { data: cloudReport, isLoading: isReportLoading } = useDoc<GroundwaterReport>(reportRef);
 
-  const [formData, setFormData] = useState<any>({
+  const defaultValues: ReportFormValues = useMemo(() => ({
+    nameOfSite: '', address: '', latitude: '', longitude: '', fileNo: '', applicantNameAddress: '', applicationDate: '', village: '', ward: '', altitude: '', lsgd: '', assembly: '', block: '', typeAppliedFor: 'borewell', dateOfFeasibility: '', noOfBeneficiaries: '', toposheet: '', surveyNoArea: '', microWatershed: '', hydrogeology: 'The area is expected to be underlain by Lateritic soil followed by Laterite, weathered and hard crystalline rock.', nearbyBorewell1Depth: '', nearbyBorewell1Diameter: '', nearbyBorewell1Zones: '', nearbyBorewell2Depth: '', nearbyBorewell2Diameter: '', nearbyBorewell2Zones: '', nearbyBorewell3Depth: '', nearbyBorewell3Diameter: '', nearbyBorewell3Zones: '', noNearbyBorewells: false, nearbyOpenwell1Depth: '', nearbyOpenwell1WaterLevel: '', nearbyOpenwell1ParapetHeight: '', nearbyOpenwell1Type: 'Perennial', nearbyOpenwell2Depth: '', nearbyOpenwell2WaterLevel: '', nearbyOpenwell2ParapetHeight: '', nearbyOpenwell2Type: 'Perennial', nearbyOpenwell3Depth: '', nearbyOpenwell3WaterLevel: '', nearbyOpenwell3ParapetHeight: '', nearbyOpenwell3Type: 'Perennial', noNearbyOpenwells: false, recommendationType: '', recommendationBorewell: '', recommendationOpenwell: '', recBorewellTotalDepth: '', recBorewellDiameter: '', expectedOverburden: '', recOpenwellTotalDepth: '', recOpenwellDiameter: '', recommendedToGpSurvey: false, gpSurveyLocation: '', recommendedToPumpingTest: false,
+  }), []);
+
+  const form = useForm<ReportFormValues>({
+    resolver: zodResolver(reportSchema),
+    defaultValues
+  });
+
+  useEffect(() => {
+    if (cloudReport) {
+      form.reset({ ...defaultValues, ...cloudReport });
+    }
+  }, [cloudReport, form, defaultValues]);
+
+  // AUTO-POPULATE CONSTITUENCY (LAC) FROM LSGD
+  const watchedLsgd = form.watch('lsgd');
+  useEffect(() => {
+    if (watchedLsgd && lsgMappings) {
+      const mapping = lsgMappings.find(m => m.lsg === watchedLsgd);
+      if (mapping) {
+        form.setValue('assembly', mapping.constituency);
+      }
+    }
+  }, [watchedLsgd, lsgMappings, form]);
+
+  const [staffFormData, setStaffFormData] = useState<any>({
     startDate: new Date().toISOString().split('T')[0],
     endDate: '',
     conveyance: '',
     sector: 'private',
     category: 'Domestic',
-    nameOfSite: '',
-    address: '',
-    latitude: '',
-    longitude: '',
-    fileNo: '',
-    applicantNameAddress: '',
-    applicationDate: '',
-    village: '',
-    ward: '',
-    altitude: '',
-    lsgd: '',
-    assembly: '',
-    block: '',
-    typeAppliedFor: 'borewell',
-    dateOfFeasibility: '',
-    noOfBeneficiaries: '',
-    toposheet: '',
-    surveyNoArea: '',
-    microWatershed: '',
-    hydrogeology: 'The area is expected to be underlain by Lateritic soil followed by Laterite, weathered and hard crystalline rock.',
-    remittance: '',
-    totalDepth: '',
-    noNearbyBorewells: false,
-    noNearbyOpenwells: false,
-    nearbyBorewell1Depth: '', nearbyBorewell1Diameter: '', nearbyBorewell1Zones: '',
-    nearbyBorewell2Depth: '', nearbyBorewell2Diameter: '', nearbyBorewell2Zones: '',
-    nearbyBorewell3Depth: '', nearbyBorewell3Diameter: '', nearbyBorewell3Zones: '',
-    nearbyOpenwell1Depth: '', nearbyOpenwell1WaterLevel: '', nearbyOpenwell1ParapetHeight: '', nearbyOpenwell1Type: 'Perennial',
-    nearbyOpenwell2Depth: '', nearbyOpenwell2WaterLevel: '', nearbyOpenwell2ParapetHeight: '', nearbyOpenwell2Type: 'Perennial',
-    nearbyOpenwell3Depth: '', nearbyOpenwell3WaterLevel: '', nearbyOpenwell3ParapetHeight: '', nearbyOpenwell3Type: 'Perennial',
-    recommendationType: '',
-    recBorewellTotalDepth: '',
-    recBorewellDiameter: '',
-    expectedOverburden: '',
-    recommendationBorewell: '',
-    recOpenwellTotalDepth: '',
-    recOpenwellDiameter: '',
-    recommendationOpenwell: '',
-    recommendedToGpSurvey: false,
-    gpSurveyLocation: '',
-    recommendedToPumpingTest: false,
-    staffAssignment: {
-        hydrogeologist: [],
-        juniorHydrogeologist: [],
-        geologicalAssistant: [],
-        otherStaff: []
-    }
+    staffAssignment: { hydrogeologist: [], juniorHydrogeologist: [], geologicalAssistant: [], otherStaff: [] }
   });
 
-  useEffect(() => {
-    if (cloudReport) {
-      const SaData = cloudReport.staffAssignment || {};
-      setFormData((prev: any) => ({
-        ...prev,
-        ...cloudReport,
-        staffAssignment: {
-          hydrogeologist: Array.isArray(SaData.hydrogeologist) ? SaData.hydrogeologist : (SaData.hydrogeologist ? (SaData.hydrogeologist as string).split(', ') : []),
-          juniorHydrogeologist: Array.isArray(SaData.juniorHydrogeologist) ? SaData.juniorHydrogeologist : (SaData.juniorHydrogeologist ? (SaData.juniorHydrogeologist as string).split(', ') : []),
-          geologicalAssistant: Array.isArray(SaData.geologicalAssistant) ? SaData.geologicalAssistant : (SaData.geologicalAssistant ? (SaData.geologicalAssistant as string).split(', ') : []),
-          otherStaff: Array.isArray(SaData.otherStaff) ? SaData.otherStaff : (SaData.otherStaff ? (SaData.otherStaff as string).split(', ') : [])
-        }
-      }));
-    }
-  }, [cloudReport]);
-
-  const updateField = (key: string, value: any) => {
-    setFormData((prev: any) => ({ ...prev, [key]: value }));
-  };
-
-  const updateStaff = (role: string, names: string[]) => {
-    setFormData((prev: any) => ({
-      ...prev,
-      staffAssignment: {
-        ...prev.staffAssignment,
-        [role]: names
-      }
-    }));
-  };
+  const updateStaffField = (key: string, value: any) => setStaffFormData((p:any) => ({ ...p, [key]: value }));
+  const updateStaff = (role: string, names: string[]) => setStaffFormData((p:any) => ({ ...p, staffAssignment: { ...p.staffAssignment, [role]: names } }));
 
   const filteredStaff = useMemo(() => {
     if (!employees) return { hg: [], jhg: [], ga: [], other: [] };
@@ -267,14 +292,7 @@ function SiteEntryContent() {
     return { hg: hgList, jhg: jhgList, ga: gaList, other: otherList };
   }, [employees]);
 
-  const detectedLac = useMemo(() => {
-    if (!formData.lsgd || !lsgMappings || lsgMappings.length === 0) return '';
-    const searchLsg = formData.lsgd.toLowerCase().trim();
-    const mapping = lsgMappings.find(m => m.lsg.toLowerCase().trim() === searchLsg);
-    return mapping?.constituency || '';
-  }, [formData.lsgd, lsgMappings]);
-
-  const handleSave = () => {
+  const onSubmit = (values: ReportFormValues) => {
     if (!user || !firestore || !isAllowed) return;
 
     startTransition(() => {
@@ -282,30 +300,30 @@ function SiteEntryContent() {
       const reportDocRef = isUpdate ? doc(firestore, 'groundwaterReports', id) : doc(collection(firestore, 'groundwaterReports'));
       const reportId = reportDocRef.id;
 
-      const dateOfInvestigation = `${formData.startDate}${formData.endDate ? ' - ' + formData.endDate : ''}`;
+      const dateOfInvestigation = `${staffFormData.startDate}${staffFormData.endDate ? ' - ' + staffFormData.endDate : ''}`;
 
       const reportData = {
-        ...formData,
+        ...values,
+        ...staffFormData,
         id: reportId,
-        reportDate: formData.startDate,
-        applicantName: formData.applicantNameAddress?.split('\n')[0] || formData.nameOfSite,
+        reportDate: staffFormData.startDate,
+        applicantName: values.applicantNameAddress?.split('\n')[0] || values.nameOfSite,
         status: 'Published' as const,
         purpose: "Ground Water Investigation / Geological Survey",
         dateOfInvestigation,
         updatedAt: new Date().toISOString(),
-        assembly: detectedLac,
         staffAssignment: {
-            hydrogeologist: formData.staffAssignment.hydrogeologist.join(', '),
-            juniorHydrogeologist: formData.staffAssignment.juniorHydrogeologist.join(', '),
-            geologicalAssistant: formData.staffAssignment.geologicalAssistant.join(', '),
-            otherStaff: formData.staffAssignment.otherStaff.join(', ')
+            hydrogeologist: staffFormData.staffAssignment.hydrogeologist.join(', '),
+            juniorHydrogeologist: staffFormData.staffAssignment.juniorHydrogeologist.join(', '),
+            geologicalAssistant: staffFormData.staffAssignment.geologicalAssistant.join(', '),
+            otherStaff: staffFormData.staffAssignment.otherStaff.join(', ')
         }
       };
 
       const operation = isUpdate ? updateDoc(reportDocRef, reportData) : setDoc(reportDocRef, reportData);
 
       operation.then(() => {
-        toast({ title: 'Record Updated', description: 'Geological survey record synchronized.' });
+        toast({ title: 'Record Updated', description: 'Technical investigation record synchronized.' });
         router.push('/ground-water-investigation');
       }).catch(async (error) => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({ path: reportDocRef.path, operation: isUpdate ? 'update' : 'create', requestResourceData: reportData }));
@@ -315,19 +333,12 @@ function SiteEntryContent() {
 
   const handleNearbyTypeSelect = (type: string, value: string) => {
     if (value === 'none') {
-        if(type === 'borewell') {
-            const current = formData.noNearbyBorewells;
-            updateField('noNearbyBorewells', !current);
-            if (!current) setSelectedNearbyStructure(null);
-        }
-        if(type === 'openwell') {
-            const current = formData.noNearbyOpenwells;
-            updateField('noNearbyOpenwells', !current);
-            if (!current) setSelectedNearbyStructure(null);
-        }
+        if(type === 'borewell') form.setValue('noNearbyBorewells', !form.getValues('noNearbyBorewells'));
+        if(type === 'openwell') form.setValue('noNearbyOpenwells', !form.getValues('noNearbyOpenwells'));
+        setSelectedNearbyStructure(null);
     } else {
-        if(type === 'borewell') updateField('noNearbyBorewells', false);
-        if(type === 'openwell') updateField('noNearbyOpenwells', false);
+        if(type === 'borewell') form.setValue('noNearbyBorewells', false);
+        if(type === 'openwell') form.setValue('noNearbyOpenwells', false);
         setSelectedNearbyStructure(value);
         setIsNearbyDialogOpen(true);
     }
@@ -335,11 +346,13 @@ function SiteEntryContent() {
 
   const handleManualVillageSave = () => {
     if (manualVillageName.trim()) {
-      updateField('village', manualVillageName.trim().toUpperCase());
+      form.setValue('village', manualVillageName.trim().toUpperCase());
       setIsManualVillageOpen(false);
       setManualVillageName('');
     }
   };
+
+  if (isReportLoading && id) return <div className="p-12 text-center animate-pulse uppercase tracking-widest font-black opacity-30 text-slate-400">Initializing Workspace...</div>;
 
   return (
     <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black">
@@ -360,25 +373,23 @@ function SiteEntryContent() {
             
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4 w-full lg:w-auto">
               <div className="space-y-1">
-                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
-                  <CalendarIcon className="size-3 pointer-events-none" /> Start Date
-                </Label>
-                <Input disabled={!isAllowed} type="date" value={formData.startDate || ''} onChange={(e) => updateField('startDate', e.target.value)} className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl focus:bg-white" />
+                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><CalendarIcon className="size-3 pointer-events-none" /> Start Date</Label>
+                <Input disabled={!isAllowed} type="date" value={staffFormData.startDate} onChange={(e) => updateStaffField('startDate', e.target.value)} className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl focus:bg-white" />
               </div>
               <div className="space-y-1">
-                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><CalendarIcon className="size-3 pointer-events-none" /> End Date (Opt)</Label>
-                <Input disabled={!isAllowed} type="date" value={formData.endDate || ''} onChange={(e) => updateField('endDate', e.target.value)} className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl focus:bg-white" />
+                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><CalendarIcon className="size-3 pointer-events-none" /> End Date</Label>
+                <Input disabled={!isAllowed} type="date" value={staffFormData.endDate} onChange={(e) => updateStaffField('endDate', e.target.value)} className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl focus:bg-white" />
               </div>
               <div className="space-y-1">
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><Truck className="size-3" /> Conveyance</Label>
-                <Select disabled={!isAllowed} onValueChange={(v) => updateField('conveyance', v)} value={formData.conveyance || ''}>
+                <Select disabled={!isAllowed} onValueChange={(v) => updateStaffField('conveyance', v)} value={staffFormData.conveyance}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">{conveyanceOptions.map(o => <SelectItem key={o} value={o} className="text-xs font-bold">{o}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><Building className="size-3" /> Sector</Label>
-                <Select disabled={!isAllowed} onValueChange={(v) => updateField('sector', v)} value={formData.sector || ''}>
+                <Select disabled={!isAllowed} onValueChange={(v) => updateStaffField('sector', v)} value={staffFormData.sector}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">
                     {sectorOptions.map(s => <SelectItem key={s.id} value={s.id} className="text-[10px] font-black uppercase">{s.label}</SelectItem>)}
@@ -386,11 +397,11 @@ function SiteEntryContent() {
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><SearchCode className="size-3" /> Sub Category</Label>
-                <Select disabled={!isAllowed} onValueChange={(v) => updateField('category', v)} value={formData.category || ''}>
+                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><SearchCode className="size-3" /> Category</Label>
+                <Select disabled={!isAllowed} onValueChange={(v) => updateStaffField('category', v)} value={staffFormData.category}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">
-                    {categoryMappings[formData.sector]?.map(c => <SelectItem key={c} value={c} className="text-[10px] font-black uppercase">{c}</SelectItem>)}
+                    {categoryMappings[staffFormData.sector]?.map(c => <SelectItem key={c} value={c} className="text-[10px] font-black uppercase">{c}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -399,312 +410,262 @@ function SiteEntryContent() {
         </div>
       </div>
 
-      <div className='space-y-8'>
-        <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2 text-sm uppercase font-black tracking-widest"><MapPin className="size-4 text-primary" /> 1. Basic Site Details</CardTitle></CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <FormFieldItem label="1. Name of Site" id="nameOfSite"><Input disabled={!isAllowed} value={formData.nameOfSite} onChange={(e) => updateField('nameOfSite', e.target.value)} /></FormFieldItem>
-            <FormFieldItem label="2. Address" id="address"><Input disabled={!isAllowed} value={formData.address} onChange={(e) => updateField('address', e.target.value)} /></FormFieldItem>
-            <FormFieldItem label="3. Latitude" id="latitude"><Input disabled={!isAllowed} value={formData.latitude} onChange={(e) => updateField('latitude', e.target.value)} /></FormFieldItem>
-            <FormFieldItem label="4. Longitude" id="longitude"><Input disabled={!isAllowed} value={formData.longitude} onChange={(e) => updateField('longitude', e.target.value)} /></FormFieldItem>
-            <FormFieldItem label="5. File No" id="fileNo"><Input disabled={!isAllowed} value={formData.fileNo} onChange={(e) => updateField('fileNo', e.target.value)} /></FormFieldItem>
-            <FormFieldItem label="6. Applicant Name & Address" id="applicantNameAddress" className="md:col-span-2"><Textarea disabled={!isAllowed} value={formData.applicantNameAddress} onChange={(e) => updateField('applicantNameAddress', e.target.value)} /></FormFieldItem>
-            <FormFieldItem label="7. Date of application" id="applicationDate"><Input disabled={!isAllowed} type="date" value={formData.applicationDate} onChange={(e) => updateField('applicationDate', e.target.value)} /></FormFieldItem>
-          </CardContent>
-        </Card>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            <Card>
+              <CardHeader><CardTitle className="flex items-center gap-2 text-sm uppercase font-black tracking-widest"><MapPin className="size-4 text-primary" /> 1. Basic Site Details</CardTitle></CardHeader>
+              <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <FormField control={form.control} name="nameOfSite" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">1. Name of Site</FormLabel> <FormControl><Input disabled={!isAllowed} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                <FormField control={form.control} name="address" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">2. Address</FormLabel> <FormControl><Input disabled={!isAllowed} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                <FormField control={form.control} name="latitude" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">3. Latitude</FormLabel> <FormControl><Input disabled={!isAllowed} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                <FormField control={form.control} name="longitude" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">4. Longitude</FormLabel> <FormControl><Input disabled={!isAllowed} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                <FormField control={form.control} name="fileNo" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">5. File No</FormLabel> <FormControl><Input disabled={!isAllowed} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                <FormField control={form.control} name="applicantNameAddress" render={({ field }) => ( <FormItem className="md:col-span-2"> <FormLabel className="text-[10px] font-black uppercase text-slate-500">6. Applicant Details</FormLabel> <FormControl><Textarea disabled={!isAllowed} rows={1} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                <FormField control={form.control} name="applicationDate" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">7. Date of application</FormLabel> <FormControl><Input disabled={!isAllowed} type="date" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
-            <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3">
-               <Building className="size-4" /> 2. Location & Admin Details
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-10 grid grid-cols-1 md:grid-cols-4 gap-8">
-                <FormFieldItem label="8. Village" id="village">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button type="button" variant="outline" className="w-full h-10 justify-between border-slate-200 font-bold" disabled={!isAllowed}>
-                        <span className="uppercase text-[11px] tracking-tight truncate">
-                          {formData.village || "ENTER THE DETAILS"}
-                        </span>
-                        <ChevronDown className="size-4 opacity-50" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-[320px] rounded-2xl p-2 bg-white shadow-2xl border-slate-200">
-                      <ScrollArea className="h-[400px]">
-                        <DropdownMenuLabel className="px-4 py-2 text-[10px] font-black uppercase text-primary tracking-widest bg-slate-50">Select Revenue Village</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        {villageOptions.map((group, groupIdx) => (
-                          <div key={`${group.label}-${groupIdx}`}>
-                            <div className="px-4 py-2 text-[10px] font-black uppercase text-slate-400 bg-slate-50/50">{group.label}</div>
-                            {group.options.map((v, i) => (
-                              <DropdownMenuItem key={`${v}-${i}`} onClick={() => updateField('village', v)} className="rounded-xl py-2.5 px-6 font-bold text-xs uppercase cursor-pointer">
-                                {v}
-                              </DropdownMenuItem>
-                            ))}
-                          </div>
-                        ))}
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => setIsManualVillageOpen(true)} className="rounded-xl py-3 px-6 font-black text-xs uppercase cursor-pointer text-blue-600 bg-blue-50 hover:bg-blue-100">
-                          <PlusCircle className="size-4 mr-2" /> OTHER / MANUAL ENTRY
-                        </DropdownMenuItem>
-                      </ScrollArea>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </FormFieldItem>
-                <FormFieldItem label="9. Ward" id="ward"><Input disabled={!isAllowed} value={formData.ward} onChange={(e) => updateField('ward', e.target.value)} /></FormFieldItem>
-                <FormFieldItem label="10. Altitude" id="altitude"><Input disabled={!isAllowed} value={formData.altitude} onChange={(e) => updateField('altitude', e.target.value)} /></FormFieldItem>
-                <FormFieldItem label="11. LSGD" id="lsgd">
-                  <Select disabled={!isAllowed} onValueChange={(v) => updateField('lsgd', v)} value={formData.lsgd}>
-                    <SelectTrigger className="h-10 text-xs font-bold"><SelectValue/></SelectTrigger>
-                    <SelectContent className="max-h-[400px] rounded-2xl">{lsgs.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
-                  </Select>
-                </FormFieldItem>
-                <FormFieldItem label="12. Constituency (LAC)" id="assembly">
-                    <Input value={detectedLac} disabled className="bg-slate-50 font-black text-blue-600 uppercase h-10 text-xs" placeholder="Auto-populated" />
-                </FormFieldItem>
-                <FormFieldItem label="13. Block" id="block">
-                  <Select disabled={!isAllowed} onValueChange={(v) => updateField('block', v)} value={formData.block}>
-                    <SelectTrigger className="h-10 text-xs font-bold"><SelectValue/></SelectTrigger>
-                    <SelectContent className="rounded-xl">{blockOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
-                  </Select>
-                </FormFieldItem>
-                <FormFieldItem label="14. Type Applied For" id="typeAppliedFor">
-                  <Select disabled={!isAllowed} onValueChange={(v) => updateField('typeAppliedFor', v)} value={formData.typeAppliedFor}>
-                    <SelectTrigger className="h-10 text-xs bg-slate-50/50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue /></SelectTrigger>
-                    <SelectContent className="rounded-xl">
-                      {recommendationTypeOptions.filter(o=>o.value !== 'not_feasible').map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </FormFieldItem>
-                <FormFieldItem label="15. Date of Feasibility" id="dateOfFeasibility"><Input disabled={!isAllowed} type="date" value={formData.dateOfFeasibility} onChange={(e) => updateField('dateOfFeasibility', e.target.value)} /></FormFieldItem>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2 text-sm uppercase font-black tracking-widest"><Settings className="size-4 text-primary"/> 3. Technical Details</CardTitle></CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <FormFieldItem label="16. beneficiaries" id="noOfBeneficiaries"><Input disabled={!isAllowed} type="text" value={formData.noOfBeneficiaries} onChange={(e) => updateField('noOfBeneficiaries', e.target.value)} /></FormFieldItem>
-            <FormFieldItem label="17. Toposheet/GW Prospect Map" id="toposheet" className="md:col-span-2"><Input disabled={!isAllowed} value={formData.toposheet} onChange={(e) => updateField('toposheet', e.target.value)} /></FormFieldItem>
-            <FormFieldItem label="18. Survey No. & Area" id="surveyNoArea"><Input disabled={!isAllowed} value={formData.surveyNoArea} onChange={(e) => updateField('surveyNoArea', e.target.value)} /></FormFieldItem>
-            <FormFieldItem label="19. Micro water shed" id="microWatershed"><Input disabled={!isAllowed} value={formData.microWatershed} onChange={(e) => updateField('microWatershed', e.target.value)} /></FormFieldItem>
-          </CardContent>
-        </Card>
+            <Card>
+              <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
+                <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3">
+                   <Building className="size-4" /> 2. Location & Admin Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-10 grid grid-cols-1 md:grid-cols-4 gap-8">
+                    <FormField control={form.control} name="village" render={({ field }) => ( 
+                      <FormItem> 
+                        <FormLabel className="text-[10px] font-black uppercase text-slate-500">8. Village</FormLabel> 
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button type="button" variant="outline" className="w-full h-10 justify-between border-slate-200 font-bold" disabled={!isAllowed}>
+                              <span className="uppercase text-[11px] tracking-tight truncate">{field.value || "SELECT VILLAGE"}</span>
+                              <ChevronDown className="size-4 opacity-50" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent className="w-[320px] rounded-2xl p-2 bg-white shadow-2xl border-slate-200">
+                            <ScrollArea className="h-[400px]">
+                              {villageOptions.map((group, groupIdx) => (
+                                <div key={groupIdx}>
+                                  <div className="px-4 py-2 text-[10px] font-black uppercase text-slate-400 bg-slate-50/50">{group.label}</div>
+                                  {group.options.map((v, i) => (
+                                    <DropdownMenuItem key={i} onClick={() => form.setValue('village', v)} className="rounded-xl py-2.5 px-6 font-bold text-xs uppercase cursor-pointer">{v}</DropdownMenuItem>
+                                  ))}
+                                </div>
+                              ))}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => setIsManualVillageOpen(true)} className="rounded-xl py-3 px-6 font-black text-xs uppercase cursor-pointer text-blue-600 bg-blue-50 hover:bg-blue-100"><PlusCircle className="size-4 mr-2" /> MANUAL ENTRY</DropdownMenuItem>
+                            </ScrollArea>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                        <FormMessage />
+                      </FormItem> 
+                    )} />
+                    <FormField control={form.control} name="ward" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">9. Ward</FormLabel> <FormControl><Input disabled={!isAllowed} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                    <FormField control={form.control} name="altitude" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">10. Altitude</FormLabel> <FormControl><Input disabled={!isAllowed} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                    <FormField control={form.control} name="lsgd" render={({ field }) => ( 
+                      <FormItem> 
+                        <FormLabel className="text-[10px] font-black uppercase text-slate-500">11. LSGD</FormLabel> 
+                        <Select disabled={!isAllowed} onValueChange={field.onChange} value={field.value}>
+                          <FormControl><SelectTrigger className="h-10 text-xs font-bold"><SelectValue/></SelectTrigger></FormControl>
+                          <SelectContent className="max-h-[400px] rounded-2xl">{lsgs.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </FormItem> 
+                    )} />
+                    <FormField control={form.control} name="assembly" render={({ field }) => ( 
+                      <FormItem> 
+                        <FormLabel className="text-[10px] font-black uppercase text-slate-500">12. Constituency (LAC)</Label> 
+                        <FormControl><Input {...field} disabled className="bg-slate-50 font-black text-blue-600 uppercase h-10 text-xs" /></FormControl>
+                      </FormItem> 
+                    )} />
+                    <FormField control={form.control} name="block" render={({ field }) => ( 
+                      <FormItem> 
+                        <FormLabel className="text-[10px] font-black uppercase text-slate-500">13. Block</FormLabel> 
+                        <Select disabled={!isAllowed} onValueChange={field.onChange} value={field.value}>
+                          <FormControl><SelectTrigger className="h-10 text-xs font-bold"><SelectValue/></SelectTrigger></FormControl>
+                          <SelectContent className="rounded-xl">{blockOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </FormItem> 
+                    )} />
+                    <FormField control={form.control} name="typeAppliedFor" render={({ field }) => ( 
+                      <FormItem> 
+                        <FormLabel className="text-[10px] font-black uppercase text-slate-500">14. Type Applied For</FormLabel> 
+                        <Select disabled={!isAllowed} onValueChange={field.onChange} value={field.value}>
+                          <FormControl><SelectTrigger className="h-10 text-xs bg-slate-50/50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue /></SelectTrigger></FormControl>
+                          <SelectContent className="rounded-xl">{recommendationTypeOptions.filter(o=>o.value !== 'not_feasible').map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </FormItem> 
+                    )} />
+                    <FormField control={form.control} name="dateOfFeasibility" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">15. Date of Feasibility</FormLabel> <FormControl><Input disabled={!isAllowed} type="date" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+              </CardContent>
+            </Card>
 
-        <Card><CardHeader><CardTitle className="flex items-center gap-2 text-sm uppercase font-black tracking-widest"><FileText className="size-4 text-primary"/> 20. Hydrogeology & Geology of the area</CardTitle></CardHeader><CardContent><Textarea disabled={!isAllowed} value={formData.hydrogeology} onChange={(e) => updateField('hydrogeology', e.target.value)} rows={5} /></CardContent></Card>
-        
-        <Card>
-          <CardHeader className="bg-slate-50 border-b py-5 px-10">
-            <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3">
-              <Activity className="size-4" /> 21. Details of nearby groundwater structures
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-10 grid grid-cols-1 md:grid-cols-2 gap-12">
-            <div className="space-y-4">
-              <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest block ml-1">a) Borewell Status</Label>
-              <div className="flex flex-wrap gap-2 p-1 bg-slate-100 rounded-2xl w-fit">
-                {['borewell1', 'borewell2', 'borewell3'].map((val, idx) => (
-                  <Button 
-                    key={val}
-                    type="button" 
-                    variant={selectedNearbyStructure === val && !formData.noNearbyBorewells ? 'default' : 'ghost'}
-                    className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", selectedNearbyStructure === val && !formData.noNearbyBorewells ? "bg-[#1e3a8a] text-white shadow-md" : "text-slate-500")}
-                    onClick={() => handleNearbyTypeSelect('borewell', val)}
-                    disabled={!isAllowed}
-                  >
-                    BW-{idx + 1}
-                  </Button>
-                ))}
-                <Button 
-                  type="button" 
-                  variant={formData.noNearbyBorewells ? 'destructive' : 'ghost'}
-                  className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", formData.noNearbyBorewells ? "bg-rose-600 text-white shadow-md" : "text-slate-500")}
-                  onClick={() => handleNearbyTypeSelect('borewell', 'none')}
-                  disabled={!isAllowed}
-                >
-                  NO BOREWELL
-                </Button>
-              </div>
-            </div>
+            <Card>
+              <CardHeader><CardTitle className="flex items-center gap-2 text-sm uppercase font-black tracking-widest"><Settings className="size-4 text-primary"/> 3. Technical Details</CardTitle></CardHeader>
+              <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <FormField control={form.control} name="noOfBeneficiaries" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">16. Beneficiaries</FormLabel> <FormControl><Input disabled={!isAllowed} type="text" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                <FormField control={form.control} name="toposheet" render={({ field }) => ( <FormItem className="md:col-span-2"> <FormLabel className="text-[10px] font-black uppercase text-slate-500">17. Toposheet/GW Prospect Map</FormLabel> <FormControl><Input disabled={!isAllowed} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                <FormField control={form.control} name="surveyNoArea" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">18. Survey No. & Area</FormLabel> <FormControl><Input disabled={!isAllowed} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                <FormField control={form.control} name="microWatershed" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">19. Micro water shed</FormLabel> <FormControl><Input disabled={!isAllowed} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+              </CardContent>
+            </Card>
 
-            <div className="space-y-4">
-              <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest block ml-1">b) Open well Status</Label>
-              <div className="flex flex-wrap gap-2 p-1 bg-slate-100 rounded-2xl w-fit">
-                {['openwell1', 'openwell2', 'openwell3'].map((val, idx) => (
-                  <Button 
-                    key={val}
-                    type="button" 
-                    variant={selectedNearbyStructure === val && !formData.noNearbyOpenwells ? 'default' : 'ghost'}
-                    className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", selectedNearbyStructure === val && !formData.noNearbyOpenwells ? "bg-emerald-600 text-white shadow-md" : "text-slate-500")}
-                    onClick={() => handleNearbyTypeSelect('openwell', val)}
-                    disabled={!isAllowed}
-                  >
-                    OW-{idx + 1}
-                  </Button>
-                ))}
-                <Button 
-                  type="button" 
-                  variant={formData.noNearbyOpenwells ? 'destructive' : 'ghost'}
-                  className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", formData.noNearbyOpenwells ? "bg-rose-600 text-white shadow-md" : "text-slate-500")}
-                  onClick={() => handleNearbyTypeSelect('openwell', 'none')}
-                  disabled={!isAllowed}
-                >
-                  NO OPENWELL
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
-            <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3">
-               <ShieldCheck className="size-4 text-primary"/> 22. Recommendation
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-10 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
-                <FormFieldItem label="Recommendation Type" id="recommendationType" className="w-full">
-                  <Select disabled={!isAllowed} onValueChange={(val) => {updateField('recommendationType', val); setIsRecommendationDialogOpen(true);}} value={formData.recommendationType}>
-                    <SelectTrigger className="h-14 border-slate-200 rounded-2xl font-black uppercase text-xs tracking-widest shadow-sm">
-                      <SelectValue placeholder="ENTER THE DETAILS" />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-2xl border-slate-200 shadow-2xl">
-                      {recommendationTypeOptions.map(o => (
-                        <SelectItem key={o.value} value={o.value} className="py-3 font-bold text-xs uppercase cursor-pointer">
-                          {o.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </FormFieldItem>
-                
-                <div className="space-y-4 pt-6">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="recommendedToGpSurvey" 
-                      checked={formData.recommendedToGpSurvey || false} 
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setFormData((prev: any) => ({ ...prev, recommendedToGpSurvey: true, recommendedToPumpingTest: false }));
-                        } else {
-                          updateField('recommendedToGpSurvey', false);
-                        }
-                      }} 
-                    />
-                    <label
-                      htmlFor="recommendedToGpSurvey"
-                      className="text-[10px] font-black uppercase text-slate-700 leading-none cursor-pointer"
-                    >
-                      RECCOMENDED TO GP SURVEY
-                    </label>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="recommendedToPumpingTest" 
-                      checked={formData.recommendedToPumpingTest || false} 
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setFormData((prev: any) => ({ ...prev, recommendedToPumpingTest: true, recommendedToGpSurvey: false, gpSurveyLocation: '' }));
-                        } else {
-                          updateField('recommendedToPumpingTest', false);
-                        }
-                      }} 
-                    />
-                    <label
-                      htmlFor="recommendedToPumpingTest"
-                      className="text-[10px] font-black uppercase text-slate-700 leading-none cursor-pointer"
-                    >
-                      RECCOMENDED TO PUMPING TEST
-                    </label>
-                  </div>
-                  
-                  <div className={cn("space-y-2 transition-all duration-300", !formData.recommendedToGpSurvey && "opacity-20 pointer-events-none")}>
-                    <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Location Details for GP Survey</Label>
-                    <Input 
-                      disabled={!isAllowed || !formData.recommendedToGpSurvey}
-                      value={formData.gpSurveyLocation || ''} 
-                      onChange={(e) => updateField('gpSurveyLocation', e.target.value)}
-                      placeholder="Enter specific site coordinates or landmark for GP..." 
-                      className="h-11 border-slate-200"
-                    />
+            <Card><CardHeader><CardTitle className="flex items-center gap-2 text-sm uppercase font-black tracking-widest"><FileText className="size-4 text-primary"/> 20. Hydrogeology & Geology</CardTitle></CardHeader><CardContent><FormField control={form.control} name="hydrogeology" render={({ field }) => (<FormControl><Textarea disabled={!isAllowed} rows={5} {...field} /></FormControl>)}/></CardContent></Card>
+            
+            <Card>
+              <CardHeader className="bg-slate-50 border-b py-5 px-10">
+                <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3">
+                  <Activity className="size-4" /> 21. Details of nearby groundwater structures
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-10 grid grid-cols-1 md:grid-cols-2 gap-12">
+                <div className="space-y-4">
+                  <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest block ml-1">a) Borewell Status</Label>
+                  <div className="flex flex-wrap gap-2 p-1 bg-slate-100 rounded-2xl w-fit">
+                    {['borewell1', 'borewell2', 'borewell3'].map((val, idx) => (
+                      <Button key={val} type="button" variant={selectedNearbyStructure === val && !form.getValues('noNearbyBorewells') ? 'default' : 'ghost'} className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", selectedNearbyStructure === val && !form.getValues('noNearbyBorewells') ? "bg-[#1e3a8a] text-white shadow-md" : "text-slate-500")} onClick={() => handleNearbyTypeSelect('borewell', val)} disabled={!isAllowed}>BW-{idx + 1}</Button>
+                    ))}
+                    <Button type="button" variant={form.watch('noNearbyBorewells') ? 'destructive' : 'ghost'} className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", form.watch('noNearbyBorewells') ? "bg-rose-600 text-white shadow-md" : "text-slate-500")} onClick={() => handleNearbyTypeSelect('borewell', 'none')} disabled={!isAllowed}>NO BOREWELL</Button>
                   </div>
                 </div>
+                <div className="space-y-4">
+                  <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest block ml-1">b) Open well Status</Label>
+                  <div className="flex flex-wrap gap-2 p-1 bg-slate-100 rounded-2xl w-fit">
+                    {['openwell1', 'openwell2', 'openwell3'].map((val, idx) => (
+                      <Button key={val} type="button" variant={selectedNearbyStructure === val && !form.getValues('noNearbyOpenwells') ? 'default' : 'ghost'} className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", selectedNearbyStructure === val && !form.getValues('noNearbyOpenwells') ? "bg-emerald-600 text-white shadow-md" : "text-slate-500")} onClick={() => handleNearbyTypeSelect('openwell', val)} disabled={!isAllowed}>OW-{idx + 1}</Button>
+                    ))}
+                    <Button type="button" variant={form.watch('noNearbyOpenwells') ? 'destructive' : 'ghost'} className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", form.watch('noNearbyOpenwells') ? "bg-rose-600 text-white shadow-md" : "text-slate-500")} onClick={() => handleNearbyTypeSelect('openwell', 'none')} disabled={!isAllowed}>NO OPENWELL</Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="bg-slate-50/50 border-b py-5 px-10"><CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3"><ShieldCheck className="size-4 text-primary"/> 22. Recommendation</CardTitle></CardHeader>
+              <CardContent className="p-10 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
+                    <FormField control={form.control} name="recommendationType" render={({ field }) => (
+                      <FormItem className="w-full">
+                        <FormLabel className="text-[10px] font-black uppercase text-slate-400">Recommendation Type</FormLabel>
+                        <Select disabled={!isAllowed} onValueChange={(val) => {field.onChange(val); setIsRecommendationDialogOpen(true);}} value={field.value}>
+                          <FormControl><SelectTrigger className="h-14 border-slate-200 rounded-2xl font-black uppercase text-xs shadow-sm"><SelectValue placeholder="SELECT" /></SelectTrigger></FormControl>
+                          <SelectContent className="rounded-2xl">{recommendationTypeOptions.map(o => (<SelectItem key={o.value} value={o.value} className="font-bold text-xs uppercase">{o.label}</SelectItem>))}</SelectContent>
+                        </Select>
+                      </FormItem>
+                    )} />
+                    <div className="space-y-4 pt-6">
+                      <FormField control={form.control} name="recommendedToGpSurvey" render={({ field }) => (
+                        <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                          <FormControl><Checkbox checked={field.value} onCheckedChange={(c) => { field.onChange(c); if(c) form.setValue('recommendedToPumpingTest', false); }} disabled={!isAllowed}/></FormControl>
+                          <Label className="text-[10px] font-black uppercase text-slate-700 cursor-pointer">RECOMMENDED TO GP SURVEY</Label>
+                        </FormItem>
+                      )} />
+                      {form.watch('recommendedToGpSurvey') && (
+                        <FormField control={form.control} name="gpSurveyLocation" render={({ field }) => (<Input className="h-11 border-slate-200" placeholder="Location details for GP..." {...field} disabled={!isAllowed} />)} />
+                      )}
+                      <FormField control={form.control} name="recommendedToPumpingTest" render={({ field }) => (
+                        <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                          <FormControl><Checkbox checked={field.value} onCheckedChange={(c) => { field.onChange(c); if(c) form.setValue('recommendedToGpSurvey', false); }} disabled={!isAllowed}/></FormControl>
+                          <Label className="text-[10px] font-black uppercase text-slate-700 cursor-pointer">RECOMMENDED TO PUMPING TEST</Label>
+                        </FormItem>
+                      )} />
+                    </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card><CardHeader><CardTitle className="flex items-center gap-2 text-sm uppercase font-black tracking-widest"><Users className="size-4 text-primary"/> 23. Staff Team Assignment</CardTitle></CardHeader>
+              <CardContent className="p-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <StaffMultiSelect label="Hydrogeologist" options={filteredStaff.hg} selected={staffFormData.staffAssignment.hydrogeologist} onChange={(names) => updateStaff('hydrogeologist', names)} max={1} disabled={!isAllowed} />
+                <StaffMultiSelect label="Jr. Hydrogeologist" options={filteredStaff.jhg} selected={staffFormData.staffAssignment.juniorHydrogeologist} onChange={(names) => updateStaff('juniorHydrogeologist', names)} max={1} disabled={!isAllowed} />
+                <StaffMultiSelect label="Geological Assistant" options={filteredStaff.ga} selected={staffFormData.staffAssignment.geologicalAssistant} onChange={(names) => updateStaff('geologicalAssistant', names)} max={2} disabled={!isAllowed} />
+                <StaffMultiSelect label="Other Staff" options={filteredStaff.other} selected={staffFormData.staffAssignment.otherStaff} onChange={(names) => updateStaff('otherStaff', names)} max={5} disabled={!isAllowed} />
+              </CardContent>
+            </Card>
+
+            <div className="flex justify-end pt-8 pb-32">
+                <Button type="submit" disabled={isPending || !isAllowed} className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] hover:bg-blue-900 text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/20 transition-all hover:scale-[1.02]">
+                    {isPending ? <Loader2 className="size-5 animate-spin mr-2" /> : <Save className="size-5 mr-2" />}
+                    {isAllowed ? 'SYNCHRONIZE TECHNICAL RECORD' : 'ACCESS RESTRICTED'}
+                </Button>
             </div>
-          </CardContent>
-        </Card>
+        </form>
+      </Form>
 
-        <Card><CardHeader><CardTitle className="flex items-center gap-2 text-sm uppercase font-black tracking-widest"><Users className="size-4 text-primary"/> 23. Staff Details (Team Assignment)</CardTitle></CardHeader>
-          <CardContent className="p-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <StaffMultiSelect label="Hydrogeologist" options={filteredStaff.hg} selected={formData.staffAssignment.hydrogeologist} onChange={(names) => updateStaff('hydrogeologist', names)} max={1} disabled={!isAllowed} />
-            <StaffMultiSelect label="Jr. Hydrogeologist" options={filteredStaff.jhg} selected={formData.staffAssignment.juniorHydrogeologist} onChange={(names) => updateStaff('juniorHydrogeologist', names)} max={1} disabled={!isAllowed} />
-            <StaffMultiSelect label="Geological Assistant" options={filteredStaff.ga} selected={formData.staffAssignment.geologicalAssistant} onChange={(names) => updateStaff('geologicalAssistant', names)} max={2} disabled={!isAllowed} />
-            <StaffMultiSelect label="Other Staff" options={filteredStaff.other} selected={formData.staffAssignment.otherStaff} onChange={(names) => updateStaff('otherStaff', names)} max={5} disabled={!isAllowed} />
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] h-24">
-        <div className="max-w-screen-2xl mx-auto h-full px-8 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <Logo />
-            <div className="flex flex-col">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] leading-none mb-1">GEOLOGICAL SURVEY</span>
-              <span className="text-sm font-black text-slate-900 leading-none uppercase tracking-tight">
-                {formData.fileNo || 'NEW TECHNICAL RECORD'}
-              </span>
-            </div>
+      {/* RE-SCOPED DIALOGS */}
+      <Dialog open={isRecommendationDialogOpen} onOpenChange={setIsRecommendationDialogOpen}>
+        <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl">
+          <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight text-center">TECHNICAL RECOMMENDATION</DialogTitle></DialogHeader>
+          <div className="space-y-6 py-4">
+              {(form.watch('recommendationType') === 'borewell' || form.watch('recommendationType') === 'tubewell' || form.watch('recommendationType') === 'filterpoint') && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-400">Depth (m)</Label><Input {...form.register('recBorewellTotalDepth')}/></div>
+                    <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-400">Diameter</Label>
+                      <Select onValueChange={v=>form.setValue('recBorewellDiameter', v)} value={form.watch('recBorewellDiameter')}>
+                        <SelectTrigger className="h-10 text-xs font-bold"><SelectValue/></SelectTrigger>
+                        <SelectContent className="rounded-xl">{borewellDiameterOptions.map(o=><SelectItem key={o.value} value={o.value} className="font-bold text-xs uppercase">{o.label}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-400">Overburden (m)</Label><Input {...form.register('expectedOverburden')}/></div>
+                  <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-400">Technical Note</Label><Textarea {...form.register('recommendationBorewell')} className="min-h-[100px] uppercase font-bold text-xs"/></div>
+                </div>
+              )}
+              {form.watch('recommendationType') === 'openwell' && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-400">Depth (m)</Label><Input {...form.register('recOpenwellTotalDepth')}/></div>
+                    <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-400">Diameter (m)</Label>
+                      <Select onValueChange={v=>form.setValue('recOpenwellDiameter', v)} value={form.watch('recOpenwellDiameter')}>
+                        <SelectTrigger className="h-10 text-xs font-bold"><SelectValue/></SelectTrigger>
+                        <SelectContent className="rounded-xl">{openwellDiameterOptions.map(o=><SelectItem key={o.value} value={o.value} className="font-bold text-xs uppercase">{o.label}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-400">Technical Note</Label><Textarea {...form.register('recommendationOpenwell')} className="min-h-[100px] uppercase font-bold text-xs"/></div>
+                </div>
+              )}
           </div>
-          <div className="flex items-center gap-4">
-             <Button type="button" variant="ghost" asChild className="font-black uppercase text-[10px] tracking-widest text-slate-400 hover:text-slate-600 transition-colors px-6 h-12 rounded-xl">
-               <Link href="/ground-water-investigation">DISCARD</Link>
-             </Button>
-             <Button type="button" onClick={handleSave} disabled={isPending || !isAllowed} className="h-14 px-16 rounded-[20px] bg-[#1e3a8a] hover:bg-blue-900 text-white font-black uppercase tracking-widest text-[11px] gap-3 shadow-xl shadow-blue-900/20 transition-all hover:scale-[1.02] active:scale-95">
-               {isPending ? <Loader2 className="size-5 animate-spin" /> : <Save className="size-5" />} 
-               {isAllowed ? (id ? 'UPDATE' : 'SAVE') + ' TECHNICAL RECORD' : 'Access Restricted'}
-             </Button>
+          <DialogFooter><Button type="button" onClick={() => setIsRecommendationDialogOpen(false)} className="w-full h-12 rounded-xl font-black uppercase text-[11px] bg-[#1e3a8a] text-white">Confirm Parameters</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isNearbyDialogOpen} onOpenChange={setIsNearbyDialogOpen}>
+        <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl">
+          <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight">NEARBY STRUCTURE: {selectedNearbyStructure}</DialogTitle></DialogHeader>
+          <div className="space-y-6 py-4">
+            {selectedNearbyStructure?.startsWith('borewell') ? (
+              <div className="space-y-4">
+                <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-400">Total Depth (m)</Label><Input {...form.register(selectedNearbyStructure === 'borewell1' ? 'nearbyBorewell1Depth' : selectedNearbyStructure === 'borewell2' ? 'nearbyBorewell2Depth' : 'nearbyBorewell3Depth')}/></div>
+                <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-400">Diameter</Label><Input {...form.register(selectedNearbyStructure === 'borewell1' ? 'nearbyBorewell1Diameter' : selectedNearbyStructure === 'borewell2' ? 'nearbyBorewell2Diameter' : 'nearbyBorewell3Diameter')}/></div>
+                <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-400">Fracture Zones</Label><Input {...form.register(selectedNearbyStructure === 'borewell1' ? 'nearbyBorewell1Zones' : selectedNearbyStructure === 'borewell2' ? 'nearbyBorewell2Zones' : 'nearbyBorewell3Zones')}/></div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-400">Total Depth (m)</Label><Input {...form.register(selectedNearbyStructure === 'openwell1' ? 'nearbyOpenwell1Depth' : selectedNearbyStructure === 'openwell2' ? 'nearbyOpenwell2Depth' : 'nearbyOpenwell3Depth')}/></div>
+                <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-400">Water Level (m)</Label><Input {...form.register(selectedNearbyStructure === 'openwell1' ? 'nearbyOpenwell1WaterLevel' : selectedNearbyStructure === 'openwell2' ? 'nearbyOpenwell2WaterLevel' : 'nearbyOpenwell3WaterLevel')}/></div>
+                <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-400">Parapet (m)</Label><Input {...form.register(selectedNearbyStructure === 'openwell1' ? 'nearbyOpenwell1ParapetHeight' : selectedNearbyStructure === 'openwell2' ? 'nearbyOpenwell2ParapetHeight' : 'nearbyOpenwell3ParapetHeight')}/></div>
+                <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-400">Seasonality</Label>
+                  <Select onValueChange={v => form.setValue(selectedNearbyStructure === 'openwell1' ? 'nearbyOpenwell1Type' : selectedNearbyStructure === 'openwell2' ? 'nearbyOpenwell2Type' : 'nearbyOpenwell3Type' as any, v)} value={form.watch(selectedNearbyStructure === 'openwell1' ? 'nearbyOpenwell1Type' : selectedNearbyStructure === 'openwell2' ? 'nearbyOpenwell2Type' : 'nearbyOpenwell3Type' as any)}>
+                    <SelectTrigger className="h-10 text-xs font-bold"><SelectValue/></SelectTrigger>
+                    <SelectContent className="rounded-xl"><SelectItem value="Perennial" className="font-bold text-xs uppercase">Perennial</SelectItem><SelectItem value="Seasonal" className="font-bold text-xs uppercase">Seasonal</SelectItem></SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-      </div>
-
-      <RecommendationDialog
-        isOpen={isRecommendationDialogOpen}
-        onOpenChange={setIsRecommendationDialogOpen}
-        formData={formData}
-        updateField={updateField}
-      />
-
-      <NearbyStructureDialog 
-        isOpen={isNearbyDialogOpen}
-        onOpenChange={setIsNearbyDialogOpen}
-        structureType={selectedNearbyStructure}
-        formData={formData}
-        updateField={updateField}
-      />
+          <DialogFooter><Button type="button" onClick={() => setIsNearbyDialogOpen(false)} className="w-full h-12 rounded-xl font-black uppercase text-[11px] bg-[#1e3a8a] text-white">Save Site Details</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isManualVillageOpen} onOpenChange={setIsManualVillageOpen}>
         <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl">
-          <DialogHeader>
-            <DialogTitle className="uppercase font-black text-primary tracking-tight">Manual Village Entry</DialogTitle>
-            <DialogDescription className="text-xs font-bold uppercase text-slate-400">Enter revenue village name if not present in the master list.</DialogDescription>
-          </DialogHeader>
-          <div className="py-4 space-y-4">
-            <div className="space-y-2">
+          <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight text-center">MANUAL VILLAGE ENTRY</DialogTitle></DialogHeader>
+          <div className="py-4 space-y-2">
               <Label className="text-[10px] font-black uppercase text-slate-500">Village Name</Label>
-              <Input 
-                value={manualVillageName}
-                onChange={(e) => setManualVillageName(e.target.value)}
-                placeholder="ENTER NAME"
-                className="h-12 border-slate-200 font-bold uppercase"
-              />
-            </div>
+              <Input value={manualVillageName} onChange={(e) => setManualVillageName(e.target.value)} placeholder="ENTER NAME" className="h-12 border-slate-200 font-bold uppercase" />
           </div>
-          <DialogFooter>
-            <Button type="button" onClick={handleManualVillageSave} className="w-full h-12 rounded-xl font-black uppercase text-[11px] tracking-widest shadow-lg shadow-blue-900/20">
-              Confirm Entry
-            </Button>
-          </DialogFooter>
+          <DialogFooter><Button type="button" onClick={handleManualVillageSave} className="w-full h-12 rounded-xl font-black uppercase text-[11px] bg-primary text-white">Confirm Entry</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -712,94 +673,6 @@ function SiteEntryContent() {
   );
 }
 
-const FormFieldItem = ({ label, id, children, className }: {label:string, id:string, children: React.ReactNode, className?:string}) => (
-  <div className={cn("space-y-2", className)}>
-    <Label htmlFor={id} className="text-[10px] font-black uppercase text-slate-500">{label}</Label>
-    {children}
-  </div>
-);
-
-const RecommendationDialog = ({isOpen, onOpenChange, formData, updateField}: any) => (
-  <Dialog open={isOpen} onOpenChange={onOpenChange}>
-    <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl">
-      <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight text-center">RECOMMENDATION FOR {formData.recommendationType}</DialogTitle></DialogHeader>
-      {(formData.recommendationType === 'borewell' || formData.recommendationType === 'tubewell' || formData.recommendationType === 'filterpoint') && (
-        <div className="space-y-6 py-4">
-          <div className="grid grid-cols-2 gap-6">
-            <FormFieldItem label="Total Depth (m)" id="recBorewellTotalDepth"><Input value={formData.recBorewellTotalDepth} onChange={e => updateField('recBorewellTotalDepth', e.target.value)}/></FormFieldItem>
-            <FormFieldItem label="Diameter" id="recBorewellDiameter">
-              <Select onValueChange={v=>updateField('recBorewellDiameter', v)} value={formData.recBorewellDiameter}>
-                <SelectTrigger className="h-10 text-xs bg-slate-50/50 border-slate-200"><SelectValue /></SelectTrigger>
-                <SelectContent className="rounded-xl border-slate-200">
-                  {borewellDiameterOptions.map(o=><SelectItem key={o.value} value={o.value} className="text-xs font-bold">{o.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </FormFieldItem>
-          </div>
-          <FormFieldItem label="Expected Overburden (m)" id="expectedOverburden"><Input value={formData.expectedOverburden} onChange={e => updateField('expectedOverburden', e.target.value)}/></FormFieldItem>
-          <FormFieldItem label="Details" id="recommendationBorewell"><Textarea value={formData.recommendationBorewell} onChange={e => updateField('recommendationBorewell', e.target.value)} className="min-h-[100px] text-xs font-bold uppercase"/></FormFieldItem>
-        </div>
-      )}
-      {formData.recommendationType === 'openwell' && (
-        <div className="space-y-6 py-4">
-          <div className="grid grid-cols-2 gap-6">
-            <FormFieldItem label="Total Depth (m)" id="recOpenwellTotalDepth"><Input value={formData.recOpenwellTotalDepth} onChange={e => updateField('recOpenwellTotalDepth', e.target.value)}/></FormFieldItem>
-            <FormFieldItem label="Diameter (m)" id="recOpenwellDiameter">
-              <Select onValueChange={v=>updateField('recOpenwellDiameter', v)} value={formData.recOpenwellDiameter}>
-                <SelectTrigger className="h-10 text-xs bg-slate-50/50 border-slate-200"><SelectValue /></SelectTrigger>
-                <SelectContent className="rounded-xl border-slate-200">
-                  {openwellDiameterOptions.map(o=><SelectItem key={o.value} value={o.value} className="text-xs font-bold">{o.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </FormFieldItem>
-          </div>
-          <FormFieldItem label="Details" id="recommendationOpenwell"><Textarea value={formData.recommendationOpenwell} onChange={e => updateField('recommendationOpenwell', e.target.value)} className="min-h-[100px] text-xs font-bold uppercase"/></FormFieldItem>
-        </div>
-      )}
-      <DialogFooter className="pt-4"><Button type="button" onClick={() => onOpenChange(false)} className="w-full h-12 rounded-xl font-black uppercase text-[11px] tracking-widest shadow-lg bg-[#1e3a8a] text-white hover:bg-blue-900">Confirm Parameters</Button></DialogFooter>
-    </DialogContent>
-  </Dialog>
-);
-
-const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, formData, updateField}: any) => {
-  const isBorewell = structureType?.startsWith('borewell');
-  const index = structureType ? parseInt(structureType.slice(-1)) : 1;
-  
-  return (
-  <Dialog open={isOpen} onOpenChange={onOpenChange}>
-    <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl">
-      <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight">DETAILS FOR {structureType}</DialogTitle></DialogHeader>
-      {isBorewell ? (
-        <div className="space-y-6 py-4">
-          <FormFieldItem label="Total Depth (m)" id={`nbd${index}`}><Input value={formData[`nearbyBorewell${index}Depth`]} onChange={e=>updateField(`nearbyBorewell${index}Depth`, e.target.value)} /></FormFieldItem>
-          <FormFieldItem label="Diameter" id={`nbd_dia${index}`}><Input value={formData[`nearbyBorewell${index}Diameter`]} onChange={e=>updateField(`nearbyBorewell${index}Diameter`, e.target.value)} /></FormFieldItem>
-          <FormFieldItem label="Zones" id={`nbd_zones${index}`}><Input value={formData[`nearbyBorewell${index}Zones`]} onChange={e=>updateField(`nearbyBorewell${index}Zones`, e.target.value)} /></FormFieldItem>
-        </div>
-      ) : (
-         <div className="space-y-6 py-4">
-          <FormFieldItem label="Total Depth (m)" id={`nod${index}`}><Input value={formData[`nearbyOpenwell${index}Depth`]} onChange={e=>updateField(`nearbyOpenwell${index}Depth`, e.target.value)} /></FormFieldItem>
-          <FormFieldItem label="Water Level (m)" id={`nod_wl${index}`}><Input value={formData[`nearbyOpenwell${index}WaterLevel`]} onChange={e=>updateField(`nearbyOpenwell${index}WaterLevel`, e.target.value)} /></FormFieldItem>
-          <FormFieldItem label="Parapet (m)" id={`nod_ph${index}`}><Input value={formData[`nearbyOpenwell${index}ParapetHeight`]} onChange={e=>updateField(`nearbyOpenwell${index}ParapetHeight`, e.target.value)} /></FormFieldItem>
-          <FormFieldItem label="Type" id={`nod_type${index}`}>
-            <Select onValueChange={v=>updateField(`nearbyOpenwell${index}Type`, v)} value={formData[`nearbyOpenwell${index}Type`]}>
-                <SelectTrigger className="h-10 text-xs bg-slate-50/50 border-slate-200"><SelectValue /></SelectTrigger>
-                <SelectContent className="rounded-xl border-slate-200">
-                    <SelectItem value="Perennial" className="text-xs font-bold">Perennial</SelectItem>
-                    <SelectItem value="Seasonal" className="text-xs font-bold">Seasonal</SelectItem>
-                </SelectContent>
-            </Select>
-          </FormFieldItem>
-        </div>
-      )}
-      <DialogFooter className="pt-4"><Button type="button" onClick={() => onOpenChange(false)} className="w-full h-12 rounded-xl font-black uppercase text-[11px] tracking-widest shadow-lg bg-[#1e3a8a] text-white hover:bg-blue-900">Save Details</Button></DialogFooter>
-    </DialogContent>
-  </Dialog>
-)};
-
 export default function GeologicalSurveySiteEntryPage() {
-    return (
-        <Suspense fallback={<div className="p-12 text-center animate-pulse uppercase tracking-widest font-black opacity-30 text-slate-400">Initializing Workspace...</div>}>
-            <SiteEntryContent />
-        </Suspense>
-    )
+    return <Suspense fallback={<div className="p-12 text-center animate-pulse uppercase tracking-widest font-black opacity-30 text-slate-400">Initializing Workspace...</div>}><SiteEntryContent /></Suspense>;
 }

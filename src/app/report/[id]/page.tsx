@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
@@ -151,6 +152,13 @@ function ReportContent({ id }: { id: string }) {
     return name.toUpperCase();
   };
 
+  const fmtDate = (d: string | undefined) => {
+      if (!d) return '--';
+      const p = d.split('-');
+      if (p.length === 3 && p[0].length === 4) return `${p[2]}-${p[1]}-${p[0]}`;
+      return d;
+  };
+
   return (
     <div className="min-h-screen bg-slate-100 py-4 px-4 pt-12 print:bg-white print:p-0 font-malayalam text-black">
       <div className="max-w-[210mm] mx-auto mb-2 flex items-center justify-between print:hidden">
@@ -186,7 +194,7 @@ function ReportContent({ id }: { id: string }) {
                 <div className="text-center font-bold border-b border-black p-1 text-[11px] bg-slate-50">I. അപേക്ഷകൻറ വിവരങ്ങൾ</div>
                 <ReportTableRow label="സ്ഥലത്തിൻറെ പേര് & വിലാസം" value={report.nameOfSite} />
                 <ReportTableRow label="ഫയൽ നമ്പർ" value={report.fileNo} />
-                <ReportTableRow label="പരിശോധന തീയതി" value={report.dateOfInvestigation} />
+                <ReportTableRow label="പരിശോധന തീയതി" value={fmtDate(report.reportDate)} />
                 <ReportTableRow label="അപേക്ഷിച്ചിരിക്കുന്നത്" value={report.typeAppliedFor} />
                 <ReportTableRow label="വില്ലേജ്" value={report.village} />
                 <ReportTableRow label="വാർഡ് നമ്പർ" value={report.ward} />
