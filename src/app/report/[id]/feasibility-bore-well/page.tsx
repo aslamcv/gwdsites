@@ -4,7 +4,7 @@ import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { GroundwaterReport } from '@/lib/types';
 import { use, useEffect, Suspense } from 'react';
-import { Printer, ArrowLeft } from 'lucide-react';
+import { Printer, ArrowLeft, MapPin, Construction, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -102,9 +102,19 @@ function FeasibilityContent({ id }: { id: string }) {
                 <p className="pl-16 font-bold">ഭൂജല വകുപ്പ്, മലപ്പുറം</p>
             </div>
             <div className="flex flex-col">
-                <p>അപേക്ഷകൻ,</p>
-                <div className="ml-16 mt-1 p-4 border border-black min-h-[65px] w-full max-w-[500px] uppercase font-bold text-[11px] flex items-center leading-relaxed">
-                    {report.applicantNameAddress || report.applicantName}
+                <p>സ്വീകർത്താവ്,</p>
+                <div className="ml-16 mt-1 p-4 border border-black min-h-[65px] w-full max-w-[500px] uppercase font-bold text-[11px] flex flex-col justify-center items-start leading-tight">
+                    {(() => {
+                      const text = (report.applicantNameAddress || report.applicantName || '').trim();
+                      const firstSpaceIndex = text.indexOf(' ');
+                      if (firstSpaceIndex === -1) return <span>{text}</span>;
+                      return (
+                        <>
+                          <span>{text.substring(0, firstSpaceIndex)}</span>
+                          <span className="mt-1">{text.substring(firstSpaceIndex + 1)}</span>
+                        </>
+                      );
+                    })()}
                 </div>
             </div>
         </div>
@@ -192,7 +202,7 @@ function FeasibilityContent({ id }: { id: string }) {
             </div>
         </div>
 
-        <div className="mt-10 border-t border-slate-200 pt-3 text-[9px] text-muted-foreground flex justify-between uppercase tracking-widest font-sans">
+        <div className="mt-10 border-t border-slate-200 pt-3 text-[9px] text-muted-foreground flex justify-between uppercase tracking-widest font-sans font-black">
             <p>Groundwater Department District Office, Malappuram.</p>
             <p>This is a system generated technical record.</p>
         </div>

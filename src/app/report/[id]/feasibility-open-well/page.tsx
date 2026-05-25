@@ -4,7 +4,7 @@ import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { GroundwaterReport } from '@/lib/types';
 import { use, useEffect, Suspense } from 'react';
-import { Printer, ArrowLeft } from 'lucide-react';
+import { Printer, ArrowLeft, MapPin, Construction, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -98,13 +98,22 @@ function FeasibilityContent({ id }: { id: string }) {
         <div className="space-y-6 mb-8 text-left">
             <div className="flex flex-col">
                 <p>പ്രേഷകൻ,</p>
-                <p className="pl-16 font-bold">ജില്ലാ ഓഫീസർ,</p>
-                <p className="pl-16 font-bold">ഭൂജല വകുപ്പ്, മലപ്പുറം</p>
+                <p className="pl-16 font-bold">ജില്ലാ ഓഫീസർ, ഭൂജല വകുപ്പ്, മലപ്പുറം</p>
             </div>
             <div className="flex flex-col">
-                <p>അപേക്ഷകൻ,</p>
-                <div className="ml-16 mt-2 p-6 border border-black min-h-[80px] w-full max-w-[500px] uppercase font-bold text-[11.5px] flex items-center leading-relaxed">
-                    {report.applicantNameAddress || report.applicantName}
+                <p>സ്വീകർത്താവ്,</p>
+                <div className="ml-16 mt-2 p-6 border border-black min-h-[80px] w-full max-w-[500px] uppercase font-bold text-[11.5px] flex flex-col justify-center items-start leading-tight">
+                    {(() => {
+                      const text = (report.applicantNameAddress || report.applicantName || '').trim();
+                      const firstSpaceIndex = text.indexOf(' ');
+                      if (firstSpaceIndex === -1) return <span>{text}</span>;
+                      return (
+                        <>
+                          <span>{text.substring(0, firstSpaceIndex)}</span>
+                          <span className="mt-1">{text.substring(firstSpaceIndex + 1)}</span>
+                        </>
+                      );
+                    })()}
                 </div>
             </div>
         </div>
@@ -155,7 +164,7 @@ function FeasibilityContent({ id }: { id: string }) {
                     2. കിണർ നിർമ്മാണം വേനൽ കാലത്ത് പൂർത്തീകരിക്കേണ്ടതും കിണറിന്റെ താഴ്ച നിർമ്മാണ സമയത്തു കിണറിൽ 4 മീറ്റർ കനത്തിൽ വെള്ളം ഉണ്ടാകുന്ന രീതിയിലോ കട്ടിയുള്ള കളിമണ്ണ് കാണുന്ന രീതിയിലോ ഏതാണോ കുറവ് അത്രയും താഴ്ചയിൽ നിജപ്പെടുത്താവുന്നതാണ്.
                 </p>
                 <p>
-                    3. ഭൂജല മലിനീകരണ സാധ്യത ഒഴിവാക്കുന്നതിനും ജലലഭ്യത ഉറപ്പ് വരുത്തുന്നതിനുമായി കിണറിന് ആൾമറ കെട്ടേണ്ടതും കിണറിന്റെ ആൾമറയുടെ മുകൾ വശത്ത് നിന്നും കിണറിന്റെ വശങ്ങളിലൂടെ കിണറിലേക്ക് വെള്ളം ഇറങ്ങാത്ത രീതിയിൽ വാട്ടർ ടൈറ്റ് ( water tight ) ആയുള്ള നിർമ്മാണ രീതികൾ അവലംബിക്കേണ്ടതും ആയതിന് താഴോട്ട് ഭൂജലം ഉൾക്കൊള്ളുന്ന ഫോർമേഷനുമായി (formation) നല്ല സമ്പർക്കം നിലനിർത്തുന്ന രീതിയിൽ വേണ്ടത്ര സ്രോതസ്സുകൾ ഉൾക്കൊള്ളിച്ചുള്ള നിർമ്മാണ രീതികൾ അവലംബിക്കേണ്ടതും ആണ്.
+                    3. ഭൂജല മലിനീകരണ സാധ്യത ഒഴിവാക്കുന്നതിനും ജലലഭ്യത ഉറപ്പ് വരുത്തുന്നതിനുമായി കിണറിന് ആൾമറ കെട്ടേണ്ടതും കിണറിന്റെ ആൾമറയുടെ മുകൾ വശത്ത് നിന്നും കിണറിന്റെ വശങ്ങളിലൂടെ കിണറിലേക്ക് വെള്ളം ഇറങ്ങാത്ത രീതിയിൽ വാട്ടർ ടൈറ്റ് ( water tight ) ആയുള്ള നിർമ്മാണ രീതികൾ അവലംബിക്കേണ്ടതും ആയതിന് താഴോട്ട് ഭൂജലം ഉൾക്കൊള്ളുന്ന ഫോർമേഷനുമായി (formation) നല്ല സമ്പർക്കം നിലനിർത്തുന്ന രീതിയിൽ വേണ്ടത്ര സുഷിരങ്ങൾ ഉൾക്കൊള്ളിച്ചുള്ള നിർമ്മാണ രീതികൾ അവലംബിക്കേണ്ടതും ആണ്.
                 </p>
                 <p>
                     4. ഭൂജല മലിനീകരണ സാധ്യത ഒഴിവാക്കുന്നതിനായി കിണറിന് ചുറ്റും 1 മീറ്റർ വീതിയിൽ, പുറം വശത്തേക്ക് ചരിവോടെ, സിമന്റ് പ്ലാറ്റ്ഫോം ( cement platform ) നിർമ്മിക്കുന്നത് ഉചിതമാണ്.
