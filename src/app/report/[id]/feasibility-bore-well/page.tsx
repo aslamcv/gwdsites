@@ -86,7 +86,7 @@ function FeasibilityContent({ id }: { id: string }) {
             <div className="space-y-1">
                 <p className="flex items-end gap-1">ഫയൽ നമ്പർ: <span className="font-bold border-b border-black min-w-[120px] inline-block text-center">{report.fileNo}</span></p>
             </div>
-            <div className="text-right space-y-0.5 leading-tight">
+            <div className="text-right space-y-0.5 leading-tight text-[11px]">
                 <p className="font-bold">ജില്ലാ ഓഫീസ്, ഭൂജല വകുപ്പ്,</p>
                 <p>മലപ്പുറം - 676 505</p>
                 <p>ഫോൺ നമ്പർ - 0483-2731450</p>
@@ -106,12 +106,12 @@ function FeasibilityContent({ id }: { id: string }) {
                 <div className="ml-16 mt-1 p-4 border border-black min-h-[65px] w-full max-w-[500px] uppercase font-bold text-[11px] flex flex-col justify-center items-start leading-tight">
                     {(() => {
                       const text = (report.applicantNameAddress || report.applicantName || '').trim();
-                      const firstSpaceIndex = text.indexOf(' ');
-                      if (firstSpaceIndex === -1) return <span>{text}</span>;
+                      const firstCommaIndex = text.indexOf(',');
+                      if (firstCommaIndex === -1) return <span>{text}</span>;
                       return (
                         <>
-                          <span>{text.substring(0, firstSpaceIndex)}</span>
-                          <span className="mt-1">{text.substring(firstSpaceIndex + 1)}</span>
+                          <span>{text.substring(0, firstCommaIndex + 1)}</span>
+                          <span className="mt-1">{text.substring(firstCommaIndex + 1).trim()}</span>
                         </>
                       );
                     })()}
