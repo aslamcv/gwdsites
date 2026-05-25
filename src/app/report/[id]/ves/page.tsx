@@ -8,6 +8,7 @@ import { Printer, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
+import { formatToTechnicalDate } from '@/lib/malayalam-utils';
 import { 
   XAxis, 
   YAxis, 
@@ -90,14 +91,14 @@ function VESReportContent({ id }: { id: string }) {
           <h1 className="text-[16px] font-bold text-[#991b1b] font-malayalam">ഭൂജല വകുപ്പ്, ജില്ലാ ഓഫീസ്, മലപ്പുറം</h1>
           <h2 className="text-[14px] font-black uppercase tracking-tight">GEOPHYSICAL INVESTIGATION REPORT</h2>
           <h3 className="text-[11px] font-black underline underline-offset-4 uppercase pt-0.5">VERTICAL ELECTRICAL SOUNDING</h3>
-          <p className="text-[9px] font-bold mt-1">
+          <p className="text-[9px] font-bold mt-1 text-center">
             Electrode Configuration: <span className="font-medium italic">Schlumberger Configuration</span> | Instrument Used: <span className="font-medium italic">Aquameter CRM 20</span>
           </p>
         </div>
 
         <div className="border border-black grid grid-cols-[1.2fr_1fr_1.5fr] mb-1 font-bold text-[10px] text-left">
           <div className="border-r border-black p-1.5">File No: <span className="ml-1 uppercase font-medium">{report.fileNo}</span></div>
-          <div className="border-r border-black p-1.5">Date: <span className="ml-1 font-medium">{report.reportDate}</span></div>
+          <div className="border-r border-black p-1.5">Date: <span className="ml-1 font-medium">{formatToTechnicalDate(report.reportDate)}</span></div>
           <div className="p-1.5">Location: <span className="ml-1 uppercase font-medium truncate inline-block max-w-[220px] align-bottom">{report.location}</span></div>
         </div>
 

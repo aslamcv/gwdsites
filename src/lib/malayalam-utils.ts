@@ -101,13 +101,21 @@ export function numberToMalayalamWords(num: number): string {
     .replace(/കോടി\s+/g, " കോടി ");
 }
 
+/**
+ * Standardizes any date input string to DD/MM/YYYY
+ */
 export function formatToTechnicalDate(dateStr: string | undefined | null): string {
-  if (!dateStr) return '--';
+  if (!dateStr) return '--/--/----';
   const trimmed = dateStr.trim();
+  // Handle ISO strings or YYYY-MM-DD
   const parts = trimmed.split(/[-/]/);
   if (parts.length === 3) {
-    if (parts[0].length === 4) return `${parts[2]}-${parts[1]}-${parts[0]}`;
-    return `${parts[0]}-${parts[1]}-${parts[2]}`;
+    if (parts[0].length === 4) {
+      // YYYY-MM-DD -> DD/MM/YYYY
+      return `${parts[2].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[0]}`;
+    }
+    // Assume DD-MM-YYYY or DD/MM/YYYY
+    return `${parts[0].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[2]}`;
   }
   return dateStr;
 }

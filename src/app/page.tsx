@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -316,7 +315,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="flex justify-end pr-4">
+        <div className="flex justify-end pr-4 text-left">
           <div className="relative group">
             <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary group-focus-within:text-[#1e3a8a] transition-colors" />
             <Input
@@ -333,14 +332,14 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start text-left">
           {/* Work Details Panel */}
           <Card className="border-white/40 shadow-xl rounded-[32px] bg-white/80 backdrop-blur-md overflow-hidden">
             <CardHeader className="bg-[#1e3a8a]/5 border-b border-white/40 py-6 px-8">
               <CardTitle className="text-[#1e3a8a] uppercase text-xs font-black tracking-[0.2em] flex items-center gap-2">
                 <Activity className="size-4" /> Work Details
               </CardTitle>
-              <CardDescription className="font-bold text-[10px] uppercase text-slate-400">Technical activities for {format(selectedDate, "do MMMM yyyy")}</CardDescription>
+              <CardDescription className="font-bold text-[10px] uppercase text-slate-400">Technical activities for {format(selectedDate, "dd/MM/yyyy")}</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               <ScrollArea className="h-[400px]">
@@ -390,7 +389,7 @@ export default function DashboardPage() {
               <CardTitle className="text-emerald-800 uppercase text-xs font-black tracking-[0.2em] flex items-center gap-2">
                 <Users className="size-4" /> Staff Attendance
               </CardTitle>
-              <CardDescription className="font-bold text-[10px] uppercase text-slate-400">Personnel deployed on {format(selectedDate, "do MMMM yyyy")}</CardDescription>
+              <CardDescription className="font-bold text-[10px] uppercase text-slate-400">Personnel deployed on {format(selectedDate, "dd/MM/yyyy")}</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               <ScrollArea className="h-[400px]">
@@ -431,7 +430,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Informational Footer Section */}
-        <div className="max-w-6xl mx-auto flex items-center gap-4 p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-white/40 shadow-lg ring-1 ring-black/5">
+        <div className="max-w-6xl mx-auto flex items-center gap-4 p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-white/40 shadow-lg ring-1 ring-black/5 text-left">
           <div className="bg-[#1e3a8a]/10 p-3 rounded-2xl">
             <Database className="h-6 w-6 text-[#1e3a8a]" />
           </div>
@@ -454,11 +453,11 @@ export default function DashboardPage() {
               Staff Deployed: {selectedWork?.nameOfSite}
             </DialogTitle>
             <DialogDescription className="text-[10px] text-slate-500 uppercase font-bold pt-1 tracking-widest">
-              Work: <strong>{selectedWork?.purpose || selectedWork?.category}</strong> on <strong>{selectedWork && selectedWork.reportDate ? format(new Date(selectedWork.reportDate), "PPP") : 'N/A'}</strong>
+              Work: <strong>{selectedWork?.purpose || selectedWork?.category}</strong> on <strong>{selectedWork && selectedWork.reportDate ? formatToTechnicalDate(selectedWork.reportDate) : 'N/A'}</strong>
             </DialogDescription>
           </DialogHeader>
           {selectedWork?.staffAssignment ? (
-            <div className="p-8 space-y-6 max-h-[60vh] overflow-y-auto">
+            <div className="p-8 space-y-6 max-h-[60vh] overflow-y-auto text-left">
               {Object.entries(selectedWork.staffAssignment)
                 .filter(([key, names]) => key !== 'conveyance' && names && (Array.isArray(names) ? names.length > 0 : typeof names === 'string' && names.trim() !== ''))
                 .map(([role, names]) => (

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useSearchParams } from 'next/navigation';
@@ -12,6 +11,7 @@ import type { GroundwaterReport } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { formatToTechnicalDate } from '@/lib/malayalam-utils';
 
 function ReportContent() {
   const searchParams = useSearchParams();
@@ -29,12 +29,6 @@ function ReportContent() {
   const data = useMemo(() => {
     if (report) {
       const dateParts = report.dateOfInvestigation?.split(' - ') || [];
-      const fmtDate = (d: string) => {
-        if (!d) return '--';
-        const p = d.split('-');
-        if (p.length === 3 && p[0].length === 4) return `${p[2]}-${p[1]}-${p[0]}`;
-        return d;
-      };
 
       return {
         fileNo: report.fileNo || '',
@@ -46,8 +40,8 @@ function ReportContent() {
         overburden: report.overburden || '',
         discharge: report.discharge || '0',
         waterLevel: report.waterLevel || '0',
-        workStart: fmtDate(dateParts[0]),
-        workEnd: fmtDate(dateParts[1]),
+        workStart: formatToTechnicalDate(dateParts[0]),
+        workEnd: formatToTechnicalDate(dateParts[1]),
         compressorWorkingHour: report.compressorWorkingHour || '',
         remarks: report.remarks || '',
         observations: report.observations || '',
@@ -61,7 +55,7 @@ function ReportContent() {
 
   useEffect(() => {
     if (data) {
-        setCurrentDate(format(new Date(), 'dd-MM-yyyy'));
+        setCurrentDate(format(new Date(), 'dd/MM/yyyy'));
         document.title = `Flushing-Report-${data.fileNo}`;
     }
   }, [data]);

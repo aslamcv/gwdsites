@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect, useMemo, Suspense } from 'react';
@@ -68,7 +67,7 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { collection, doc, updateDoc, setDoc } from 'firebase/firestore';
 import type { GroundwaterReport, Employee } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
@@ -321,7 +320,7 @@ function SiteEntryContent() {
       const operation = isUpdate ? updateDoc(reportDocRef, reportData) : setDoc(reportDocRef, reportData);
 
       operation.then(() => {
-        toast({ title: 'Record Updated', description: 'Technical investigation record synchronized.' });
+        toast({ title: 'Record Synchronized', description: 'Technical investigation record updated.' });
         router.push('/ground-water-investigation');
       }).catch(async (error) => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({ path: reportDocRef.path, operation: isUpdate ? 'update' : 'create', requestResourceData: reportData }));
@@ -350,10 +349,8 @@ function SiteEntryContent() {
     }
   };
 
-  if (isReportLoading && id) return <div className="p-12 text-center animate-pulse uppercase tracking-widest font-black opacity-30 text-slate-400">Initializing Workspace...</div>;
-
   return (
-    <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black">
+    <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black text-left">
       
       <div className="bg-white border border-slate-200 p-8 rounded-[32px] shadow-sm ring-1 ring-slate-200/50">
         <div className="flex flex-col space-y-8">
@@ -411,8 +408,12 @@ function SiteEntryContent() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             <Card>
-              <CardHeader><CardTitle className="flex items-center gap-2 text-sm uppercase font-black tracking-widest"><MapPin className="size-4 text-primary" /> 1. Basic Site Details</CardTitle></CardHeader>
-              <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
+                <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-600 flex items-center gap-3">
+                   <MapPin className="size-4" /> 1. SITE & LOCATION DETAILS
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-10 grid grid-cols-1 md:grid-cols-4 gap-8">
                 <FormField control={form.control} name="nameOfSite" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">1. Name of Site</FormLabel> <FormControl><Input disabled={!isAllowed} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
                 <FormField control={form.control} name="address" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">2. Address</FormLabel> <FormControl><Input disabled={!isAllowed} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
                 <FormField control={form.control} name="latitude" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">3. Latitude</FormLabel> <FormControl><Input disabled={!isAllowed} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
@@ -420,102 +421,94 @@ function SiteEntryContent() {
                 <FormField control={form.control} name="fileNo" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">5. File No</FormLabel> <FormControl><Input disabled={!isAllowed} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
                 <FormField control={form.control} name="applicantNameAddress" render={({ field }) => ( <FormItem className="md:col-span-2"> <FormLabel className="text-[10px] font-black uppercase text-slate-500">6. Applicant Details</FormLabel> <FormControl><Textarea disabled={!isAllowed} rows={1} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
                 <FormField control={form.control} name="applicationDate" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">7. Date of application</FormLabel> <FormControl><Input disabled={!isAllowed} type="date" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                <FormField control={form.control} name="village" render={({ field }) => ( 
+                  <FormItem> 
+                    <FormLabel className="text-[10px] font-black uppercase text-slate-500">8. Village</FormLabel> 
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button type="button" variant="outline" className="w-full h-10 justify-between border-slate-200 font-bold" disabled={!isAllowed}>
+                          <span className="uppercase text-[11px] tracking-tight truncate">{field.value || "SELECT VILLAGE"}</span>
+                          <ChevronDown className="size-4 opacity-50" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="w-[320px] rounded-2xl p-2 bg-white shadow-2xl border-slate-200">
+                        <ScrollArea className="h-[400px]">
+                          {villageOptions.map((group, groupIdx) => (
+                            <div key={groupIdx}>
+                              <div className="px-4 py-2 text-[10px] font-black uppercase text-slate-400 bg-slate-50/50">{group.label}</div>
+                              {group.options.map((v, i) => (
+                                <DropdownMenuItem key={i} onClick={() => form.setValue('village', v)} className="rounded-xl py-2.5 px-6 font-bold text-xs uppercase cursor-pointer">{v}</DropdownMenuItem>
+                              ))}
+                            </div>
+                          ))}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => setIsManualVillageOpen(true)} className="rounded-xl py-3 px-6 font-black text-xs uppercase cursor-pointer text-blue-600 bg-blue-50 hover:bg-blue-100"><PlusCircle className="size-4 mr-2" /> MANUAL ENTRY</DropdownMenuItem>
+                        </ScrollArea>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </FormItem> 
+                )} />
+                <FormField control={form.control} name="ward" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">9. Ward</FormLabel> <FormControl><Input disabled={!isAllowed} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                <FormField control={form.control} name="altitude" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">10. Altitude</FormLabel> <FormControl><Input disabled={!isAllowed} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                <FormField control={form.control} name="lsgd" render={({ field }) => ( 
+                  <FormItem> 
+                    <FormLabel className="text-[10px] font-black uppercase text-slate-500">11. LSGD</FormLabel> 
+                    <Select disabled={!isAllowed} onValueChange={field.onChange} value={field.value}>
+                      <FormControl><SelectTrigger className="h-10 text-xs font-bold"><SelectValue placeholder="SELECT LSGD" /></SelectTrigger></FormControl>
+                      <SelectContent className="max-h-[400px] rounded-2xl">{lsgs.map(l => <SelectItem key={l} value={l} className="text-[10px] font-bold uppercase">{l}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </FormItem> 
+                )} />
+                <FormField control={form.control} name="assembly" render={({ field }) => ( 
+                  <FormItem> 
+                    <FormLabel className="text-[10px] font-black uppercase text-slate-500">12. Constituency (LAC)</FormLabel> 
+                    <FormControl><Input {...field} disabled className="bg-slate-50 font-black text-blue-600 uppercase h-10 text-xs" /></FormControl>
+                  </FormItem> 
+                )} />
+                <FormField control={form.control} name="block" render={({ field }) => ( 
+                  <FormItem> 
+                    <FormLabel className="text-[10px] font-black uppercase text-slate-500">13. Block</FormLabel> 
+                    <Select disabled={!isAllowed} onValueChange={field.onChange} value={field.value}>
+                      <FormControl><SelectTrigger className="h-10 text-xs font-bold"><SelectValue/></SelectTrigger></FormControl>
+                      <SelectContent className="rounded-xl">{blockOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </FormItem> 
+                )} />
+                <FormField control={form.control} name="typeAppliedFor" render={({ field }) => ( 
+                  <FormItem> 
+                    <FormLabel className="text-[10px] font-black uppercase text-slate-500">14. Type Applied For</FormLabel> 
+                    <Select disabled={!isAllowed} onValueChange={field.onChange} value={field.value}>
+                      <FormControl><SelectTrigger className="h-10 text-xs bg-slate-50/50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue /></SelectTrigger></FormControl>
+                      <SelectContent className="rounded-xl">{recommendationTypeOptions.filter(o=>o.value !== 'not_feasible').map(o => <SelectItem key={o} value={o}>{o.label}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </FormItem> 
+                )} />
+                <FormField control={form.control} name="dateOfFeasibility" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">15. Date of Feasibility</FormLabel> <FormControl><Input disabled={!isAllowed} type="date" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
                 <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3">
-                   <Building className="size-4" /> 2. Location & Admin Details
+                   <Settings className="size-4" /> 2. TECHNICAL SPECIFICATIONS
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-10 grid grid-cols-1 md:grid-cols-4 gap-8">
-                    <FormField control={form.control} name="village" render={({ field }) => ( 
-                      <FormItem> 
-                        <FormLabel className="text-[10px] font-black uppercase text-slate-500">8. Village</FormLabel> 
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button type="button" variant="outline" className="w-full h-10 justify-between border-slate-200 font-bold" disabled={!isAllowed}>
-                              <span className="uppercase text-[11px] tracking-tight truncate">{field.value || "SELECT VILLAGE"}</span>
-                              <ChevronDown className="size-4 opacity-50" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent className="w-[320px] rounded-2xl p-2 bg-white shadow-2xl border-slate-200">
-                            <ScrollArea className="h-[400px]">
-                              {villageOptions.map((group, groupIdx) => (
-                                <div key={groupIdx}>
-                                  <div className="px-4 py-2 text-[10px] font-black uppercase text-slate-400 bg-slate-50/50">{group.label}</div>
-                                  {group.options.map((v, i) => (
-                                    <DropdownMenuItem key={i} onClick={() => form.setValue('village', v)} className="rounded-xl py-2.5 px-6 font-bold text-xs uppercase cursor-pointer">{v}</DropdownMenuItem>
-                                  ))}
-                                </div>
-                              ))}
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => setIsManualVillageOpen(true)} className="rounded-xl py-3 px-6 font-black text-xs uppercase cursor-pointer text-blue-600 bg-blue-50 hover:bg-blue-100"><PlusCircle className="size-4 mr-2" /> MANUAL ENTRY</DropdownMenuItem>
-                            </ScrollArea>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                        <FormMessage />
-                      </FormItem> 
-                    )} />
-                    <FormField control={form.control} name="ward" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">9. Ward</FormLabel> <FormControl><Input disabled={!isAllowed} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                    <FormField control={form.control} name="altitude" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">10. Altitude</FormLabel> <FormControl><Input disabled={!isAllowed} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                    <FormField control={form.control} name="lsgd" render={({ field }) => ( 
-                      <FormItem> 
-                        <FormLabel className="text-[10px] font-black uppercase text-slate-500">11. LSGD</FormLabel> 
-                        <Select disabled={!isAllowed} onValueChange={field.onChange} value={field.value}>
-                          <FormControl><SelectTrigger className="h-10 text-xs font-bold"><SelectValue placeholder="SELECT LSGD" /></SelectTrigger></FormControl>
-                          <SelectContent className="max-h-[400px] rounded-2xl">{lsgs.map(l => <SelectItem key={l} value={l} className="text-[10px] font-bold uppercase">{l}</SelectItem>)}</SelectContent>
-                        </Select>
-                      </FormItem> 
-                    )} />
-                    <FormField control={form.control} name="assembly" render={({ field }) => ( 
-                      <FormItem> 
-                        <FormLabel className="text-[10px] font-black uppercase text-slate-500">12. Constituency (LAC)</FormLabel> 
-                        <FormControl><Input {...field} disabled className="bg-slate-50 font-black text-blue-600 uppercase h-10 text-xs" /></FormControl>
-                      </FormItem> 
-                    )} />
-                    <FormField control={form.control} name="block" render={({ field }) => ( 
-                      <FormItem> 
-                        <FormLabel className="text-[10px] font-black uppercase text-slate-500">13. Block</FormLabel> 
-                        <Select disabled={!isAllowed} onValueChange={field.onChange} value={field.value}>
-                          <FormControl><SelectTrigger className="h-10 text-xs font-bold"><SelectValue/></SelectTrigger></FormControl>
-                          <SelectContent className="rounded-xl">{blockOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
-                        </Select>
-                      </FormItem> 
-                    )} />
-                    <FormField control={form.control} name="typeAppliedFor" render={({ field }) => ( 
-                      <FormItem> 
-                        <FormLabel className="text-[10px] font-black uppercase text-slate-500">14. Type Applied For</FormLabel> 
-                        <Select disabled={!isAllowed} onValueChange={field.onChange} value={field.value}>
-                          <FormControl><SelectTrigger className="h-10 text-xs bg-slate-50/50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue /></SelectTrigger></FormControl>
-                          <SelectContent className="rounded-xl">{recommendationTypeOptions.filter(o=>o.value !== 'not_feasible').map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
-                        </Select>
-                      </FormItem> 
-                    )} />
-                    <FormField control={form.control} name="dateOfFeasibility" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">15. Date of Feasibility</FormLabel> <FormControl><Input disabled={!isAllowed} type="date" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader><CardTitle className="flex items-center gap-2 text-sm uppercase font-black tracking-widest"><Settings className="size-4 text-primary"/> 3. Technical Details</CardTitle></CardHeader>
-              <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <FormField control={form.control} name="noOfBeneficiaries" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">16. Beneficiaries</FormLabel> <FormControl><Input disabled={!isAllowed} type="text" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
                 <FormField control={form.control} name="toposheet" render={({ field }) => ( <FormItem className="md:col-span-2"> <FormLabel className="text-[10px] font-black uppercase text-slate-500">17. Toposheet/GW Prospect Map</FormLabel> <FormControl><Input disabled={!isAllowed} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
                 <FormField control={form.control} name="surveyNoArea" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">18. Survey No. & Area</FormLabel> <FormControl><Input disabled={!isAllowed} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
                 <FormField control={form.control} name="microWatershed" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">19. Micro water shed</FormLabel> <FormControl><Input disabled={!isAllowed} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                <FormField control={form.control} name="hydrogeology" render={({ field }) => ( <FormItem className="md:col-span-4"> <FormLabel className="text-[10px] font-black uppercase text-slate-500">20. Hydrogeology & Geology</FormLabel> <FormControl><Textarea disabled={!isAllowed} rows={5} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
               </CardContent>
             </Card>
 
-            <Card><CardHeader><CardTitle className="flex items-center gap-2 text-sm uppercase font-black tracking-widest"><FileText className="size-4 text-primary"/> 20. Hydrogeology & Geology</CardTitle></CardHeader><CardContent><FormField control={form.control} name="hydrogeology" render={({ field }) => (<FormControl><Textarea disabled={!isAllowed} rows={5} {...field} /></FormControl>)}/></CardContent></Card>
-            
             <Card>
               <CardHeader className="bg-slate-50 border-b py-5 px-10">
                 <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3">
                   <Activity className="size-4" /> 21. Details of nearby groundwater structures
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-10 grid grid-cols-1 md:grid-cols-2 gap-12">
+              <CardContent className="p-10 grid grid-cols-1 md:grid-cols-2 gap-12 text-left">
                 <div className="space-y-4">
                   <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest block ml-1">a) Borewell Status</Label>
                   <div className="flex flex-wrap gap-2 p-1 bg-slate-100 rounded-2xl w-fit">
@@ -540,7 +533,7 @@ function SiteEntryContent() {
             <Card>
               <CardHeader className="bg-slate-50/50 border-b py-5 px-10"><CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3"><ShieldCheck className="size-4 text-primary"/> 22. Recommendation</CardTitle></CardHeader>
               <CardContent className="p-10 space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start text-left">
                     <FormField control={form.control} name="recommendationType" render={({ field }) => (
                       <FormItem className="w-full">
                         <FormLabel className="text-[10px] font-black uppercase text-slate-400">Recommendation Type</FormLabel>
@@ -577,7 +570,7 @@ function SiteEntryContent() {
               </CardContent>
             </Card>
 
-            <Card><CardHeader><CardTitle className="flex items-center gap-2 text-sm uppercase font-black tracking-widest"><Users className="size-4 text-primary"/> 23. Staff Team Assignment</CardTitle></CardHeader>
+            <Card><CardHeader className="bg-slate-50/50 border-b py-5 px-10"><CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3"><Users className="size-4 text-primary"/> 23. Staff Team Assignment</CardTitle></CardHeader>
               <CardContent className="p-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 <StaffMultiSelect label="Hydrogeologist" options={filteredStaff.hg} selected={staffFormData.staffAssignment.hydrogeologist} onChange={(names) => updateStaff('hydrogeologist', names)} max={1} disabled={!isAllowed} />
                 <StaffMultiSelect label="Jr. Hydrogeologist" options={filteredStaff.jhg} selected={staffFormData.staffAssignment.juniorHydrogeologist} onChange={(names) => updateStaff('juniorHydrogeologist', names)} max={1} disabled={!isAllowed} />
@@ -589,7 +582,7 @@ function SiteEntryContent() {
             <div className="flex justify-end pt-8 pb-32">
                 <Button type="submit" disabled={isPending || !isAllowed} className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/20 transition-all hover:scale-[1.02]">
                     {isPending ? <Loader2 className="size-5 animate-spin mr-2" /> : <Save className="size-5 mr-2" />}
-                    {isAllowed ? 'SYNCHRONIZE TECHNICAL RECORD' : 'ACCESS RESTRICTED'}
+                    {isAllowed ? (id ? 'UPDATE INVESTIGATION RECORD' : 'FINALIZE TECHNICAL RECORD') : 'ACCESS RESTRICTED'}
                 </Button>
             </div>
         </form>
@@ -598,7 +591,7 @@ function SiteEntryContent() {
       <Dialog open={isRecommendationDialogOpen} onOpenChange={setIsRecommendationDialogOpen}>
         <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl">
           <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight text-center">TECHNICAL RECOMMENDATION</DialogTitle></DialogHeader>
-          <div className="space-y-6 py-4">
+          <div className="space-y-6 py-4 text-left">
               {(form.watch('recommendationType') === 'borewell' || form.watch('recommendationType') === 'tubewell' || form.watch('recommendationType') === 'filterpoint') && (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
@@ -637,8 +630,8 @@ function SiteEntryContent() {
 
       <Dialog open={isNearbyDialogOpen} onOpenChange={setIsNearbyDialogOpen}>
         <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl">
-          <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight">DETAILS FOR {selectedNearbyStructure}</DialogTitle></DialogHeader>
-          <div className="space-y-6 py-4">
+          <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight text-left">DETAILS FOR {selectedNearbyStructure}</DialogTitle></DialogHeader>
+          <div className="space-y-6 py-4 text-left">
             {selectedNearbyStructure?.startsWith('borewell') ? (
               <div className="space-y-4">
                 <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Total Depth (m)</Label><Input value={form.watch(`nearbyBorewell${selectedNearbyStructure.slice(-1)}Depth` as any)} onChange={e=>form.setValue(`nearbyBorewell${selectedNearbyStructure.slice(-1)}Depth` as any, e.target.value)} /></div>
@@ -666,7 +659,7 @@ function SiteEntryContent() {
       <Dialog open={isManualVillageOpen} onOpenChange={setIsManualVillageOpen}>
         <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl">
           <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight text-center">MANUAL VILLAGE ENTRY</DialogTitle></DialogHeader>
-          <div className="py-4 space-y-2">
+          <div className="py-4 space-y-2 text-left">
               <Label className="text-[10px] font-black uppercase text-slate-500">Village Name</Label>
               <Input value={manualVillageName} onChange={(e) => setManualVillageName(e.target.value)} placeholder="ENTER NAME" className="h-12 border-slate-200 font-bold uppercase" />
           </div>
