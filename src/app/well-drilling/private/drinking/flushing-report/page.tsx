@@ -104,7 +104,7 @@ function ReportContent() {
         </Button>
       </div>
 
-      <div className="bg-white mx-auto w-full max-w-[210mm] min-h-[297mm] shadow-xl print:shadow-none p-[12mm] flex flex-col text-[12px] leading-tight border border-slate-200 print:border-none overflow-hidden relative">
+      <div className="bg-white mx-auto w-full max-w-[210mm] min-h-[297mm] shadow-xl print:shadow-none p-[12mm] flex flex-col text-[12px] border border-slate-200 print:border-none overflow-hidden relative">
         
         <div className="absolute top-10 left-10 text-left">
           <p className="text-[13px] font-black text-black leading-none">(12)</p>
@@ -123,11 +123,11 @@ function ReportContent() {
           <p className="text-[11px] text-slate-700 font-bold uppercase mt-2">SKE DTH RIG UNIT (TECHNICAL LOG)</p>
         </div>
 
-        <div className="space-y-3 mb-10 px-4">
+        <div className="space-y-2 mb-10 px-4">
           {technicalData.map((item, index) => (
             <div key={index} className="flex items-baseline border-b border-slate-50 pb-1">
-              <span className="font-bold text-slate-700 min-w-[240px] text-[13px]">{item.label} :</span>
-              <span className={cn("font-black text-slate-900 ml-2 text-[13px]", item.upper && "uppercase")}>
+              <span className="font-bold text-slate-700 min-w-[220px] text-[13px]">{item.label} :</span>
+              <span className={cn("font-black text-slate-900 ml-1 text-[13px]", item.upper && "uppercase")}>
                 {item.value || '--'}
               </span>
             </div>
@@ -144,7 +144,7 @@ function ReportContent() {
         <div className="mt-auto">
           <div className="grid grid-cols-4 gap-6 text-[9.5px] text-center font-black pb-8">
             <div className="flex flex-col items-center">
-              <div className="h-12 flex items-end justify-center font-black uppercase text-[10.5px]">({data.staff.unitInCharge || '---'})</div>
+              <div className="h-12 flex items-end justify-center font-black uppercase text-[10.5px]">({(typeof data.staff.unitInCharge === 'string' ? data.staff.unitInCharge : (Array.isArray(data.staff.unitInCharge) ? data.staff.unitInCharge[0] : '')) || '---'})</div>
               <p className="w-full border-t border-black pt-2 uppercase leading-tight">Unit In-Charge<br/>(SKE DTH RIG)</p>
             </div>
             <div className="flex flex-col items-center">
