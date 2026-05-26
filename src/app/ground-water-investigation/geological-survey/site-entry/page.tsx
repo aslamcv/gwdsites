@@ -54,9 +54,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue, SelectSeparator } from '@/components/ui/select';
 import { useLsgdData } from '@/hooks/use-lsgd-data';
+import { useState as useReactState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import type { GroundwaterReport, Employee } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -155,15 +156,6 @@ const villageOptions = [
   { label: "Kondotty Taluk", options: ["Edarikkode", "Kizhisseri", "Kondotty", "Kuzhimanna", "Morayur", "Muthuvallur", "Nediyiruppu", "Pallikkal", "Pulikkal", "Vazhakkad", "Vazhayur"] }
 ];
 
-const conveyanceOptions = [
-  "TATA SUMO GOLD (KL01CE7618)",
-  "RENTED VEHICLE",
-  "PERSONAL VEHICLE",
-  "GENERAL TRANSPORT",
-  "SKE DTH RIG VEHICLE",
-  "PT UNIT VEHICLE"
-];
-
 const sectorOptions = [
   { id: 'private', label: 'Private' },
   { id: 'government', label: 'Government' },
@@ -184,6 +176,15 @@ const blockOptions = [
   "Mankada — Semi-Critical", "Nilambur — Safe", "Perinthalmanna — Safe",
   "Ponnani — Safe", "Tanur — Semi-Critical", "Tirur — Semi-Critical",
   "Tirurangadi — Semi-Critical", "Vengara — Semi-Critical", "Wandoor — Safe"
+];
+
+const conveyanceOptions = [
+  "TATA SUMO GOLD (KL01CE7618)",
+  "RENTED VEHICLE",
+  "PERSONAL VEHICLE",
+  "GENERAL TRANSPORT",
+  "SKE DTH RIG VEHICLE",
+  "PT UNIT VEHICLE"
 ];
 
 function SiteEntryContent() {
@@ -226,7 +227,7 @@ function SiteEntryContent() {
     return doc(firestore, 'groundwaterReports', id);
   }, [firestore, id]);
 
-  const { data: cloudReport, isLoading } = useDoc<GroundwaterReport>(reportRef);
+  const { data: cloudReport, isLoading: isReportLoading } = useDoc<GroundwaterReport>(reportRef);
 
   const [staffFormData, setStaffFormData] = useState<any>({
     startDate: new Date().toISOString().split('T')[0],
@@ -345,7 +346,7 @@ function SiteEntryContent() {
     }
   };
 
-  if (isLoading && id) {
+  if (isReportLoading && id) {
     return (
       <div className="p-4 sm:p-6 space-y-6 text-left">
         <Skeleton className="h-10 w-1/3" />
