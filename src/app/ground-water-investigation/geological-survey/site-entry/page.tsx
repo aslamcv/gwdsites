@@ -2,40 +2,11 @@
 
 import { useState, useTransition, useEffect, useMemo, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { 
-  ArrowLeft, 
-  Save, 
-  FileText, 
-  Activity,
-  Loader2,
-  MapPin,
-  Calendar as CalendarIcon,
-  Truck,
-  Building,
-  User,
-  ShieldCheck,
-  Users,
-  Settings,
-  ClipboardList,
-  Lock,
-  SearchCode,
-  Calculator,
-  ArrowRight,
-  ChevronDown,
-  PlusCircle
-} from 'lucide-react';
-import { Checkbox } from '@/components/ui/checkbox';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
+import { ArrowLeft, Save, ClipboardList, Calendar, Loader2, PlusCircle, MapPin, ChevronDown, Activity, Settings, ShieldCheck, Users, Lock, SearchCode, Calculator, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import {
   Form,
   FormControl,
@@ -45,37 +16,34 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import Link from 'next/link';
-import { useSearchParams, useRouter } from 'next/navigation';
-import { useLsgdData } from '@/hooks/use-lsgd-data';
-import { 
-  Select, 
-  SelectContent, 
-  SelectGroup, 
-  SelectItem, 
-  SelectLabel, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
-import { collection, doc, setDoc, updateDoc } from 'firebase/firestore';
-import type { GroundwaterReport, Employee } from '@/lib/types';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue, SelectSeparator } from '@/components/ui/select';
+import { useLsgdData } from '@/hooks/use-lsgd-data';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { StaffMultiSelect } from '@/components/investigation/staff-multi-select';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase } from '@/firebase';
+import { collection, doc, updateDoc, setDoc } from 'firebase/firestore';
+import type { GroundwaterReport, Employee } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/logo';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { StaffMultiSelect } from '@/components/investigation/staff-multi-select';
+import { Separator } from '@/components/ui/separator';
 
 const reportSchema = z.object({
   nameOfSite: z.string().min(1, 'Name of site is required.'),
@@ -129,7 +97,6 @@ const reportSchema = z.object({
   expectedOverburden: z.string().optional(),
   recOpenwellTotalDepth: z.string().optional(),
   recOpenwellDiameter: z.string().optional(),
-  recommendationOpenwellText: z.string().optional(),
   recommendedToGpSurvey: z.boolean().default(false),
   gpSurveyLocation: z.string().optional(),
   recommendedToPumpingTest: z.boolean().default(false),
@@ -137,7 +104,51 @@ const reportSchema = z.object({
 
 type ReportFormValues = z.infer<typeof reportSchema>;
 
-const MASTER_ADMIN_EMAIL = 'gwdmpm@gmail.com';
+const borewellDiameterOptions = [
+  { value: '110mm', label: '110mm (4.5")' },
+  { value: '150mm', label: '150mm (6")' },
+  { value: '200mm', label: '200mm (8")' },
+];
+
+const openwellDiameterOptions = Array.from({ length: 11 }, (_, i) => {
+  const val = (1 + i * 0.5).toString();
+  return { value: val, label: `${val}m` };
+});
+
+const recommendationTypeOptions = [
+  { value: 'borewell', label: 'Bore well' },
+  { value: 'openwell', label: 'Open well' },
+  { value: 'filterpoint', label: 'Filter point well' },
+  { value: 'tubewell', label: 'Tube well' },
+  { value: 'not_feasible', label: 'Not feasible for Open well & Bore well' },
+];
+
+const villageOptions = [
+  { label: "Eranad Taluk", options: ["Anakkayam", "Areacode", "Chembrasseri", "Cheekode", "Edavanna", "Elankur", "Karakunnu", "Kavanur", "Keezhuparamba", "Kizhuparamba", "Kodur", "Malappuram", "Manjeri", "Melmuri", "Narukara", "Panakkad", "Pandikkad", "Payyanad", "Perakamanna", "Pookkottur", "Pulpatta", "Trikkalangode", "Urangattiri", "Vettilappara", "Vettikattiri"] },
+  { label: "Nilambur Taluk", options: ["Akampadam", "Amarambalam", "Chungathara", "Edakkara", "Karulai", "Karuvarakundu", "Kalikavu", "Mampad", "Moothedam", "Nilambur", "Pothukal", "Vazhikkadavu", "Chokkad"] },
+  { label: "Perinthalmanna Taluk", options: ["Aliparamba", "Angadippuram", "Anamangad", "Arakkuparamba", "Edappatta", "Elamkulam", "Keezhattur", "Koottilangadi", "Kuruva", "Kuruvambalam", "Makkaraparamba", "Mankada", "Melattur", "Moorkkanad", "Nenmini", "Puzhakkattiri", "Thazhekkode", "Vadakkangara", "Valambur", "Vettathur"] },
+  { label: "Tirur Taluk", options: ["Ananthavoor", "Athavanad", "Cheriyamundam", "Edayur", "Irimbiliyam", "Kalady", "Kalpakanchery", "Kattipparuthi", "Kurumbathur", "Kuttippuram", "Mangalam", "Marakkara", "Naduvattom", "Ponmala", "Thirunavaya", "Triprangode", "Valavannur"] },
+  { label: "Tirurangadi Taluk", options: ["Thenhipalam", "Chelembra", "Cherukavu", "Moonniyur", "Nannambra", "Neduva", "Oorakam", "Parappanangadi", "Parappur", "Peruvallur", "Vallikkunnu", "Vengara", "Velimukku", "Ponmundam", "Tanalur", "Tirurangadi", "Kottakkal"] },
+  { label: "Ponnani Taluk", options: ["Alamkode", "Edappal", "Marancheri", "Nannammukku", "Perumpadappa", "Ponnani Nagaram", "Tavanur", "Vattamkulam", "Veliyankode"] },
+  { label: "Kondotty Taluk", options: ["Edarikkode", "Kizhisseri", "Kondotty", "Kuzhimanna", "Morayur", "Muthuvallur", "Nediyiruppu", "Pallikkal", "Pulikkal", "Vazhakkad", "Vazhayur"] }
+];
+
+const conveyanceOptions = [
+  "TATA SUMO GOLD (KL01CE7618)",
+  "RENTED VEHICLE",
+  "PERSONAL VEHICLE",
+  "GENERAL TRANSPORT",
+  "SKE DTH RIG VEHICLE",
+  "PT UNIT VEHICLE"
+];
+
+const blockOptions = [
+  "Areekode — Safe", "Perumpadappu — Safe", "Kalikavu — Safe",
+  "Kondotty — Semi-Critical", "Kuttippuram — Semi-Critical", "Malappuram — Semi-Critical",
+  "Mankada — Semi-Critical", "Nilambur — Safe", "Perinthalmanna — Safe",
+  "Ponnani — Safe", "Tanur — Semi-Critical", "Tirur — Semi-Critical",
+  "Tirurangadi — Semi-Critical", "Vengara — Semi-Critical", "Wandoor — Safe"
+];
 
 const sectorOptions = [
   { id: 'private', label: 'Private' },
@@ -153,61 +164,15 @@ const categoryMappings: Record<string, string[]> = {
   others: ["Miscellaneous", "Emergency Work", "Special Survey"]
 };
 
-const conveyanceOptions = [
-  "TATA SUMO GOLD (KL01CE7618)",
-  "RENTED VEHICLE",
-  "PERSONAL VEHICLE",
-  "GENERAL TRANSPORT",
-  "SKE DTH RIG VEHICLE",
-  "PT UNIT VEHICLE"
-];
-
-const villageOptions = [
-  { label: "Eranad Taluk", options: ["Anakkayam", "Areacode", "Chembrasseri", "Cheekode", "Edavanna", "Elankur", "Karakunnu", "Kavanur", "Keezhuparamba", "Kizhuparamba", "Kodur", "Malappuram", "Manjeri", "Melmuri", "Narukara", "Panakkad", "Pandikkad", "Payyanad", "Perakamanna", "Pookkottur", "Pulpatta", "Trikkalangode", "Urangattiri", "Vettilappara", "Vettikattiri"] },
-  { label: "Nilambur Taluk", options: ["Akampadam", "Amarambalam", "Chungathara", "Edakkara", "Karulai", "Karuvarakundu", "Kalikavu", "Mampad", "Moothedam", "Nilambur", "Pothukal", "Vazhikkadavu", "Chokkad"] },
-  { label: "Perinthalmanna Taluk", options: ["Aliparamba", "Angadippuram", "Anamangad", "Arakkuparamba", "Edappatta", "Elamkulam", "Keezhattur", "Koottilangadi", "Kuruva", "Kuruvambalam", "Makkaraparamba", "Mankada", "Melattur", "Moorkkanad", "Nenmini", "Puzhakkattiri", "Thazhekkode", "Vadakkangara", "Valambur", "Vettathur"] },
-  { label: "Tirur Taluk", options: ["Ananthavoor", "Athavanad", "Cheriyamundam", "Edayur", "Irimbiliyam", "Kalady", "Kalpakanchery", "Kattipparuthi", "Kurumbathur", "Kuttippuram", "Mangalam", "Marakkara", "Naduvattom", "Ponmala", "Thirunavaya", "Triprangode", "Valavannur"] },
-  { label: "Tirurangadi Taluk", options: ["Thenhipalam", "Chelembra", "Cherukavu", "Moonniyur", "Nannambra", "Neduva", "Oorakam", "Parappanangadi", "Parappur", "Peruvallur", "Vallikkunnu", "Vengara", "Velimukku", "Ponmundam", "Tanalur", "Tirurangadi", "Kottakkal"] },
-  { label: "Ponnani Taluk", options: ["Alamkode", "Edappal", "Marancheri", "Nannammukku", "Perumpadappa", "Ponnani Nagaram", "Tavanur", "Vattamകുളം", "Veliyankode"] },
-  { label: "Kondotty Taluk", options: ["Edarikkode", "Kizhisseri", "Kondotty", "Kuzhimanna", "Morayur", "Muthുവല്ലൂർ", "Nediyiruppu", "Pallikkal", "Pulikkal", "Vazhakkad", "Vazhayur"] }
-];
-
-const blockOptions = [
-  "Areekode — Safe", "Perumpadappu — Safe", "Kalikavu — Safe",
-  "Kondotty — Semi-Critical", "Kuttippuram — Semi-Critical", "Malappuram — Semi-Critical",
-  "Mankada — Semi-Critical", "Nilambur — Safe", "Perinthalmanna — Safe",
-  "Ponnani — Safe", "Tanur — Semi-Critical", "Tirur — Semi-Critical",
-  "Tirurangadi — Semi-Critical", "Vengara — Semi-Critical", "Wandoor — Safe"
-];
-
-const recommendationTypeOptions = [
-  { value: 'borewell', label: 'Bore well' },
-  { value: 'openwell', label: 'Open well' },
-  { value: 'filterpoint', label: 'Filter point well' },
-  { value: 'tubewell', label: 'Tube well' },
-  { value: 'not_feasible', label: 'Not feasible for Open well & Bore well' },
-];
-
-const borewellDiameterOptions = [
-  { value: '110mm', label: '110mm (4.5")' },
-  { value: '150mm', label: '150mm (6")' },
-  { value: '200mm', label: '200mm (8")' },
-];
-
-const openwellDiameterOptions = Array.from({ length: 11 }, (_, i) => {
-  const val = (1 + i * 0.5).toString();
-  return { value: val, label: `${val}m` };
-});
-
 function SiteEntryContent() {
   const { toast } = useToast();
-  const router = useRouter();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const { lsgs, lsgMappings } = useLsgdData();
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
   const [isPending, startTransition] = useTransition();
-
+  
   const id = searchParams.get('id');
 
   const [isRecommendationDialogOpen, setIsRecommendationDialogOpen] = useState(false);
@@ -239,7 +204,16 @@ function SiteEntryContent() {
     return doc(firestore, 'groundwaterReports', id);
   }, [firestore, id]);
 
-  const { data: cloudReport, isLoading: isReportLoading } = useDoc<GroundwaterReport>(reportRef);
+  const { data: cloudReport, isLoading } = useDoc<GroundwaterReport>(reportRef);
+
+  const [staffFormData, setStaffFormData] = useState<any>({
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: '',
+    conveyance: '',
+    sector: 'private',
+    category: 'Domestic',
+    staffAssignment: { hydrogeologist: [], juniorHydrogeologist: [], geologicalAssistant: [], otherStaff: [] }
+  });
 
   const defaultValues: ReportFormValues = useMemo(() => ({
     nameOfSite: '', address: '', latitude: '', longitude: '', fileNo: '', applicantNameAddress: '', applicationDate: '', village: '', ward: '', altitude: '', lsgd: '', assembly: '', block: '', typeAppliedFor: 'borewell', dateOfFeasibility: '', noOfBeneficiaries: '', toposheet: '', surveyNoArea: '', microWatershed: '', hydrogeology: 'The area is expected to be underlain by Lateritic soil followed by Laterite, weathered and hard crystalline rock.', nearbyBorewell1Depth: '', nearbyBorewell1Diameter: '', nearbyBorewell1Zones: '', nearbyBorewell2Depth: '', nearbyBorewell2Diameter: '', nearbyBorewell2Zones: '', nearbyBorewell3Depth: '', nearbyBorewell3Diameter: '', nearbyBorewell3Zones: '', noNearbyBorewells: false, nearbyOpenwell1Depth: '', nearbyOpenwell1WaterLevel: '', nearbyOpenwell1ParapetHeight: '', nearbyOpenwell1Type: 'Perennial', nearbyOpenwell2Depth: '', nearbyOpenwell2WaterLevel: '', nearbyOpenwell2ParapetHeight: '', nearbyOpenwell2Type: 'Perennial', nearbyOpenwell3Depth: '', nearbyOpenwell3WaterLevel: '', nearbyOpenwell3ParapetHeight: '', nearbyOpenwell3Type: 'Perennial', noNearbyOpenwells: false, recommendationType: '', recommendationBorewell: '', recommendationOpenwell: '', recBorewellTotalDepth: '', recBorewellDiameter: '', expectedOverburden: '', recOpenwellTotalDepth: '', recOpenwellDiameter: '', recommendedToGpSurvey: false, gpSurveyLocation: '', recommendedToPumpingTest: false,
@@ -253,31 +227,6 @@ function SiteEntryContent() {
   useEffect(() => {
     if (cloudReport) {
       form.reset({ ...defaultValues, ...cloudReport });
-    }
-  }, [cloudReport, form, defaultValues]);
-
-  // LAC auto-population logic
-  const watchedLsgd = form.watch('lsgd');
-  useEffect(() => {
-    if (watchedLsgd && lsgMappings) {
-      const mapping = lsgMappings.find(m => m.lsg === watchedLsgd);
-      if (mapping) {
-        form.setValue('assembly', mapping.constituency);
-      }
-    }
-  }, [watchedLsgd, lsgMappings, form]);
-
-  const [staffFormData, setStaffFormData] = useState<any>({
-    startDate: new Date().toISOString().split('T')[0],
-    endDate: '',
-    conveyance: '',
-    sector: 'private',
-    category: 'Domestic',
-    staffAssignment: { hydrogeologist: [], juniorHydrogeologist: [], geologicalAssistant: [], otherStaff: [] }
-  });
-
-  useEffect(() => {
-    if (cloudReport) {
       const sa = cloudReport.staffAssignment || {};
       setStaffFormData({
         startDate: cloudReport.reportDate || cloudReport.startDate || new Date().toISOString().split('T')[0],
@@ -293,16 +242,26 @@ function SiteEntryContent() {
         }
       });
     }
-  }, [cloudReport]);
+  }, [cloudReport, form, defaultValues]);
+
+  const watchedLsgd = form.watch('lsgd');
+  useEffect(() => {
+    if (watchedLsgd && lsgMappings) {
+      const mapping = lsgMappings.find(m => m.lsg === watchedLsgd);
+      if (mapping) {
+        form.setValue('assembly', mapping.constituency);
+      }
+    }
+  }, [watchedLsgd, lsgMappings, form]);
 
   const updateStaffField = (key: string, value: any) => setStaffFormData((p:any) => ({ ...p, [key]: value }));
   const updateStaff = (role: string, names: string[]) => setStaffFormData((p:any) => ({ ...p, staffAssignment: { ...p.staffAssignment, [role]: names } }));
 
   const filteredStaff = useMemo(() => {
     if (!employees) return { hg: [], jhg: [], ga: [], other: [] };
-    const hgList = employees.filter(e => e.designation.toLowerCase().includes('hydrogeologist') && !e.designation.toLowerCase().includes('junior'));
-    const jhgList = employees.filter(e => e.designation.toLowerCase().includes('junior hydrogeologist'));
-    const gaList = employees.filter(e => e.designation.toLowerCase().includes('assistant') && e.designation.toLowerCase().includes('geological'));
+    const hgList = employees.filter(e => e.designation.toLowerCase() === 'geophysicist');
+    const jhgList = employees.filter(e => e.designation.toLowerCase() === 'junior geophysicist');
+    const gaList = employees.filter(e => e.designation.toLowerCase() === 'geophysical assistant');
     const specialIds = [...hgList, ...jhgList, ...gaList].map(e => e.id);
     const otherList = employees.filter(e => !specialIds.includes(e.id));
     return { hg: hgList, jhg: jhgList, ga: gaList, other: otherList };
@@ -319,8 +278,8 @@ function SiteEntryContent() {
       const dateOfInvestigation = `${staffFormData.startDate}${staffFormData.endDate ? ' - ' + staffFormData.endDate : ''}`;
 
       const reportData = {
-        ...staffFormData, // Sector, Category, Conveyance, Base Dates
-        ...values,        // Form details (Name of Site, Address, Recommendation, etc.)
+        ...staffFormData,
+        ...values,
         id: reportId,
         reportDate: staffFormData.startDate,
         applicantName: values.applicantNameAddress?.split('\n')[0] || values.nameOfSite,
@@ -367,6 +326,16 @@ function SiteEntryContent() {
       setManualVillageName('');
     }
   };
+
+  if (isLoading && id) {
+    return (
+      <div className="p-4 sm:p-6 space-y-6">
+        <Skeleton className="h-10 w-1/3" />
+        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black text-left">
@@ -440,41 +409,43 @@ function SiteEntryContent() {
                 <FormField control={form.control} name="fileNo" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">5. File No</FormLabel> <FormControl><Input disabled={!isAllowed} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
                 <FormField control={form.control} name="applicantNameAddress" render={({ field }) => ( <FormItem className="md:col-span-2"> <FormLabel className="text-[10px] font-black uppercase text-slate-500">6. Applicant Details</FormLabel> <FormControl><Textarea disabled={!isAllowed} rows={1} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
                 <FormField control={form.control} name="applicationDate" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">7. Date of application</FormLabel> <FormControl><Input disabled={!isAllowed} type="date" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                
                 <FormField control={form.control} name="village" render={({ field }) => ( 
                   <FormItem> 
                     <FormLabel className="text-[10px] font-black uppercase text-slate-500">8. Village</FormLabel> 
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button type="button" variant="outline" className="w-full h-10 justify-between border-slate-200 font-bold" disabled={!isAllowed}>
-                          <span className="uppercase text-[11px] tracking-tight truncate">{field.value || "SELECT VILLAGE"}</span>
-                          <ChevronDown className="size-4 opacity-50" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent className="w-[320px] rounded-2xl p-2 bg-white shadow-2xl border-slate-200">
-                        <ScrollArea className="h-[400px]">
-                          {villageOptions.map((group, groupIdx) => (
-                            <div key={groupIdx}>
-                              <div className="px-4 py-2 text-[10px] font-black uppercase text-slate-400 bg-slate-50/50">{group.label}</div>
-                              {group.options.map((v, i) => (
-                                <DropdownMenuItem key={i} onClick={() => form.setValue('village', v)} className="rounded-xl py-2.5 px-6 font-bold text-xs uppercase cursor-pointer">{v}</DropdownMenuItem>
-                              ))}
-                            </div>
-                          ))}
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            onSelect={(e) => {
-                              e.preventDefault();
-                              setIsManualVillageOpen(true);
-                            }} 
-                            className="rounded-xl py-3 px-6 font-black text-xs uppercase cursor-pointer text-blue-600 bg-blue-50 hover:bg-blue-100"
-                          >
-                            <PlusCircle className="size-4 mr-2" /> MANUAL ENTRY
-                          </DropdownMenuItem>
-                        </ScrollArea>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <Select disabled={!isAllowed} onValueChange={(val) => {
+                      if (val === 'MANUAL_ENTRY_TRIGGER') {
+                        setIsManualVillageOpen(true);
+                      } else {
+                        field.onChange(val);
+                      }
+                    }} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="h-10 text-xs font-bold uppercase border-slate-200">
+                          <SelectValue placeholder="SELECT VILLAGE" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="max-h-[400px] rounded-2xl">
+                        {villageOptions.map((group, groupIdx) => (
+                          <SelectGroup key={groupIdx}>
+                            <SelectLabel className="px-4 py-2 text-[10px] font-black uppercase text-slate-400 bg-slate-50/50">{group.label}</SelectLabel>
+                            {group.options.map((v, i) => (
+                              <SelectItem key={i} value={v} className="rounded-xl py-2.5 px-6 font-bold text-xs uppercase cursor-pointer">{v}</SelectItem>
+                            ))}
+                          </SelectGroup>
+                        ))}
+                        <SelectSeparator />
+                        <SelectItem value="MANUAL_ENTRY_TRIGGER" className="rounded-xl py-3 px-6 font-black text-xs uppercase cursor-pointer text-blue-600 bg-blue-50 hover:bg-blue-100">
+                          <div className="flex items-center gap-2">
+                            <PlusCircle className="size-4" /> MANUAL ENTRY
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage /> 
                   </FormItem> 
                 )} />
+
                 <FormField control={form.control} name="ward" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">9. Ward</FormLabel> <FormControl><Input disabled={!isAllowed} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
                 <FormField control={form.control} name="altitude" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">10. Altitude</FormLabel> <FormControl><Input disabled={!isAllowed} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
                 <FormField control={form.control} name="lsgd" render={({ field }) => ( 
@@ -633,7 +604,7 @@ function SiteEntryContent() {
             <div className="flex justify-end pt-8 pb-32">
                 <Button type="submit" disabled={isPending || !isAllowed} className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/20 transition-all hover:scale-[1.02]">
                     {isPending ? <Loader2 className="size-5 animate-spin mr-2" /> : <Save className="size-5 mr-2" />}
-                    {isAllowed ? (id ? 'UPDATE INVESTIGATION RECORD' : 'FINALIZE TECHNICAL RECORD') : 'ACCESS RESTRICTED'}
+                    {isAllowed ? (id ? 'UPDATE' : 'SAVE') + ' INVESTIGATION RECORD' : 'ACCESS RESTRICTED'}
                 </Button>
             </div>
         </form>
