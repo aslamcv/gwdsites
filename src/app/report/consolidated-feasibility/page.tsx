@@ -12,6 +12,7 @@ import { useSearchParams } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { formatToTechnicalDate } from '@/lib/malayalam-utils';
 
 function ConsolidatedReportContent() {
   const searchParams = useSearchParams();
@@ -90,7 +91,7 @@ function ConsolidatedReportContent() {
             <div className="text-right space-y-0.5 leading-tight text-[11px]">
                 <p className="font-bold">ജില്ലാ ഓഫീസ്, മലപ്പുറം - 676 505</p>
                 <p>ഫോൺ: 0483-2731450</p>
-                <p>തീയതി: {masterReport?.dateOfFeasibility || masterReport?.reportDate || format(new Date(), 'dd/MM/yyyy')}</p>
+                <p>തീയതി: {formatToTechnicalDate(masterReport?.dateOfFeasibility || masterReport?.reportDate) || format(new Date(), 'dd/MM/yyyy')}</p>
             </div>
         </div>
 
@@ -100,9 +101,19 @@ function ConsolidatedReportContent() {
                 <p className="pl-16 font-bold">ജില്ലാ ഓഫീസർ, ഭൂജല വകുപ്പ്, മലപ്പുറം</p>
             </div>
             <div className="flex flex-col">
-                <p>അപേക്ഷകൻ,</p>
+                <p>സ്വീകർത്താവ്,</p>
                 <div className="ml-16 mt-1 p-5 border border-black min-h-[60px] w-full max-w-[550px] uppercase font-bold text-[11.5px] flex items-center leading-relaxed">
-                    {masterReport?.applicantNameAddress || masterReport?.applicantName || '---'}
+                    {(() => {
+                      const text = (masterReport?.applicantNameAddress || masterReport?.applicantName || '').trim();
+                      const firstCommaIndex = text.indexOf(',');
+                      if (firstCommaIndex === -1) return <span>{text}</span>;
+                      return (
+                        <div className="flex flex-col justify-center items-start leading-tight">
+                          <span>{text.substring(0, firstCommaIndex + 1)}</span>
+                          <span className="mt-1">{text.substring(firstCommaIndex + 1).trim()}</span>
+                        </div>
+                      );
+                    })()}
                 </div>
             </div>
         </div>
@@ -116,7 +127,7 @@ function ConsolidatedReportContent() {
             </div>
             <div className="flex gap-4">
                 <span className="font-bold shrink-0 min-w-[70px]">സൂചന :</span>
-                <span>താങ്കളുടെ <span className="font-bold border-b border-black px-4">{masterReport?.applicationDate || '--'}</span> തീയതിയിലെ അപേക്ഷ.</span>
+                <span>താങ്കളുടെ <span className="font-bold border-b border-black px-4">{formatToTechnicalDate(masterReport?.applicationDate) || '--'}</span> തീയതിയിലെ അപേക്ഷ.</span>
             </div>
         </div>
 
@@ -165,7 +176,7 @@ function ConsolidatedReportContent() {
                     <div className="space-y-3">
                        <p className="flex justify-between border-b border-dotted border-slate-300 pb-1.5">
                           <span className="text-slate-500 font-medium">വ്യാസം:</span>
-                          <span className="font-bold">{isBore ? site.recBorewellDiameter : site.recOpenwellDiameter}</span>
+                          <span className="font-bold">{isBore ? site.recBorewellDiameter : site.recOpenwellDiameter} m</span>
                        </p>
                        {isBore && (
                          <p className="flex justify-between border-b border-dotted border-slate-300 pb-1.5">
@@ -211,7 +222,7 @@ function ConsolidatedReportContent() {
               <div className="space-y-3 text-[11.5px] leading-relaxed text-justify">
                 <p>1. കിണർ നിർമ്മിക്കാൻ ഉദ്ദേശിക്കുന്ന സ്ഥലത്തിന്റെ 7.5 മീറ്റർ ദൂരപരിധിയിൽ ഉള്ള വീട്, റോഡ്, മലിനീകരണസ്രോതസ്സുകളായ സപ്റ്റിക് ടാങ്ക്, വേസ്റ്റ് ടാങ്ക് തുടങ്ങിയ എല്ലാ നിർമ്മിതികളും ലൊക്കേഷൻ സ്കെച്ചിൽ, ആയതിൽ നിന്നുള്ള ദൂരം ഉൾപ്പെടെ, രേഖപ്പെടുത്തി ഒരു അംഗീകൃത സിവിൽ എഞ്ചിനീയർ സാക്ഷ്യപ്പെടുത്തി ലഭ്യമാക്കി, നിയമപ്രകാരമുള്ള ദൂര പരിധി പാലിക്കുന്നുണ്ട് എന്ന് ഉറപ്പ് വരുത്തിയാൽ മാത്രം, കിണർ നിർമ്മാണം പരിഗണിക്കുന്നതാണ് ഉചിതം.</p>
                 <p>2. കിണർ നിർമ്മാണം വേനൽ കാലത്ത് പൂർത്തീകരിക്കേണ്ടതും കിണറിന്റെ താഴ്ച നിർമ്മാണ സമയത്തു കിണറിൽ 4 മീറ്റർ കനത്തിൽ വെള്ളം ഉണ്ടാകുന്ന രീതിയിലോ കട്ടിയുള്ള കളിമണ്ണ് കാണുന്ന രീതിയിലോ ഏതാണോ കുറവ് അത്രയും താഴ്ചയിൽ നിജപ്പെടുത്താവുന്നതാണ്.</p>
-                <p>3. ഭൂജല മലിനീകരണ സാധ്യത ഒഴിവാക്കുന്നതിനും ജലലഭ്യത ഉറപ്പ് വരുത്തുന്നതിനുമായി കിണറിന് ആൾമറ കെട്ടേണ്ടതും കിണറിന്റെ ആൾമറയുടെ മുകൾ വശത്ത് നിന്നും കിണറിന്റെ വശങ്ങളിലൂടെ കിണറിലേക്ക് വെള്ളം ഇറങ്ങാത്ത രീതിയിൽ വാട്ടർ ടൈറ്റ് ( water tight ) ആയുള്ള നിർമ്മാണ രീതികൾ അവലംബിക്കേണ്ടതും ആയതിന് താഴോട്ട് ഭൂജലം ഉൾക്കൊള്ളുന്ന ഫോർമേഷനുമായി (formation) നല്ല സമ്പർക്കം നിലനിർത്തുന്ന രീതിയിൽ വേണ്ടത്ര സുഷിരങ്ങൾ ഉൾക്കൊള്ളിച്ചുള്ള നിർമ്മാണ രീതികൾ അവലംബിക്കേണ്ടതും ആണ്.</p>
+                <p>3. ഭൂജല മലിനീകരണ സാധ്യത ഒഴിവാക്കുന്നതിനും ജലലഭ്യത ഉറപ്പ് വരുത്തുന്നതിനുമായി കിണറിന് ആൾമറ കെട്ടേണ്ടതും കിണറിന്റെ ആൾമറയുടെ മുകൾ വശത്ത് നിന്നും കിണറിന്റെ വശങ്ങളിലൂടെ കിണറിലേക്ക് വെള്ളം ഇറങ്ങാത്ത രീതിയിൽ വാട്ടർ ടൈറ്റ് ( water tight ) ആയുള്ള നിർമ്മാണ രീതികൾ അവലംബിക്കേണ്ടതും ആയതിന് താഴോട്ട് ഭൂജലം ഉൾക്കൊള്ളുന്ന ഫോർമേഷനുമായി (formation) നല്ല സമ്പർക്കം നിലനിർത്തുന്ന രീതിയിൽ വേണ്ടത്ര സഷിരങ്ങൾ ഉൾക്കൊള്ളിച്ചുള്ള നിർമ്മാണ രീതികൾ അവലംബിക്കേണ്ടതും ആണ്.</p>
                 <p>4. ഭൂജല മലിനീകരണ സാധ്യത ഒഴിവാക്കുന്നതിനായി കിണറിന് ചുറ്റും 1 മീറ്റർ വീതിയിൽ, പുറം വശത്തേക്ക് ചരിവോടെ, സിമന്റ് പ്ലാറ്റ്ഫോം ( cement platform ) നിർമ്മിക്കുന്നത് ഉചിതമാണ്.</p>
               </div>
             </div>
