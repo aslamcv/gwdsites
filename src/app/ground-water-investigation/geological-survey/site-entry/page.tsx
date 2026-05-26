@@ -67,7 +67,7 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, useCollection } from '@/firebase';
+import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
 import { collection, doc, setDoc, updateDoc } from 'firebase/firestore';
 import type { GroundwaterReport, Employee } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
@@ -546,7 +546,16 @@ function SiteEntryContent() {
                   <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block ml-1">a) Borewell Status</Label>
                   <div className="flex flex-wrap gap-2 p-1 bg-slate-100 rounded-2xl w-fit">
                     {['borewell1', 'borewell2', 'borewell3'].map((val, idx) => (
-                      <Button key={val} type="button" variant={selectedNearbyStructure === val && !form.getValues('noNearbyBorewells') ? 'default' : 'ghost'} className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", selectedNearbyStructure === val && !form.getValues('noNearbyBorewells') ? "bg-[#1e3a8a] text-white shadow-md" : "text-slate-500")} onClick={() => handleNearbyTypeSelect('borewell', val)} disabled={!isAllowed}>BW-{idx + 1}</Button>
+                      <Button 
+                        key={val} 
+                        type="button" 
+                        variant={form.watch(`nearbyBorewell${idx + 1}Depth` as any) && !form.getValues('noNearbyBorewells') ? 'default' : 'ghost'} 
+                        className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", form.watch(`nearbyBorewell${idx + 1}Depth` as any) && !form.getValues('noNearbyBorewells') ? "bg-[#1e3a8a] text-white shadow-md" : "text-slate-500")} 
+                        onClick={() => handleNearbyTypeSelect('borewell', val)} 
+                        disabled={!isAllowed}
+                      >
+                        BW-{idx + 1}
+                      </Button>
                     ))}
                     <Button type="button" variant={form.watch('noNearbyBorewells') ? 'destructive' : 'ghost'} className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", form.watch('noNearbyBorewells') ? "bg-rose-600 text-white shadow-md" : "text-slate-500")} onClick={() => handleNearbyTypeSelect('borewell', 'none')} disabled={!isAllowed}>NO BOREWELL</Button>
                   </div>
@@ -555,7 +564,16 @@ function SiteEntryContent() {
                   <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block ml-1">b) Open well Status</Label>
                   <div className="flex flex-wrap gap-2 p-1 bg-slate-100 rounded-2xl w-fit">
                     {['openwell1', 'openwell2', 'openwell3'].map((val, idx) => (
-                      <Button key={val} type="button" variant={selectedNearbyStructure === val && !form.getValues('noNearbyOpenwells') ? 'default' : 'ghost'} className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", selectedNearbyStructure === val && !form.getValues('noNearbyOpenwells') ? "bg-emerald-600 text-white shadow-md" : "text-slate-500")} onClick={() => handleNearbyTypeSelect('openwell', val)} disabled={!isAllowed}>OW-{idx + 1}</Button>
+                      <Button 
+                        key={val} 
+                        type="button" 
+                        variant={form.watch(`nearbyOpenwell${idx + 1}Depth` as any) && !form.getValues('noNearbyOpenwells') ? 'default' : 'ghost'} 
+                        className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", form.watch(`nearbyOpenwell${idx + 1}Depth` as any) && !form.getValues('noNearbyOpenwells') ? "bg-emerald-600 text-white shadow-md" : "text-slate-500")} 
+                        onClick={() => handleNearbyTypeSelect('openwell', val)} 
+                        disabled={!isAllowed}
+                      >
+                        OW-{idx + 1}
+                      </Button>
                     ))}
                     <Button type="button" variant={form.watch('noNearbyOpenwells') ? 'destructive' : 'ghost'} className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", form.watch('noNearbyOpenwells') ? "bg-rose-600 text-white shadow-md" : "text-slate-500")} onClick={() => handleNearbyTypeSelect('openwell', 'none')} disabled={!isAllowed}>NO OPENWELL</Button>
                   </div>
