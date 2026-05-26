@@ -61,7 +61,7 @@ const workOptions = [
   "Remarks"
 ];
 
-export default function MeasurementEntryPage() {
+function MeasurementEntryPage() {
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -311,14 +311,14 @@ export default function MeasurementEntryPage() {
         <CardContent className="p-10 space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Primary Site Name</Label>
+              <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Primary Site Name</Label>
               <div className="relative">
                 <Mountain className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-emerald-500" />
                 <Input disabled={!isAllowed} value={formData.nameOfSite} onChange={(e) => updateField('nameOfSite', e.target.value)} className="h-12 pl-10 border-emerald-200 bg-emerald-50/10 font-black uppercase text-emerald-700" placeholder="ENTER PRIMARY SITE" />
               </div>
             </div>
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Driver Name</Label>
+              <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Driver Name</Label>
               <Select disabled={!isAllowed} onValueChange={(v) => updateField('driver', v)} value={formData.driver}>
                 <SelectTrigger className="h-12 bg-slate-50 border-slate-200 rounded-xl"><SelectValue placeholder="Select Driver" /></SelectTrigger>
                 <SelectContent className="bg-white border-slate-200 text-black">
@@ -327,11 +327,11 @@ export default function MeasurementEntryPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">File Reference</Label>
+              <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">File Reference</Label>
               <Input disabled={!isAllowed} value={formData.fileNo} onChange={(e) => updateField('fileNo', e.target.value)} className="h-12 bg-slate-50 border-slate-200 rounded-xl font-bold" placeholder="MPM/GWD/..." />
             </div>
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Contractor Name</Label>
+              <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Contractor Name</Label>
               <Input disabled={!isAllowed} value={formData.contractorName} onChange={(e) => updateField('contractorName', e.target.value)} className="h-12 bg-slate-50 border-slate-200 rounded-xl font-bold" placeholder="CONTRACTOR DETAILS" />
             </div>
           </div>

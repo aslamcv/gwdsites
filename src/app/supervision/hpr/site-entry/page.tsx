@@ -1,33 +1,24 @@
 'use client';
 
 import { Suspense, useState, useTransition, useEffect, useMemo } from 'react';
-import { PageHeader } from '@/components/page-header';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { 
   ArrowLeft, 
   Save, 
-  FileText, 
-  Activity, 
   Loader2,
-  ClipboardList,
-  Wrench,
-  Settings,
-  Hammer,
-  Waves,
-  Zap,
-  Lock,
+  MapPin,
+  Calendar as CalendarIcon,
   Truck,
   Building,
-  User,
   Users,
   SearchCode,
-  ShieldCheck,
-  MapPin,
-  Calendar as CalendarIcon
+  Lock,
+  Wrench
 } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -40,12 +31,11 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, useCollection } from '@/firebase';
+import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
 import { collection, doc, setDoc, updateDoc } from 'firebase/firestore';
 import type { GroundwaterReport, Employee } from '@/lib/types';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { StaffMultiSelect } from '@/components/investigation/staff-multi-select';
+import { cn } from '@/lib/utils';
 import { Logo } from '@/components/logo';
 
 const MASTER_ADMIN_EMAIL = 'gwdmpm@gmail.com';
@@ -58,7 +48,7 @@ const sectorOptions = [
 
 const categoryMappings: Record<string, string[]> = {
   private: ["Domestic", "Agriculture", "Others"],
-  government: ["Local Bodies", "Institutional", "Others"],
+  government: ["Local Bodies", "Institutional", "GWBDWS", "Others"],
   other_district: ["Project Support", "Emergency"]
 };
 
@@ -119,7 +109,7 @@ function UnifiedHPRSupervisionContent() {
   const searchParams = useSearchParams();
   const { lsgs, lsgMappings } = useLsgdData();
   const firestore = useFirestore();
-  const { user, isUserLoading } = useUser();
+  const { user, isUserLoading: isAuthLoading } = useUser();
   const [isPending, startTransition] = useTransition();
 
   const id = searchParams.get('id');
@@ -132,10 +122,10 @@ function UnifiedHPRSupervisionContent() {
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
   
   const isAllowed = useMemo(() => {
-    if (isUserLoading || isProfileLoading) return false;
+    if (isAuthLoading || isProfileLoading) return false;
     if (user?.email === MASTER_ADMIN_EMAIL) return true;
     return (userProfile?.role === 'admin' || userProfile?.role === 'engineer') && userProfile?.isApproved === true;
-  }, [user, userProfile, isUserLoading, isProfileLoading]);
+  }, [user, userProfile, isAuthLoading, isProfileLoading]);
 
   // Fetch Employees for staff selection
   const employeesRef = useMemoFirebase(() => {
@@ -261,7 +251,7 @@ function UnifiedHPRSupervisionContent() {
   }
 
   return (
-    <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black">
+    <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black text-left">
       
       {/* 1. HEADER SECTION */}
       <div className="bg-white border border-slate-200 p-8 rounded-[32px] shadow-sm ring-1 ring-slate-200/50">

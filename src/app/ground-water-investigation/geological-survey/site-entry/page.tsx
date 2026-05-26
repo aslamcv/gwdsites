@@ -470,7 +470,11 @@ function SiteEntryContent() {
                   <FormItem> 
                     <FormLabel className="text-[10px] font-black uppercase text-slate-500">11. LSGD</FormLabel> 
                     <Select disabled={!isAllowed} onValueChange={field.onChange} value={field.value}>
-                      <FormControl><SelectTrigger className="h-10 text-xs font-bold uppercase"><SelectValue placeholder="SELECT LSGD" /></SelectTrigger></FormControl>
+                      <FormControl>
+                        <SelectTrigger className="h-10 text-xs font-bold uppercase">
+                          <SelectValue placeholder="SELECT LSGD" />
+                        </SelectTrigger>
+                      </FormControl>
                       <SelectContent className="max-h-[400px] rounded-2xl">
                         {lsgs.map(l => <SelectItem key={l} value={l} className="text-[10px] font-bold uppercase">{l}</SelectItem>)}
                       </SelectContent>

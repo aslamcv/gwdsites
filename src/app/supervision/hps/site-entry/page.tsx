@@ -9,10 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { 
   ArrowLeft, 
   Save, 
-  FileText, 
-  Activity,
   Loader2,
-  Eye,
   MapPin,
   Calendar as CalendarIcon,
   Truck,
@@ -20,11 +17,11 @@ import {
   User,
   ShieldCheck,
   Users,
-  Settings,
-  ReceiptIndianRupee,
-  Wrench,
+  SearchCode,
   Lock,
-  SearchCode
+  Wrench,
+  Zap,
+  Waves
 } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -40,7 +37,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
 import { collection, doc, setDoc, updateDoc } from 'firebase/firestore';
 import type { GroundwaterReport, Employee } from '@/lib/types';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { StaffMultiSelect } from '@/components/investigation/staff-multi-select';
 import { Logo } from '@/components/logo';
@@ -219,12 +215,10 @@ function UnifiedHPSSupervisionContent() {
   }
 
   return (
-    <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black">
+    <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black text-left">
       
-      {/* 1. HEADER SECTION */}
       <div className="bg-white border border-slate-200 p-8 rounded-[32px] shadow-sm ring-1 ring-slate-200/50">
         <div className="flex flex-col space-y-8">
-          {/* Top Center Heading */}
           <div className="text-center">
             <h1 className="text-[26px] font-black text-slate-900 uppercase tracking-tighter leading-none">HPS Installation Entry</h1>
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">Technical Oversight | District Office, Malappuram</p>
@@ -373,7 +367,6 @@ function UnifiedHPSSupervisionContent() {
         </CardContent>
       </Card>
 
-      {/* 5. ACTION BUTTONS (STICKY FOOTER) */}
       <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] w-fit px-4">
         <div className="bg-white/80 backdrop-blur-xl p-3 rounded-full border border-slate-200 shadow-2xl flex items-center justify-center gap-6 ring-1 ring-black/5">
           <div className="flex items-center gap-3 pl-2">

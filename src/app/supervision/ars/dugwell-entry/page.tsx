@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Suspense, useState, useTransition, useEffect, useMemo } from 'react';
@@ -7,13 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { 
   ArrowLeft, 
   Save, 
-  FileText, 
-  Activity,
   Loader2,
-  Eye,
   MapPin,
   Calendar as CalendarIcon,
   Truck,
@@ -21,10 +18,9 @@ import {
   User,
   ShieldCheck,
   Users,
-  Settings,
-  Construction,
-  Lock,
   SearchCode,
+  Lock,
+  Construction,
   ArrowRight
 } from 'lucide-react';
 import Link from 'next/link';
@@ -33,20 +29,16 @@ import { useLsgdData } from '@/hooks/use-lsgd-data';
 import { 
   Select, 
   SelectContent, 
-  SelectGroup, 
   SelectItem, 
-  SelectLabel, 
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
-import { collection, doc, setDoc, updateDoc } from 'firebase/firestore';
+import { collection, doc } from 'firebase/firestore';
 import type { GroundwaterReport, Employee } from '@/lib/types';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { StaffMultiSelect } from '@/components/investigation/staff-multi-select';
-import { cn } from '@/lib/utils';
 import { Logo } from '@/components/logo';
 
 const MASTER_ADMIN_EMAIL = 'gwdmpm@gmail.com';

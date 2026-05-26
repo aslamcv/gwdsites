@@ -6,26 +6,21 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { 
   ArrowLeft, 
   Save, 
-  FileText, 
   Activity, 
   Loader2,
   MapPin,
   Calendar as CalendarIcon,
   Truck,
   Building,
-  User,
-  ShieldCheck,
   Users,
   Settings,
   Calculator,
   SearchCode,
   Lock,
-  Pickaxe,
-  Waves,
-  Wrench,
   Droplets
 } from 'lucide-react';
 import Link from 'next/link';
@@ -34,25 +29,14 @@ import { useLsgdData } from '@/hooks/use-lsgd-data';
 import { 
   Select, 
   SelectContent, 
-  SelectGroup, 
   SelectItem, 
-  SelectLabel, 
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
-import { collection, doc, setDoc, updateDoc } from 'firebase/firestore';
+import { collection, doc } from 'firebase/firestore';
 import type { GroundwaterReport, Employee } from '@/lib/types';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { StaffMultiSelect } from '@/components/investigation/staff-multi-select';
 import { cn } from '@/lib/utils';
@@ -104,7 +88,6 @@ function UnifiedBorewellPumpingEntryContent() {
   const isAllowed = useMemo(() => {
     if (isUserLoading || isProfileLoading) return false;
     if (user?.email === MASTER_ADMIN_EMAIL) return true;
-    // Scientist and Engineer both have edit access to Pumping Test module
     const hasTechnicalRole = userProfile?.role === 'admin' || userProfile?.role === 'scientist' || userProfile?.role === 'engineer';
     return hasTechnicalRole && userProfile?.isApproved === true;
   }, [user, userProfile, isUserLoading, isProfileLoading]);
@@ -203,7 +186,6 @@ function UnifiedBorewellPumpingEntryContent() {
     return { aee: aeeList, ae: aeList, sup: supList, other: otherList };
   }, [employees]);
 
-  // AUTO-POPULATE LAC logic with robust matching
   const detectedLac = useMemo(() => {
     if (!formData.lsgd || !lsgMappings || lsgMappings.length === 0) return '';
     const searchLsg = formData.lsgd.toLowerCase().trim();
@@ -255,10 +237,8 @@ function UnifiedBorewellPumpingEntryContent() {
   return (
     <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black">
       
-      {/* 1. HEADER SECTION */}
       <div className="bg-white border border-slate-200 p-8 rounded-[32px] shadow-sm ring-1 ring-slate-200/50">
         <div className="flex flex-col space-y-8">
-          {/* Top Center Heading */}
           <div className="text-center">
             <h1 className="text-[26px] font-black text-slate-900 uppercase tracking-tighter leading-none">Borewell Pumping Test (SDT)</h1>
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">Technical Operations | District Office, Malappuram</p>

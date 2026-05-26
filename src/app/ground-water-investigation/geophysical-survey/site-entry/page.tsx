@@ -9,31 +9,18 @@ import { Textarea } from '@/components/ui/textarea';
 import { 
   ArrowLeft, 
   Save, 
-  FileText, 
   Activity, 
   Loader2,
   MapPin,
   Calendar as CalendarIcon,
   Truck,
   Building,
-  User,
-  ShieldCheck,
   Users,
   Settings,
   Calculator,
   SearchCode,
-  Lock,
-  ChevronDown,
-  PlusCircle
+  Lock
 } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuLabel,
-} from "@/components/ui/dropdown-menu";
 import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -41,9 +28,7 @@ import { useLsgdData } from '@/hooks/use-lsgd-data';
 import { 
   Select, 
   SelectContent, 
-  SelectGroup, 
   SelectItem, 
-  SelectLabel, 
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
@@ -60,12 +45,11 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
-import { collection, doc, setDoc, updateDoc } from 'firebase/firestore';
+import { collection, doc } from 'firebase/firestore';
 import type { GroundwaterReport, Employee, VesRow } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -355,7 +339,7 @@ function UnifiedGeophysicalSurveyContent() {
   };
 
   return (
-    <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black">
+    <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black text-left">
       
       <div className="bg-white border border-slate-200 p-8 rounded-[32px] shadow-sm ring-1 ring-slate-200/50">
         <div className="flex flex-col space-y-8">
@@ -366,7 +350,7 @@ function UnifiedGeophysicalSurveyContent() {
           
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
             <div className="flex items-center gap-5">
-              <Button type="button" variant="ghost" size="icon" asChild className="rounded-full h-12 w-12 border border-slate-200 text-slate-600 hover:bg-slate-50">
+              <Button variant="ghost" size="icon" asChild className="rounded-full h-12 w-12 border border-slate-200 text-slate-600 hover:bg-slate-50">
                 <Link href="/ground-water-investigation"><ArrowLeft className="size-5" /></Link>
               </Button>
             </div>
@@ -722,7 +706,7 @@ const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, formData, u
   
   return (
   <Dialog open={isOpen} onOpenChange={onOpenChange}>
-    <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl">
+    <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl text-left">
       <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight">DETAILS FOR {structureType}</DialogTitle></DialogHeader>
       {isBorewell ? (
         <div className="space-y-6 py-4">

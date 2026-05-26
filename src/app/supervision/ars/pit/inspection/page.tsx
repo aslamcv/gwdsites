@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { 
   ArrowLeft, 
   Save, 
@@ -17,7 +18,8 @@ import {
   Users,
   SearchCode,
   Lock,
-  Wrench
+  Wrench,
+  ArrowRight
 } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -34,7 +36,7 @@ import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, 
 import { collection, doc, setDoc, updateDoc } from 'firebase/firestore';
 import type { GroundwaterReport, Employee } from '@/lib/types';
 import { StaffMultiSelect } from '@/components/investigation/staff-multi-select';
-import { cn } from '@/lib/utils';
+import { Separator } from '@/components/ui/separator';
 import { Logo } from '@/components/logo';
 
 const MASTER_ADMIN_EMAIL = 'gwdmpm@gmail.com';
@@ -382,7 +384,7 @@ function UnifiedARSPitContent() {
             </div>
           </div>
           <div className="pr-2">
-            <Button onClick={handleSave} disabled={isPending || !isAllowed} className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/20 gap-3 hover:bg-blue-900 transition-all hover:scale-[1.02] active:scale-95"
+            <Button onClick={handleSave} disabled={isPending || !isAllowed} className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/30 gap-3 hover:bg-blue-900 transition-all hover:scale-[1.02] active:scale-95"
             >
               {isPending ? <Loader2 className="size-5 animate-spin" /> : <Save className="size-5" />} 
               {isAllowed ? (id ? 'UPDATE PIT RECORD' : 'SAVE PIT RECORD') : 'ACCESS RESTRICTED'}
