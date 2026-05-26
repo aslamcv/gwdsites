@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useEffect, useMemo, Suspense } from 'react';
@@ -6,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { 
   ArrowLeft, 
   Save, 
@@ -19,7 +21,9 @@ import {
   Settings,
   Calculator,
   SearchCode,
-  Lock
+  Lock,
+  Waves,
+  X
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
@@ -51,7 +55,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import type { GroundwaterReport, Employee, VesRow } from '@/lib/types';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { StaffMultiSelect } from '@/components/investigation/staff-multi-select';
 import { cn } from '@/lib/utils';
@@ -307,7 +310,7 @@ function UnifiedGeophysicalSurveyContent() {
         }
       };
 
-      const operation = isUpdate ? updateDoc(reportDocRef, reportData) : setDoc(reportDocRef, reportData);
+      const operation = isUpdate ? updateDocumentNonBlocking(reportDocRef, reportData) : setDocumentNonBlocking(reportDocRef, reportData, { merge: true });
 
       operation.then(() => {
         toast({ title: isUpdate ? 'Record Updated' : 'Record Saved', description: 'VES technical record synchronized.' });
@@ -337,6 +340,10 @@ function UnifiedGeophysicalSurveyContent() {
         setIsNearbyDialogOpen(true);
     }
   };
+
+  if (isReportLoading && id) {
+    return <div className="p-12 text-center animate-pulse uppercase tracking-widest font-black opacity-30 text-slate-400">Initializing Workspace...</div>;
+  }
 
   return (
     <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black text-left">
@@ -543,8 +550,8 @@ function UnifiedGeophysicalSurveyContent() {
                         <Button 
                           key={val}
                           type="button" 
-                          variant={selectedNearbyStructure === val && !formData.noNearbyBorewells ? 'default' : 'ghost'}
-                          className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", selectedNearbyStructure === val && !formData.noNearbyBorewells ? "bg-[#1e3a8a] text-white shadow-md" : "text-slate-500")}
+                          variant={formData[`nearbyBorewell${idx+1}Depth`] && !formData.noNearbyBorewells ? 'default' : 'ghost'}
+                          className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", formData[`nearbyBorewell${idx+1}Depth`] && !formData.noNearbyBorewells ? "bg-[#1e3a8a] text-white shadow-md" : "text-slate-500")}
                           onClick={() => handleNearbyTypeSelect('borewell', val)}
                           disabled={!isAllowed}
                         >
@@ -570,8 +577,8 @@ function UnifiedGeophysicalSurveyContent() {
                         <Button 
                           key={val}
                           type="button" 
-                          variant={selectedNearbyStructure === val && !formData.noNearbyOpenwells ? 'default' : 'ghost'}
-                          className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", selectedNearbyStructure === val && !formData.noNearbyOpenwells ? "bg-emerald-600 text-white shadow-md" : "text-slate-500")}
+                          variant={formData[`nearbyOpenwell${idx+1}Depth`] && !formData.noNearbyOpenwells ? 'default' : 'ghost'}
+                          className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", formData[`nearbyOpenwell${idx+1}Depth`] && !formData.noNearbyOpenwells ? "bg-emerald-600 text-white shadow-md" : "text-slate-500")}
                           onClick={() => handleNearbyTypeSelect('openwell', val)}
                           disabled={!isAllowed}
                         >
@@ -661,7 +668,7 @@ const FormFieldItem = ({ label, id, children, className }: {label:string, id:str
 const RecommendationDialog = ({isOpen, onOpenChange, formData, updateField}: any) => (
   <Dialog open={isOpen} onOpenChange={onOpenChange}>
     <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl">
-      <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight text-center">RECOMMENDATION FOR {formData.recommendationType}</DialogTitle></DialogHeader>
+      <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight text-center">TECHNICAL RECOMMENDATION</DialogTitle></DialogHeader>
       {(formData.recommendationType === 'borewell' || formData.recommendationType === 'tubewell' || formData.recommendationType === 'filterpoint') && (
         <div className="space-y-6 py-4">
           <div className="grid grid-cols-2 gap-6">
@@ -695,6 +702,11 @@ const RecommendationDialog = ({isOpen, onOpenChange, formData, updateField}: any
           <FormFieldItem label="Details" id="recommendationOpenwell"><Textarea value={formData.recommendationOpenwell} onChange={e => updateField('recommendationOpenwell', e.target.value)} className="min-h-[100px] text-xs font-bold uppercase"/></FormFieldItem>
         </div>
       )}
+      {(!formData.recommendationType || formData.recommendationType === 'not_feasible') && (
+        <div className="py-12 text-center opacity-30 uppercase font-black tracking-widest">
+           No specific parameters required.
+        </div>
+      )}
       <DialogFooter className="pt-4"><Button type="button" onClick={() => onOpenChange(false)} className="w-full h-12 rounded-xl font-black uppercase text-[11px] tracking-widest shadow-lg bg-[#1e3a8a] text-white hover:bg-blue-900">Confirm Parameters</Button></DialogFooter>
     </DialogContent>
   </Dialog>
@@ -707,12 +719,12 @@ const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, formData, u
   return (
   <Dialog open={isOpen} onOpenChange={onOpenChange}>
     <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl text-left">
-      <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight">DETAILS FOR {structureType}</DialogTitle></DialogHeader>
+      <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight">DETAILS FOR {structureType?.toUpperCase()}</DialogTitle></DialogHeader>
       {isBorewell ? (
         <div className="space-y-6 py-4">
           <FormFieldItem label="Total Depth (m)" id={`nbd${index}`}><Input value={formData[`nearbyBorewell${index}Depth`]} onChange={e=>updateField(`nearbyBorewell${index}Depth`, e.target.value)} /></FormFieldItem>
           <FormFieldItem label="Diameter" id={`nbd_dia${index}`}><Input value={formData[`nearbyBorewell${index}Diameter`]} onChange={e=>updateField(`nearbyBorewell${index}Diameter`, e.target.value)} /></FormFieldItem>
-          <FormFieldItem label="Zones" id={`nbd_zones${index}`}><Input value={formData[`nearbyBorewell${index}Zones`]} onChange={e=>updateField(`nearbyBorewell${index}Zones`, e.target.value)} /></FormFieldItem>
+          <FormFieldItem label="Fracture Zones" id={`nbd_zones${index}`}><Input value={formData[`nearbyBorewell${index}Zones`]} onChange={e=>updateField(`nearbyBorewell${index}Zones`, e.target.value)} /></FormFieldItem>
         </div>
       ) : (
          <div className="space-y-6 py-4">
@@ -723,8 +735,8 @@ const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, formData, u
             <Select onValueChange={v=>updateField(`nearbyOpenwell${index}Type`, v)} value={formData[`nearbyOpenwell${index}Type`]}>
                 <SelectTrigger className="h-10 text-xs bg-slate-50/50 border-slate-200"><SelectValue /></SelectTrigger>
                 <SelectContent className="rounded-xl border-slate-200">
-                    <SelectItem value="Perennial" className="text-xs font-bold">Perennial</SelectItem>
-                    <SelectItem value="Seasonal" className="text-xs font-bold">Seasonal</SelectItem>
+                    <SelectItem value="Perennial" className="text-xs font-bold uppercase">Perennial</SelectItem>
+                    <SelectItem value="Seasonal" className="text-xs font-bold uppercase">Seasonal</SelectItem>
                 </SelectContent>
             </Select>
           </FormFieldItem>

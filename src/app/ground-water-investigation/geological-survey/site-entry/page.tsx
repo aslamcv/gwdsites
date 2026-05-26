@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useEffect, useMemo, Suspense } from 'react';
@@ -23,7 +24,7 @@ import {
   Building
 } from 'lucide-react';
 import Link from 'next/link';
-import { useForm } from 'react-hook-form';
+import { useForm, UseFormReturn } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
@@ -178,14 +179,6 @@ const categoryMappings: Record<string, string[]> = {
   local_bodies: ["Scheme", "Institutional"],
   others: ["Miscellaneous", "Emergency Work", "Special Survey"]
 };
-
-const blockOptions = [
-  "Areekode — Safe", "Perumpadappu — Safe", "Kalikavu — Safe",
-  "Kondotty — Semi-Critical", "Kuttippuram — Semi-Critical", "Malappuram — Semi-Critical",
-  "Mankada — Semi-Critical", "Nilambur — Safe", "Perinthalmanna — Safe",
-  "Ponnani — Safe", "Tanur — Semi-Critical", "Tirur — Semi-Critical",
-  "Tirurangadi — Semi-Critical", "Vengara — Semi-Critical", "Wandoor — Safe"
-];
 
 const conveyanceOptions = [
   "TATA SUMO GOLD (KL01CE7618)",
@@ -364,6 +357,8 @@ function SiteEntryContent() {
       </div>
     );
   }
+
+  const recommendationType = form.watch('recommendationType');
 
   return (
     <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black text-left">
@@ -566,36 +561,42 @@ function SiteEntryContent() {
                 <div className="space-y-4">
                   <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block ml-1">a) Borewell Status</Label>
                   <div className="flex flex-wrap gap-2 p-1 bg-slate-100 rounded-2xl w-fit">
-                    {['borewell1', 'borewell2', 'borewell3'].map((val, idx) => (
-                      <Button 
-                        key={val} 
-                        type="button" 
-                        variant={form.watch(`nearbyBorewell${idx + 1}Depth` as any) && !form.getValues('noNearbyBorewells') ? 'default' : 'ghost'} 
-                        className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", form.watch(`nearbyBorewell${idx + 1}Depth` as any) && !form.getValues('noNearbyBorewells') ? "bg-[#1e3a8a] text-white shadow-md" : "text-slate-500")} 
-                        onClick={() => handleNearbyTypeSelect('borewell', val)} 
-                        disabled={!isAllowed}
-                      >
-                        BW-{idx + 1}
-                      </Button>
-                    ))}
+                    {['borewell1', 'borewell2', 'borewell3'].map((val, idx) => {
+                      const hasVal = form.watch(`nearbyBorewell${idx + 1}Depth` as any);
+                      return (
+                        <Button 
+                          key={val} 
+                          type="button" 
+                          variant={hasVal && !form.getValues('noNearbyBorewells') ? 'default' : 'ghost'} 
+                          className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", hasVal && !form.getValues('noNearbyBorewells') ? "bg-[#1e3a8a] text-white shadow-md" : "text-slate-500")} 
+                          onClick={() => handleNearbyTypeSelect('borewell', val)} 
+                          disabled={!isAllowed}
+                        >
+                          BW-{idx + 1}
+                        </Button>
+                      );
+                    })}
                     <Button type="button" variant={form.watch('noNearbyBorewells') ? 'destructive' : 'ghost'} className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", form.watch('noNearbyBorewells') ? "bg-rose-600 text-white shadow-md" : "text-slate-500")} onClick={() => handleNearbyTypeSelect('borewell', 'none')} disabled={!isAllowed}>NO BOREWELL</Button>
                   </div>
                 </div>
                 <div className="space-y-4">
                   <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block ml-1">b) Open well Status</Label>
                   <div className="flex flex-wrap gap-2 p-1 bg-slate-100 rounded-2xl w-fit">
-                    {['openwell1', 'openwell2', 'openwell3'].map((val, idx) => (
-                      <Button 
-                        key={val} 
-                        type="button" 
-                        variant={form.watch(`nearbyOpenwell${idx + 1}Depth` as any) && !form.getValues('noNearbyOpenwells') ? 'default' : 'ghost'} 
-                        className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", form.watch(`nearbyOpenwell${idx + 1}Depth` as any) && !form.getValues('noNearbyOpenwells') ? "bg-emerald-600 text-white shadow-md" : "text-slate-500")} 
-                        onClick={() => handleNearbyTypeSelect('openwell', val)} 
-                        disabled={!isAllowed}
-                      >
-                        OW-{idx + 1}
-                      </Button>
-                    ))}
+                    {['openwell1', 'openwell2', 'openwell3'].map((val, idx) => {
+                      const hasVal = form.watch(`nearbyOpenwell${idx + 1}Depth` as any);
+                      return (
+                        <Button 
+                          key={val} 
+                          type="button" 
+                          variant={hasVal && !form.getValues('noNearbyOpenwells') ? 'default' : 'ghost'} 
+                          className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", hasVal && !form.getValues('noNearbyOpenwells') ? "bg-emerald-600 text-white shadow-md" : "text-slate-500")} 
+                          onClick={() => handleNearbyTypeSelect('openwell', val)} 
+                          disabled={!isAllowed}
+                        >
+                          OW-{idx + 1}
+                        </Button>
+                      );
+                    })}
                     <Button type="button" variant={form.watch('noNearbyOpenwells') ? 'destructive' : 'ghost'} className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", form.watch('noNearbyOpenwells') ? "bg-rose-600 text-white shadow-md" : "text-slate-500")} onClick={() => handleNearbyTypeSelect('openwell', 'none')} disabled={!isAllowed}>NO OPENWELL</Button>
                   </div>
                 </div>
@@ -637,6 +638,11 @@ function SiteEntryContent() {
                           <Label className="text-[10px] font-black uppercase text-slate-700 cursor-pointer">RECOMMENDED TO PUMPING TEST</Label>
                         </FormItem>
                       )} />
+                      {recommendationType && (
+                        <Button type="button" variant="outline" className="w-full h-11 rounded-xl gap-2 font-black uppercase text-[10px] border-primary/20 text-primary" onClick={() => setIsRecommendationDialogOpen(true)}>
+                          <Settings className="size-3.5" /> RE-EDIT {recommendationType.toUpperCase()} PARAMS
+                        </Button>
+                      )}
                     </div>
                 </div>
               </CardContent>
@@ -664,7 +670,7 @@ function SiteEntryContent() {
         <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl text-left">
           <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight text-center">TECHNICAL RECOMMENDATION</DialogTitle></DialogHeader>
           <div className="space-y-6 py-4">
-              {(form.watch('recommendationType') === 'borewell' || form.watch('recommendationType') === 'tubewell' || form.watch('recommendationType') === 'filterpoint') && (
+              {(recommendationType === 'borewell' || recommendationType === 'tubewell' || recommendationType === 'filterpoint') && (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-400">Depth (m)</Label><Input {...form.register('recBorewellTotalDepth')}/></div>
@@ -681,7 +687,7 @@ function SiteEntryContent() {
                   <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-400">Technical Note</Label><Textarea {...form.register('recommendationBorewell')} className="min-h-[100px] uppercase font-bold text-xs"/></div>
                 </div>
               )}
-              {form.watch('recommendationType') === 'openwell' && (
+              {recommendationType === 'openwell' && (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-400">Depth (m)</Label><Input {...form.register('recOpenwellTotalDepth')}/></div>
@@ -695,6 +701,11 @@ function SiteEntryContent() {
                   <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-400">Technical Note</Label><Textarea {...form.register('recommendationOpenwell')} className="min-h-[100px] uppercase font-bold text-xs"/></div>
                 </div>
               )}
+              {(!recommendationType || recommendationType === 'not_feasible') && (
+                <div className="py-12 text-center opacity-30 uppercase font-black tracking-widest">
+                   No specific parameters needed for this selection.
+                </div>
+              )}
           </div>
           <DialogFooter><Button type="button" onClick={() => setIsRecommendationDialogOpen(false)} className="w-full h-12 rounded-xl font-black uppercase text-[11px] bg-[#1e3a8a] text-white">Confirm Parameters</Button></DialogFooter>
         </DialogContent>
@@ -704,8 +715,7 @@ function SiteEntryContent() {
         isOpen={isNearbyDialogOpen}
         onOpenChange={setIsNearbyDialogOpen}
         structureType={selectedNearbyStructure}
-        updateField={(k:any, v:any) => form.setValue(k, v)}
-        watchedValues={form.watch()}
+        form={form}
       />
 
       <Dialog open={isManualVillageOpen} onOpenChange={setIsManualVillageOpen}>
@@ -723,9 +733,10 @@ function SiteEntryContent() {
   );
 }
 
-const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, updateField, watchedValues}: any) => {
+const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, form}: {isOpen:boolean, onOpenChange:(o:boolean)=>void, structureType:string|null, form:UseFormReturn<ReportFormValues>}) => {
   const isBorewell = structureType?.startsWith('borewell');
   const index = structureType ? parseInt(structureType.slice(-1)) : 1;
+  const watchedValues = form.getValues();
   
   return (
   <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -733,17 +744,17 @@ const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, updateField
       <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight">DETAILS FOR {structureType?.toUpperCase()}</DialogTitle></DialogHeader>
       {isBorewell ? (
         <div className="space-y-6 py-4">
-          <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Total Depth (m)</Label><Input value={watchedValues[`nearbyBorewell${index}Depth`]} onChange={e=>updateField(`nearbyBorewell${index}Depth`, e.target.value)} /></div>
-          <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Diameter</Label><Input value={watchedValues[`nearbyBorewell${index}Diameter`]} onChange={e=>updateField(`nearbyBorewell${index}Diameter`, e.target.value)} /></div>
-          <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Fracture Zones</Label><Input value={watchedValues[`nearbyBorewell${index}Zones`]} onChange={e=>updateField(`nearbyBorewell${index}Zones`, e.target.value)} /></div>
+          <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Total Depth (m)</Label><Input {...form.register(`nearbyBorewell${index}Depth` as any)} /></div>
+          <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Diameter</Label><Input {...form.register(`nearbyBorewell${index}Diameter` as any)} /></div>
+          <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Fracture Zones</Label><Input {...form.register(`nearbyBorewell${index}Zones` as any)} /></div>
         </div>
       ) : (
          <div className="space-y-6 py-4">
-          <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Total Depth (m)</Label><Input value={watchedValues[`nearbyOpenwell${index}Depth`]} onChange={e=>updateField(`nearbyOpenwell${index}Depth`, e.target.value)} /></div>
-          <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Water Level (m)</Label><Input value={watchedValues[`nearbyOpenwell${index}WaterLevel`]} onChange={e=>updateField(`nearbyOpenwell${index}WaterLevel`, e.target.value)} /></div>
-          <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Parapet (m)</Label><Input value={watchedValues[`nearbyOpenwell${index}ParapetHeight`]} onChange={e=>updateField(`nearbyOpenwell${index}ParapetHeight`, e.target.value)} /></div>
+          <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Total Depth (m)</Label><Input {...form.register(`nearbyOpenwell${index}Depth` as any)} /></div>
+          <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Water Level (m)</Label><Input {...form.register(`nearbyOpenwell${index}WaterLevel` as any)} /></div>
+          <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Parapet (m)</Label><Input {...form.register(`nearbyOpenwell${index}ParapetHeight` as any)} /></div>
           <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Type</Label>
-            <Select onValueChange={v=>updateField(`nearbyOpenwell${index}Type`, v)} value={watchedValues[`nearbyOpenwell${index}Type`]}>
+            <Select onValueChange={v=>form.setValue(`nearbyOpenwell${index}Type` as any, v)} value={form.watch(`nearbyOpenwell${index}Type` as any)}>
                 <SelectTrigger className="h-10 text-xs bg-slate-50/50 border-slate-200"><SelectValue /></SelectTrigger>
                 <SelectContent className="rounded-xl border-slate-200">
                     <SelectItem value="Perennial" className="text-xs font-bold uppercase">Perennial</SelectItem>
