@@ -2,7 +2,26 @@
 
 import { useState, useTransition, useEffect, useMemo, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Save, ClipboardList, Calendar, Loader2, PlusCircle, MapPin, ChevronDown, Activity, Settings, ShieldCheck, Users, Lock, SearchCode, Calculator, ArrowRight } from 'lucide-react';
+import { 
+  ArrowLeft, 
+  Save, 
+  ClipboardList, 
+  Calendar as CalendarIcon, 
+  Loader2, 
+  PlusCircle, 
+  MapPin, 
+  ChevronDown, 
+  Activity, 
+  Settings, 
+  ShieldCheck, 
+  Users, 
+  Lock, 
+  SearchCode, 
+  Calculator, 
+  ArrowRight,
+  Truck,
+  Building
+} from 'lucide-react';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -35,8 +54,8 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { useLsgdData } from '@/hooks/use-lsgd-data';
 import { Badge } from '@/components/ui/badge';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, doc, updateDoc, setDoc } from 'firebase/firestore';
+import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
+import { collection, doc, setDoc, updateDoc } from 'firebase/firestore';
 import type { GroundwaterReport, Employee } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -44,6 +63,8 @@ import { Logo } from '@/components/logo';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { StaffMultiSelect } from '@/components/investigation/staff-multi-select';
 import { Separator } from '@/components/ui/separator';
+
+const MASTER_ADMIN_EMAIL = 'gwdmpm@gmail.com';
 
 const reportSchema = z.object({
   nameOfSite: z.string().min(1, 'Name of site is required.'),
