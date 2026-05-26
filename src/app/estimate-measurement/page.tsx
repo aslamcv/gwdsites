@@ -227,7 +227,11 @@ export default function EstimateMeasurementLedgerPage() {
                         <TableCell className="text-right pr-8">
                           <div className="flex items-center justify-end gap-1.5">
                              <Button variant="ghost" size="icon" onClick={() => setViewingReport(r)} className="size-8 rounded-lg bg-white ring-1 ring-slate-100 shadow-sm" title="View Saved Data"><Eye className="size-3.5 text-slate-400 hover:text-primary" /></Button>
-                             <Button variant="ghost" size="icon" asChild disabled={!canEdit} className="size-8 rounded-lg bg-white ring-1 ring-slate-100 shadow-sm" title={canEdit ? 'Edit Record' : 'Access Restricted'}><Link href={canEdit ? (r.reportType === 'MEASUREMENT' ? `/estimate-measurement/measurement?id=${r.id}` : `/estimate-measurement/estimate?id=${r.id}`) : '#'} className={!canEdit ? "pointer-events-none opacity-50" : ""}><Edit3 className="size-3.5 text-slate-400 hover:text-emerald-600" /></Link></Button>
+                             <Button variant="ghost" size="icon" asChild className="size-8 rounded-lg bg-white ring-1 ring-slate-100 shadow-sm" title="Edit/View Record">
+                                <Link href={r.reportType === 'MEASUREMENT' ? `/estimate-measurement/measurement?id=${r.id}` : `/estimate-measurement/estimate?id=${r.id}`}>
+                                   <Edit3 className="size-3.5 text-slate-400 hover:text-emerald-600" />
+                                </Link>
+                             </Button>
                              <Button variant="ghost" size="icon" onClick={() => canEdit && setReportToDelete(r)} disabled={!canEdit} className={cn("size-8 rounded-lg transition-colors bg-white ring-1 ring-slate-100", canEdit ? "text-rose-400 hover:text-rose-600 hover:bg-rose-50" : "opacity-20")} title={canEdit ? 'Delete' : 'Access Restricted'}><Trash2 className="size-3.5" /></Button>
                           </div>
                         </TableCell>
