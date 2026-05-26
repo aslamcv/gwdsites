@@ -56,7 +56,17 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { useLsgdData } from '@/hooks/use-lsgd-data';
 import { Badge } from '@/components/ui/badge';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
+import { 
+  useCollection, 
+  useUser, 
+  useFirestore, 
+  errorEmitter, 
+  FirestorePermissionError, 
+  useDoc, 
+  useMemoFirebase, 
+  updateDocumentNonBlocking, 
+  setDocumentNonBlocking 
+} from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import type { GroundwaterReport, Employee } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -428,59 +438,77 @@ function SiteEntryContent() {
                 <FormField control={form.control} name="applicantNameAddress" render={({ field }) => ( <FormItem className="md:col-span-2"> <FormLabel className="text-[10px] font-black uppercase text-slate-500">6. Applicant Details</FormLabel> <FormControl><Textarea disabled={!isAllowed} rows={1} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
                 <FormField control={form.control} name="applicationDate" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">7. Date of application</FormLabel> <FormControl><Input disabled={!isAllowed} type="date" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
                 
-                <FormField control={form.control} name="village" render={({ field }) => ( 
-                  <FormItem> 
-                    <FormLabel className="text-[10px] font-black uppercase text-slate-500">8. Village</FormLabel> 
-                    <Select disabled={!isAllowed} onValueChange={(val) => {
-                      if (val === 'MANUAL_ENTRY_TRIGGER') {
-                        setIsManualVillageOpen(true);
-                      } else {
-                        field.onChange(val);
-                      }
-                    }} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger className="h-10 text-xs font-bold uppercase border-slate-200">
-                          <SelectValue placeholder="SELECT VILLAGE" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent className="max-h-[400px] rounded-2xl">
-                        {villageOptions.map((group, groupIdx) => (
-                          <SelectGroup key={groupIdx}>
-                            <SelectLabel className="px-4 py-2 text-[10px] font-black uppercase text-slate-400 bg-slate-50/50">{group.label}</SelectLabel>
-                            {group.options.map((v, i) => (
-                              <SelectItem key={i} value={v} className="rounded-xl py-2.5 px-6 font-bold text-xs uppercase cursor-pointer">{v}</SelectItem>
-                            ))}
-                          </SelectGroup>
-                        ))}
-                        <SelectSeparator />
-                        <SelectItem value="MANUAL_ENTRY_TRIGGER" className="rounded-xl py-3 px-6 font-black text-xs uppercase cursor-pointer text-blue-600 bg-blue-50 hover:bg-blue-100">
-                          <div className="flex items-center gap-2">
-                            <PlusCircle className="size-4" /> MANUAL ENTRY
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage /> 
-                  </FormItem> 
-                )} />
+                <FormField control={form.control} name="village" render={({ field }) => {
+                  const currentVillage = field.value || '';
+                  const isVillageInList = villageOptions.some(group => group.options.includes(currentVillage));
+                  return (
+                    <FormItem> 
+                      <FormLabel className="text-[10px] font-black uppercase text-slate-500">8. Village</FormLabel> 
+                      <Select disabled={!isAllowed} onValueChange={(val) => {
+                        if (val === 'MANUAL_ENTRY_TRIGGER') {
+                          setIsManualVillageOpen(true);
+                        } else {
+                          field.onChange(val);
+                        }
+                      }} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="h-10 text-xs font-bold uppercase border-slate-200">
+                            <SelectValue placeholder="SELECT VILLAGE" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="max-h-[400px] rounded-2xl">
+                          {!isVillageInList && currentVillage && currentVillage !== 'MANUAL_ENTRY_TRIGGER' && (
+                            <SelectItem value={currentVillage} className="rounded-xl py-2.5 px-6 font-bold text-xs uppercase cursor-pointer bg-blue-50/50">
+                              {currentVillage}
+                            </SelectItem>
+                          )}
+                          {villageOptions.map((group, groupIdx) => (
+                            <SelectGroup key={groupIdx}>
+                              <SelectLabel className="px-4 py-2 text-[10px] font-black uppercase text-slate-400 bg-slate-50/50">{group.label}</SelectLabel>
+                              {group.options.map((v, i) => (
+                                <SelectItem key={i} value={v} className="rounded-xl py-2.5 px-6 font-bold text-xs uppercase cursor-pointer">{v}</SelectItem>
+                              ))}
+                            </SelectGroup>
+                          ))}
+                          <SelectSeparator />
+                          <SelectItem value="MANUAL_ENTRY_TRIGGER" className="rounded-xl py-3 px-6 font-black text-xs uppercase cursor-pointer text-blue-600 bg-blue-50 hover:bg-blue-100">
+                            <div className="flex items-center gap-2">
+                              <PlusCircle className="size-4" /> MANUAL ENTRY
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage /> 
+                    </FormItem> 
+                  );
+                }} />
 
                 <FormField control={form.control} name="ward" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">9. Ward</FormLabel> <FormControl><Input disabled={!isAllowed} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
                 <FormField control={form.control} name="altitude" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">10. Altitude</FormLabel> <FormControl><Input disabled={!isAllowed} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                <FormField control={form.control} name="lsgd" render={({ field }) => ( 
-                  <FormItem> 
-                    <FormLabel className="text-[10px] font-black uppercase text-slate-500">11. LSGD</FormLabel> 
-                    <Select disabled={!isAllowed} onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger className="h-10 text-xs font-bold uppercase">
-                          <SelectValue placeholder="SELECT LSGD" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent className="max-h-[400px] rounded-2xl">
-                        {lsgs.map(l => <SelectItem key={l} value={l} className="text-[10px] font-bold uppercase">{l}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </FormItem> 
-                )} />
+                <FormField control={form.control} name="lsgd" render={({ field }) => {
+                  const currentLsgd = field.value || '';
+                  const isLsgdInList = lsgs.includes(currentLsgd);
+                  return (
+                    <FormItem> 
+                      <FormLabel className="text-[10px] font-black uppercase text-slate-500">11. LSGD</FormLabel> 
+                      <Select disabled={!isAllowed} onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="h-10 text-xs font-bold uppercase">
+                            <SelectValue placeholder="SELECT LSGD" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="max-h-[400px] rounded-2xl">
+                          {!isLsgdInList && currentLsgd && (
+                            <SelectItem value={currentLsgd} className="text-[10px] font-bold uppercase bg-blue-50/50">
+                              {currentLsgd}
+                            </SelectItem>
+                          )}
+                          {lsgs.map(l => <SelectItem key={l} value={l} className="text-[10px] font-bold uppercase">{l}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </FormItem> 
+                  );
+                }} />
                 <FormField control={form.control} name="assembly" render={({ field }) => ( 
                   <FormItem> 
                     <FormLabel className="text-[10px] font-black uppercase text-slate-500">12. Constituency (LAC)</FormLabel> 
