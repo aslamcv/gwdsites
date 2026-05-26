@@ -48,19 +48,20 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue, SelectSeparator } from '@/components/ui/select';
 import { useLsgdData } from '@/hooks/use-lsgd-data';
 import { Badge } from '@/components/ui/badge';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
-import { collection, doc, setDoc, updateDoc } from 'firebase/firestore';
+import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
 import type { GroundwaterReport, Employee } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/logo';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { StaffMultiSelect } from '@/components/investigation/staff-multi-select';
 import { Separator } from '@/components/ui/separator';
 
@@ -163,14 +164,6 @@ const conveyanceOptions = [
   "PT UNIT VEHICLE"
 ];
 
-const blockOptions = [
-  "Areekode — Safe", "Perumpadappu — Safe", "Kalikavu — Safe",
-  "Kondotty — Semi-Critical", "Kuttippuram — Semi-Critical", "Malappuram — Semi-Critical",
-  "Mankada — Semi-Critical", "Nilambur — Safe", "Perinthalmanna — Safe",
-  "Ponnani — Safe", "Tanur — Semi-Critical", "Tirur — Semi-Critical",
-  "Tirurangadi — Semi-Critical", "Vengara — Semi-Critical", "Wandoor — Safe"
-];
-
 const sectorOptions = [
   { id: 'private', label: 'Private' },
   { id: 'government', label: 'Government' },
@@ -184,6 +177,14 @@ const categoryMappings: Record<string, string[]> = {
   local_bodies: ["Scheme", "Institutional"],
   others: ["Miscellaneous", "Emergency Work", "Special Survey"]
 };
+
+const blockOptions = [
+  "Areekode — Safe", "Perumpadappu — Safe", "Kalikavu — Safe",
+  "Kondotty — Semi-Critical", "Kuttippuram — Semi-Critical", "Malappuram — Semi-Critical",
+  "Mankada — Semi-Critical", "Nilambur — Safe", "Perinthalmanna — Safe",
+  "Ponnani — Safe", "Tanur — Semi-Critical", "Tirur — Semi-Critical",
+  "Tirurangadi — Semi-Critical", "Vengara — Semi-Critical", "Wandoor — Safe"
+];
 
 function SiteEntryContent() {
   const { toast } = useToast();
@@ -280,9 +281,9 @@ function SiteEntryContent() {
 
   const filteredStaff = useMemo(() => {
     if (!employees) return { hg: [], jhg: [], ga: [], other: [] };
-    const hgList = employees.filter(e => e.designation.toLowerCase() === 'geophysicist');
-    const jhgList = employees.filter(e => e.designation.toLowerCase() === 'junior geophysicist');
-    const gaList = employees.filter(e => e.designation.toLowerCase() === 'geophysical assistant');
+    const hgList = employees.filter(e => e.designation.toLowerCase() === 'hydrogeologist');
+    const jhgList = employees.filter(e => e.designation.toLowerCase() === 'junior hydrogeologist');
+    const gaList = employees.filter(e => e.designation.toLowerCase() === 'geological assistant');
     const specialIds = [...hgList, ...jhgList, ...gaList].map(e => e.id);
     const otherList = employees.filter(e => !specialIds.includes(e.id));
     return { hg: hgList, jhg: jhgList, ga: gaList, other: otherList };
@@ -316,14 +317,10 @@ function SiteEntryContent() {
         }
       };
 
-      const operation = isUpdate ? updateDoc(reportDocRef, reportData) : setDoc(reportDocRef, reportData);
+      const operation = isUpdate ? updateDocumentNonBlocking(reportDocRef, reportData) : setDocumentNonBlocking(reportDocRef, reportData, { merge: true });
 
-      operation.then(() => {
-        toast({ title: 'Record Synchronized', description: 'Technical investigation record updated.' });
-        router.push('/ground-water-investigation');
-      }).catch(async (error) => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: reportDocRef.path, operation: isUpdate ? 'update' : 'create', requestResourceData: reportData }));
-      });
+      toast({ title: 'Technical Sync Complete', description: 'Investigation record synchronized with central node.' });
+      router.push('/ground-water-investigation');
     });
   };
 
@@ -350,7 +347,7 @@ function SiteEntryContent() {
 
   if (isLoading && id) {
     return (
-      <div className="p-4 sm:p-6 space-y-6">
+      <div className="p-4 sm:p-6 space-y-6 text-left">
         <Skeleton className="h-10 w-1/3" />
         <Skeleton className="h-24 w-full" />
         <Skeleton className="h-64 w-full" />
@@ -632,9 +629,9 @@ function SiteEntryContent() {
       </Form>
 
       <Dialog open={isRecommendationDialogOpen} onOpenChange={setIsRecommendationDialogOpen}>
-        <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl">
+        <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl text-left">
           <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight text-center">TECHNICAL RECOMMENDATION</DialogTitle></DialogHeader>
-          <div className="space-y-6 py-4 text-left">
+          <div className="space-y-6 py-4">
               {(form.watch('recommendationType') === 'borewell' || form.watch('recommendationType') === 'tubewell' || form.watch('recommendationType') === 'filterpoint') && (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
@@ -680,9 +677,9 @@ function SiteEntryContent() {
       />
 
       <Dialog open={isManualVillageOpen} onOpenChange={setIsManualVillageOpen}>
-        <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl">
+        <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl text-left">
           <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight text-center">MANUAL VILLAGE ENTRY</DialogTitle></DialogHeader>
-          <div className="py-4 space-y-2 text-left">
+          <div className="py-4 space-y-2">
               <Label className="text-[10px] font-black uppercase text-slate-500">Village Name</Label>
               <Input value={manualVillageName} onChange={(e) => setManualVillageName(e.target.value)} placeholder="ENTER NAME" className="h-12 border-slate-200 font-bold uppercase" />
           </div>
@@ -700,8 +697,8 @@ const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, updateField
   
   return (
   <Dialog open={isOpen} onOpenChange={onOpenChange}>
-    <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl">
-      <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight text-left">DETAILS FOR {structureType?.toUpperCase()}</DialogTitle></DialogHeader>
+    <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl text-left">
+      <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight">DETAILS FOR {structureType?.toUpperCase()}</DialogTitle></DialogHeader>
       {isBorewell ? (
         <div className="space-y-6 py-4">
           <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Total Depth (m)</Label><Input value={watchedValues[`nearbyBorewell${index}Depth`]} onChange={e=>updateField(`nearbyBorewell${index}Depth`, e.target.value)} /></div>
