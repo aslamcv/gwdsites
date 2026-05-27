@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -194,7 +193,7 @@ export default function EstimateMeasurementLedgerPage() {
             </DropdownMenuItem>
             <DropdownMenuItem asChild className="rounded-xl cursor-pointer p-3 focus:bg-emerald-50 group">
               <Link href="/estimate-measurement/measurement" className="flex items-center gap-3">
-                <div className="p-2 bg-emerald-100 rounded-lg group-focus:bg-emerald-200"><Ruler className="size-4 text-emerald-600" /></div>
+                <div className="p-2 bg-emerald-100 rounded-lg group-hover:scale-110 transition-transform"><Ruler className="size-4 text-emerald-600" /></div>
                 <span className="font-bold text-xs uppercase text-slate-700">New Measurement</span>
               </Link>
             </DropdownMenuItem>
