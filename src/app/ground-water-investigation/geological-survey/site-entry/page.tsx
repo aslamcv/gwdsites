@@ -157,21 +157,11 @@ const recommendationTypeOptions = [
 ];
 
 const blockOptions = [
-  "Areekode — Safe",
-  "Perumpadappu — Safe",
-  "Kalikavu — Safe",
-  "Kondotty — Semi-Critical",
-  "Kuttippuram — Semi-Critical",
-  "Malappuram — Semi-Critical",
-  "Mankada — Semi-Critical",
-  "Nilambur — Safe",
-  "Perinthalmanna — Safe",
-  "Ponnani — Safe",
-  "Tanur — Semi-Critical",
-  "Tirur — Semi-Critical",
-  "Tirurangadi — Semi-Critical",
-  "Vengara — Semi-Critical",
-  "Wandoor — Safe"
+  "Areekode — Safe", "Perumpadappu — Safe", "Kalikavu — Safe",
+  "Kondotty — Semi-Critical", "Kuttippuram — Semi-Critical", "Malappuram — Semi-Critical",
+  "Mankada — Semi-Critical", "Nilambur — Safe", "Perinthalmanna — Safe",
+  "Ponnani — Safe", "Tanur — Semi-Critical", "Tirur — Semi-Critical",
+  "Tirurangadi — Semi-Critical", "Vengara — Semi-Critical", "Wandoor — Safe"
 ];
 
 const villageOptions = [
@@ -218,7 +208,6 @@ function SiteEntryContent() {
   
   const id = searchParams.get('id');
 
-  const [isRecommendationDialogOpen, setIsRecommendationDialogOpen] = useState(false);
   const [isNearbyDialogOpen, setIsNearbyDialogOpen] = useState(false);
   const [selectedNearbyStructure, setSelectedNearbyStructure] = useState<string | null>(null);
   const [isManualVillageOpen, setIsManualVillageOpen] = useState(false);
@@ -346,6 +335,7 @@ function SiteEntryContent() {
   };
 
   const handleNearbyTypeSelect = (type: string, value: string) => {
+    if (!isAllowed) return;
     if (value === 'none') {
         if(type === 'borewell') form.setValue('noNearbyBorewells', !form.getValues('noNearbyBorewells'));
         if(type === 'openwell') form.setValue('noNearbyOpenwells', !form.getValues('noNearbyOpenwells'));
@@ -371,6 +361,7 @@ function SiteEntryContent() {
   }
 
   const recommendationType = form.watch('recommendationType');
+  const isRecommendedToGp = form.watch('recommendedToGpSurvey');
 
   return (
     <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black text-left">
@@ -625,24 +616,42 @@ function SiteEntryContent() {
             </Card>
 
             <Card>
-              <CardHeader className="bg-slate-50/50 border-b py-5 px-10"><CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3"><ShieldCheck className="size-4 text-primary"/> 22. Recommendation</CardTitle></CardHeader>
-              <CardContent className="p-10 space-y-6">
+              <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
+                <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3">
+                  <ShieldCheck className="size-4 text-primary"/> 22. Recommendation
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-10 space-y-10">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start text-left">
-                    <FormField control={form.control} name="recommendationType" render={({ field }) => (
-                      <FormItem className="w-full">
-                        <FormLabel className="text-[10px] font-black uppercase text-slate-400">Recommendation Type</FormLabel>
-                        <Select disabled={!isAllowed} onValueChange={(val) => {field.onChange(val); setIsRecommendationDialogOpen(true);}} value={field.value}>
-                          <FormControl><SelectTrigger className="h-14 border-slate-200 rounded-2xl font-black uppercase text-xs tracking-widest shadow-sm"><SelectValue placeholder="SELECT" /></SelectTrigger></FormControl>
-                          <SelectContent className="rounded-2xl border-slate-200 shadow-2xl">
-                            {recommendationTypeOptions.map(o => (
-                              <SelectItem key={o.value} value={o.value} className="py-3 font-bold text-xs uppercase cursor-pointer">
-                                {o.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </FormItem>
-                    )} />
+                    <FormField control={form.control} name="recommendationType" render={({ field }) => {
+                      const currentType = field.value || '';
+                      const isTypeInList = recommendationTypeOptions.some(o => o.value === currentType);
+                      return (
+                        <FormItem className="w-full">
+                          <FormLabel className="text-[10px] font-black uppercase text-slate-400">Recommendation Type</FormLabel>
+                          <Select disabled={!isAllowed} onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger className="h-14 border-slate-200 rounded-2xl font-black uppercase text-xs tracking-widest shadow-sm">
+                                <SelectValue placeholder="SELECT TYPE" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent className="rounded-2xl border-slate-200 shadow-2xl">
+                              {!isTypeInList && currentType && (
+                                <SelectItem value={currentType} className="py-3 font-bold text-xs uppercase bg-blue-50/50">
+                                  {currentType.toUpperCase()}
+                                </SelectItem>
+                              )}
+                              {recommendationTypeOptions.map(o => (
+                                <SelectItem key={o.value} value={o.value} className="py-3 font-bold text-xs uppercase cursor-pointer">
+                                  {o.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </FormItem>
+                      );
+                    }} />
+                    
                     <div className="space-y-4 pt-6">
                       <FormField control={form.control} name="recommendedToGpSurvey" render={({ field }) => (
                         <FormItem className="flex flex-row items-center space-x-3 space-y-0">
@@ -659,13 +668,53 @@ function SiteEntryContent() {
                           <Label className="text-[10px] font-black uppercase text-slate-700 cursor-pointer">RECOMMENDED TO PUMPING TEST</Label>
                         </FormItem>
                       )} />
-                      {recommendationType && (
-                        <Button type="button" variant="outline" className="w-full h-11 rounded-xl gap-2 font-black uppercase text-[10px] border-primary/20 text-primary" onClick={() => setIsRecommendationDialogOpen(true)}>
-                          <Settings className="size-3.5" /> RE-EDIT {recommendationType.toUpperCase()} PARAMS
-                        </Button>
-                      )}
                     </div>
                 </div>
+
+                {/* Inline Technical Parameters */}
+                {(recommendationType === 'borewell' || recommendationType === 'tubewell' || recommendationType === 'filterpoint') && (
+                  <div className="animate-in fade-in slide-in-from-top-4 duration-500 bg-slate-50 p-8 rounded-[32px] border border-slate-200 grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-slate-400">Recommended total depth (m)</Label>
+                      <Input disabled={!isAllowed} {...form.register('recBorewellTotalDepth')} className="h-11 border-slate-200 font-bold" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-slate-400">Recommended diameter</Label>
+                      <Select disabled={!isAllowed} onValueChange={v=>form.setValue('recBorewellDiameter', v)} value={form.watch('recBorewellDiameter')}>
+                        <SelectTrigger className="h-11 border-slate-200 font-bold"><SelectValue/></SelectTrigger>
+                        <SelectContent className="rounded-xl">{borewellDiameterOptions.map(o=><SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-slate-400">Expected Overburden (m)</Label>
+                      <Input disabled={!isAllowed} {...form.register('expectedOverburden')} className="h-11 border-slate-200 font-bold" />
+                    </div>
+                    <div className="space-y-2 md:col-span-3">
+                      <Label className="text-[10px] font-black uppercase text-slate-400">Additional Borewell Details & Location</Label>
+                      <Textarea disabled={!isAllowed} {...form.register('recommendationBorewell')} rows={3} className="rounded-2xl border-slate-200 italic font-bold uppercase text-xs" />
+                    </div>
+                  </div>
+                )}
+
+                {recommendationType === 'openwell' && (
+                  <div className="animate-in fade-in slide-in-from-top-4 duration-500 bg-slate-50 p-8 rounded-[32px] border border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-slate-400">Recommended total depth (m)</Label>
+                      <Input disabled={!isAllowed} {...form.register('recOpenwellTotalDepth')} className="h-11 border-slate-200 font-bold" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-slate-400">Recommended diameter (m)</Label>
+                      <Select disabled={!isAllowed} onValueChange={v=>form.setValue('recOpenwellDiameter', v)} value={form.watch('recOpenwellDiameter')}>
+                        <SelectTrigger className="h-11 border-slate-200 font-bold"><SelectValue/></SelectTrigger>
+                        <SelectContent className="rounded-xl">{openwellDiameterOptions.map(o=><SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2 md:col-span-2">
+                      <Label className="text-[10px] font-black uppercase text-slate-400">Additional Open Well Details & Location</Label>
+                      <Textarea disabled={!isAllowed} {...form.register('recommendationOpenwell')} rows={3} className="rounded-2xl border-slate-200 italic font-bold uppercase text-xs" />
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -686,51 +735,6 @@ function SiteEntryContent() {
             </div>
         </form>
       </Form>
-
-      <Dialog open={isRecommendationDialogOpen} onOpenChange={setIsRecommendationDialogOpen}>
-        <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl text-left">
-          <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight text-center">TECHNICAL RECOMMENDATION</DialogTitle></DialogHeader>
-          <div className="space-y-6 py-4">
-              {(recommendationType === 'borewell' || recommendationType === 'tubewell' || recommendationType === 'filterpoint') && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-400">Depth (m)</Label><Input {...form.register('recBorewellTotalDepth')}/></div>
-                    <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-400">Diameter</Label>
-                      <Select onValueChange={v=>form.setValue('recBorewellDiameter', v)} value={form.watch('recBorewellDiameter')}>
-                        <SelectTrigger className="h-10 text-xs font-bold"><SelectValue/></SelectTrigger>
-                        <SelectContent className="rounded-xl border-slate-200">
-                           {borewellDiameterOptions.map(o=><SelectItem key={o.value} value={o.value} className="font-bold text-xs uppercase">{o.label}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-400">Overburden (m)</Label><Input {...form.register('expectedOverburden')}/></div>
-                  <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-400">Technical Note</Label><Textarea {...form.register('recommendationBorewell')} className="min-h-[100px] uppercase font-bold text-xs"/></div>
-                </div>
-              )}
-              {recommendationType === 'openwell' && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-400">Depth (m)</Label><Input {...form.register('recOpenwellTotalDepth')}/></div>
-                    <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-400">Diameter (m)</Label>
-                      <Select onValueChange={v=>form.setValue('recOpenwellDiameter', v)} value={form.watch('recOpenwellDiameter')}>
-                        <SelectTrigger className="h-10 text-xs font-bold"><SelectValue/></SelectTrigger>
-                        <SelectContent className="rounded-xl">{openwellDiameterOptions.map(o=><SelectItem key={o.value} value={o.value} className="font-bold text-xs uppercase">{o.label}</SelectItem>)}</SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-400">Technical Note</Label><Textarea {...form.register('recommendationOpenwell')} className="min-h-[100px] uppercase font-bold text-xs"/></div>
-                </div>
-              )}
-              {(!recommendationType || recommendationType === 'not_feasible') && (
-                <div className="py-12 text-center opacity-30 uppercase font-black tracking-widest">
-                   No specific parameters needed for this selection.
-                </div>
-              )}
-          </div>
-          <DialogFooter><Button type="button" onClick={() => setIsRecommendationDialogOpen(false)} className="w-full h-12 rounded-xl font-black uppercase text-[11px] bg-[#1e3a8a] text-white">Confirm Parameters</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <NearbyStructureDialog 
         isOpen={isNearbyDialogOpen}
@@ -753,13 +757,6 @@ function SiteEntryContent() {
     </div>
   );
 }
-
-const FormFieldItem = ({ label, id, children, className }: {label:string, id:string, children: React.ReactNode, className?:string}) => (
-  <div className={cn("space-y-2", className)}>
-    <Label htmlFor={id} className="text-[10px] font-black uppercase text-slate-500">{label}</Label>
-    {children}
-  </div>
-);
 
 const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, form}: {isOpen:boolean, onOpenChange:(o:boolean)=>void, structureType:string|null, form:UseFormReturn<ReportFormValues>}) => {
   const isBorewell = structureType?.startsWith('borewell');
