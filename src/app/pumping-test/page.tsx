@@ -9,15 +9,16 @@ import {
   Search, 
   Activity, 
   ChevronDown,
-  Eye,
-  Edit3,
-  FilterX,
-  Trash2,
-  FileText,
-  Droplets,
-  Waves,
-  Lock,
-  FileCheck
+  Eye, 
+  Edit3, 
+  FilterX, 
+  Trash2, 
+  FileText, 
+  Droplets, 
+  Waves, 
+  Lock, 
+  FileCheck,
+  User as UserIcon
 } from 'lucide-react';
 import Link from 'next/link';
 import { useCollection, useFirestore, useUser, useMemoFirebase, deleteDocumentNonBlocking, useDoc } from '@/firebase';
@@ -104,6 +105,22 @@ export default function PumpingTestLedgerPage() {
 
   const { data: reports, isLoading } = useCollection<GroundwaterReport>(reportsQuery);
 
+  const usersQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'users'));
+  }, [firestore]);
+  const { data: systemUsers } = useCollection(usersQuery);
+
+  const userMap = useMemo(() => {
+    const map = new Map();
+    if (systemUsers) {
+      systemUsers.forEach(u => {
+        if (u.uid) map.set(u.uid, u.displayName || u.email);
+      });
+    }
+    return map;
+  }, [systemUsers]);
+
   const allRecords = useMemo(() => {
     if (!reports) return [];
     return reports
@@ -167,15 +184,15 @@ export default function PumpingTestLedgerPage() {
             <DropdownMenuLabel className="px-4 py-3 text-[10px] font-black uppercase text-slate-400 tracking-widest">Select Well Type</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild className="rounded-xl cursor-pointer p-3 focus:bg-blue-50 group">
-              <Link href="/pumping-test/borewell-entry" className="flex items-center gap-3">
+              <Link href="/pumping-test/borewell-entry" className="flex items-center gap-4">
                 <div className="p-2 bg-blue-100 rounded-lg group-focus:bg-blue-200"><Droplets className="size-4 text-blue-600" /></div>
-                <span className="font-bold text-xs uppercase text-slate-700">Borewell Pumping test</span>
+                <span className="font-bold text-xs uppercase text-slate-700 tracking-tight">Borewell Pumping test</span>
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild className="rounded-xl cursor-pointer p-3 focus:bg-emerald-50 group">
-              <Link href="/pumping-test/open-well-entry" className="flex items-center gap-3">
+              <Link href="/pumping-test/open-well-entry" className="flex items-center gap-4">
                 <div className="p-2 bg-emerald-100 rounded-lg group-focus:bg-emerald-200"><Waves className="size-4 text-emerald-600" /></div>
-                <span className="font-bold text-xs uppercase text-slate-700">Open well/pond Pumping test</span>
+                <span className="font-bold text-xs uppercase text-slate-700 tracking-tight">Open well/pond Pumping test</span>
               </Link>
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -202,6 +219,7 @@ export default function PumpingTestLedgerPage() {
                   <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Technical Reports</TableHead>
                   <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Well Type</TableHead>
                   <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Status</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">User</TableHead>
                   <TableHead className="text-right pr-8 text-[10px] font-black uppercase tracking-widest text-slate-400">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -209,7 +227,7 @@ export default function PumpingTestLedgerPage() {
                 {isLoading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i} className="h-20 border-slate-50">
-                      <TableCell colSpan={6} className="px-8"><Skeleton className="h-10 w-full rounded-xl" /></TableCell>
+                      <TableCell colSpan={7} className="px-8"><Skeleton className="h-10 w-full rounded-xl" /></TableCell>
                     </TableRow>
                   ))
                 ) : paginatedRecords.length > 0 ? (
@@ -220,6 +238,7 @@ export default function PumpingTestLedgerPage() {
                     
                     const isOwner = user?.uid === r.uploadedBy;
                     const canModifyRecord = isAdmin || isOwner;
+                    const ownerName = userMap.get(r.uploadedBy) || '---';
 
                     return (
                       <TableRow key={r.id} className="h-20 border-slate-50 hover:bg-slate-50/50 transition-colors group">
@@ -238,6 +257,9 @@ export default function PumpingTestLedgerPage() {
                         </TableCell>
                         <TableCell><Badge variant="secondary" className="text-[9px] font-black bg-slate-100 text-slate-500 uppercase tracking-tighter">{isBore ? 'Borewell' : 'Open Well'}</Badge></TableCell>
                         <TableCell><Badge variant={r.status === 'Published' ? 'default' : 'secondary'} className={cn('text-[9px] font-black uppercase', r.status === 'Published' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800')}>{r.status || 'Draft'}</Badge></TableCell>
+                        <TableCell>
+                          <span className="text-[10px] font-bold text-slate-500 uppercase truncate max-w-[120px] block">{ownerName}</span>
+                        </TableCell>
                         <TableCell className="text-right pr-8">
                           <div className="flex items-center justify-end gap-1.5">
                              <Button variant="ghost" size="icon" onClick={() => setViewingReport(r)} className="size-8 rounded-lg bg-white ring-1 ring-slate-100 shadow-sm" title="View Saved Data"><Eye className="size-3.5 text-slate-400 hover:text-primary" /></Button>
@@ -249,7 +271,7 @@ export default function PumpingTestLedgerPage() {
                     );
                   })
                 ) : (
-                  <TableRow><TableCell colSpan={6} className="h-64 text-center opacity-20"><FilterX className="size-16 mx-auto mb-4" /><p className="font-black uppercase text-sm">No pumping test records found</p></TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} className="h-64 text-center opacity-20"><FilterX className="size-16 mx-auto mb-4" /><p className="font-black uppercase text-sm">No pumping test records found</p></TableCell></TableRow>
                 )}
               </TableBody>
             </Table>
@@ -266,7 +288,7 @@ export default function PumpingTestLedgerPage() {
             )}
         </CardFooter>
       </Card>
-
+      
       {/* Data Viewer Dialog */}
       <Dialog open={!!viewingReport} onOpenChange={(open) => !open && setViewingReport(null)}>
         <DialogContent className="max-w-3xl rounded-[32px] overflow-hidden p-0 border-none shadow-2xl bg-white text-left">

@@ -21,7 +21,8 @@ import {
   Database, 
   Users, 
   Calculator,
-  FileStack
+  FileStack,
+  User as UserIcon
 } from 'lucide-react';
 import Link from 'next/link';
 import { useCollection, useFirestore, useUser, useMemoFirebase, deleteDocumentNonBlocking, useDoc } from '@/firebase';
@@ -111,6 +112,22 @@ export default function GroundWaterInvestigationPage() {
   }, [firestore, user, isUserLoading]);
 
   const { data: reports, isLoading } = useCollection<GroundwaterReport>(reportsQuery);
+
+  const usersQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'users'));
+  }, [firestore]);
+  const { data: systemUsers } = useCollection(usersQuery);
+
+  const userMap = useMemo(() => {
+    const map = new Map();
+    if (systemUsers) {
+      systemUsers.forEach(u => {
+        if (u.uid) map.set(u.uid, u.displayName || u.email);
+      });
+    }
+    return map;
+  }, [systemUsers]);
 
   const allRecords = useMemo(() => {
     if (!reports) return [];
@@ -259,6 +276,7 @@ export default function GroundWaterInvestigationPage() {
                   <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Site / Applicant</TableHead>
                   <TableHead className="text-center text-[10px] font-black uppercase tracking-widest text-slate-400">Technical Reports</TableHead>
                   <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Category</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">User</TableHead>
                   <TableHead className="text-right pr-8 text-[10px] font-black uppercase tracking-widest text-slate-400">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -266,7 +284,7 @@ export default function GroundWaterInvestigationPage() {
                 {isLoading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i} className="h-20 border-slate-50">
-                      <TableCell colSpan={5} className="px-8"><Skeleton className="h-10 w-full rounded-xl" /></TableCell>
+                      <TableCell colSpan={6} className="px-8"><Skeleton className="h-10 w-full rounded-xl" /></TableCell>
                     </TableRow>
                   ))
                 ) : paginatedRecords.length > 0 ? (
@@ -280,6 +298,7 @@ export default function GroundWaterInvestigationPage() {
                     const hasFeasibility = hasBorewellFeasibility || hasOpenwellFeasibility;
                     
                     const canModifyRecord = isAdmin || (user?.uid === r.uploadedBy);
+                    const ownerName = userMap.get(r.uploadedBy) || '---';
 
                     return (
                       <TableRow key={r.id} className="h-20 border-slate-50 hover:bg-slate-50/80 transition-colors group">
@@ -331,6 +350,9 @@ export default function GroundWaterInvestigationPage() {
                             <span className="text-[10px] font-black text-slate-700 uppercase tracking-tight">{r.category?.split(' / ')[0] || 'Survey'}</span>
                           </div>
                         </TableCell>
+                        <TableCell>
+                          <span className="text-[10px] font-bold text-slate-500 uppercase truncate max-w-[120px] block">{ownerName}</span>
+                        </TableCell>
                         <TableCell className="text-right pr-8">
                           <div className="flex items-center justify-end gap-1.5">
                              <Button variant="ghost" size="icon" onClick={() => setViewingReport(r)} className="size-8 rounded-lg bg-white ring-1 ring-slate-100 shadow-sm" title="View Saved Data"><Eye className="size-3.5 text-slate-400 hover:text-primary" /></Button>
@@ -344,7 +366,7 @@ export default function GroundWaterInvestigationPage() {
                     );
                   })
                 ) : (
-                  <TableRow><TableCell colSpan={5} className="h-64 text-center opacity-20"><FilterX className="size-16 mx-auto mb-4" /><p className="font-black uppercase text-sm">No investigation records found</p></TableCell></TableRow>
+                  <TableRow><TableCell colSpan={6} className="h-64 text-center opacity-20"><FilterX className="size-16 mx-auto mb-4" /><p className="font-black uppercase text-sm">No investigation records found</p></TableCell></TableRow>
                 )}
               </TableBody>
             </Table>

@@ -17,7 +17,8 @@ import {
   FileSpreadsheet,
   ArrowRight,
   Eye,
-  FileCheck
+  FileCheck,
+  User as UserIcon
 } from 'lucide-react';
 import Link from 'next/link';
 import { useCollection, useFirestore, useUser, useMemoFirebase, deleteDocumentNonBlocking, useDoc, updateDocumentNonBlocking } from '@/firebase';
@@ -106,6 +107,22 @@ export default function EstimateMeasurementLedgerPage() {
   }, [firestore, user, isUserLoading]);
 
   const { data: reports, isLoading } = useCollection<GroundwaterReport>(reportsQuery);
+
+  const usersQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'users'));
+  }, [firestore]);
+  const { data: systemUsers } = useCollection(usersQuery);
+
+  const userMap = useMemo(() => {
+    const map = new Map();
+    if (systemUsers) {
+      systemUsers.forEach(u => {
+        if (u.uid) map.set(u.uid, u.displayName || u.email);
+      });
+    }
+    return map;
+  }, [systemUsers]);
 
   const allRecords = useMemo(() => {
     if (!reports) return [];
@@ -202,6 +219,7 @@ export default function EstimateMeasurementLedgerPage() {
                   <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Technical Report</TableHead>
                   <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Record Type</TableHead>
                   <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Status</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">User</TableHead>
                   <TableHead className="text-right pr-8 text-[10px] font-black uppercase tracking-widest text-slate-400">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -209,30 +227,34 @@ export default function EstimateMeasurementLedgerPage() {
                 {isLoading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i} className="h-20 border-slate-50">
-                      <TableCell colSpan={6} className="px-8"><Skeleton className="h-10 w-full rounded-xl" /></TableCell>
+                      <TableCell colSpan={7} className="px-8"><Skeleton className="h-10 w-full rounded-xl" /></TableCell>
                     </TableRow>
                   ))
                 ) : paginatedRecords.length > 0 ? (
                   paginatedRecords.map((r) => {
                     const isOwner = user?.uid === r.uploadedBy;
                     const canModifyRecord = isAdmin || isOwner;
+                    const ownerName = userMap.get(r.uploadedBy) || '---';
 
                     return (
                       <TableRow key={r.id} className="h-20 border-slate-50 hover:bg-slate-50/50 transition-colors group">
                         <TableCell className="pl-8 font-bold text-xs text-slate-700">{r.reportDate || '---'}</TableCell>
                         <TableCell>
-                          <div className="flex flex-col">
+                          <div className="flex flex-col text-left">
                             <span className="font-black text-xs text-slate-900 uppercase tracking-tight">{r.nameOfSite || 'Unnamed Site'}</span>
                             <span className="text-[9px] font-bold text-slate-400 uppercase">{r.fileNo || '---'}</span>
                           </div>
                         </TableCell>
                         <TableCell>
-                           <button onClick={() => { setSelectedEmReport(r); setIsEmModalOpen(true); }} className={cn("h-7 px-3 mx-auto text-[9px] font-black uppercase rounded-lg border-none shadow-sm flex items-center justify-center transition-colors", r.reportType === 'ESTIMATE' ? "bg-blue-50 text-blue-700 hover:bg-blue-100" : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100")}>
+                           <button onClick={() => { setSelectedEmReport(r); setIsEmModalOpen(true); }} className={cn("h-7 px-3 text-[9px] font-black uppercase rounded-lg border-none shadow-sm flex items-center justify-center mx-auto transition-colors", r.reportType === 'ESTIMATE' ? "bg-blue-50 text-blue-700 hover:bg-blue-100" : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100")}>
                               <FileSpreadsheet className="size-3 mr-1.5" /> View {r.reportType} Report
                            </button>
                         </TableCell>
                         <TableCell><Badge variant="secondary" className="text-[9px] font-black uppercase tracking-tighter bg-slate-100 text-slate-500">{r.reportType || 'RECORD'}</Badge></TableCell>
                         <TableCell><Badge variant={r.status === 'Published' ? 'default' : 'secondary'} className={cn('text-[9px] font-black uppercase', r.status === 'Published' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800')}>{r.status || 'Draft'}</Badge></TableCell>
+                        <TableCell>
+                          <span className="text-[10px] font-bold text-slate-500 uppercase truncate max-w-[120px] block">{ownerName}</span>
+                        </TableCell>
                         <TableCell className="text-right pr-8">
                           <div className="flex items-center justify-end gap-1.5">
                              <Button variant="ghost" size="icon" onClick={() => setViewingReport(r)} className="size-8 rounded-lg bg-white ring-1 ring-slate-100 shadow-sm" title="View Saved Data"><Eye className="size-3.5 text-slate-400 hover:text-primary" /></Button>
@@ -248,7 +270,7 @@ export default function EstimateMeasurementLedgerPage() {
                     );
                   })
                 ) : (
-                  <TableRow><TableCell colSpan={6} className="h-64 text-center opacity-20"><FilterX className="size-16 mx-auto mb-4" /><p className="font-black uppercase text-sm">No E/M records found</p></TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} className="h-64 text-center opacity-20"><FilterX className="size-16 mx-auto mb-4" /><p className="font-black uppercase text-sm">No E/M records found</p></TableCell></TableRow>
                 )}
               </TableBody>
             </Table>
