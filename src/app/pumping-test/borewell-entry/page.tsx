@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect, useMemo, Suspense } from 'react';
@@ -18,12 +17,19 @@ import {
   Truck,
   Building,
   Users,
-  Settings,
-  Calculator,
   SearchCode,
   Lock,
-  Droplets
+  Droplets,
+  Calculator
 } from 'lucide-react';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useLsgdData } from '@/hooks/use-lsgd-data';
@@ -34,17 +40,9 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
-import { collection, doc, setDoc } from 'firebase/firestore';
+import { collection, doc } from 'firebase/firestore';
 import type { GroundwaterReport, Employee } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
 import { StaffMultiSelect } from '@/components/investigation/staff-multi-select';
@@ -87,7 +85,6 @@ function UnifiedBorewellPumpingEntryContent() {
 
   const id = searchParams.get('id');
 
-  // Role detection
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user?.email) return null;
     return doc(firestore, 'users', user.email.toLowerCase().trim());
@@ -100,15 +97,6 @@ function UnifiedBorewellPumpingEntryContent() {
     return (userProfile?.role === 'admin' || userProfile?.role === 'scientist' || userProfile?.role === 'engineer') && userProfile?.isApproved === true;
   }, [user, userProfile, isUserLoading, isProfileLoading]);
 
-  // Ownership check
-  const isOwner = useMemo(() => {
-    if (!cloudReport || !user) return false;
-    return cloudReport.uploadedBy === user.uid;
-  }, [cloudReport, user]);
-
-  const canModify = isAllowed && (isOwner || user?.email === MASTER_ADMIN_EMAIL || userProfile?.role === 'admin');
-
-  // Fetch Employees for staff selection
   const employeesRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'employees');
@@ -121,6 +109,13 @@ function UnifiedBorewellPumpingEntryContent() {
   }, [firestore, id]);
 
   const { data: cloudReport, isLoading: isReportLoading } = useDoc<GroundwaterReport>(reportRef);
+
+  const isOwner = useMemo(() => {
+    if (!cloudReport || !user) return false;
+    return cloudReport.uploadedBy === user.uid;
+  }, [cloudReport, user]);
+
+  const canModify = isAllowed && (isOwner || user?.email === MASTER_ADMIN_EMAIL || userProfile?.role === 'admin');
 
   const [formData, setFormData] = useState<any>({
     reportDate: new Date().toISOString().split('T')[0],
@@ -155,16 +150,16 @@ function UnifiedBorewellPumpingEntryContent() {
 
   useEffect(() => {
     if (cloudReport) {
-      const SaData = cloudReport.staffAssignment || {};
+      const sa = cloudReport.staffAssignment || {};
       setFormData((prev: any) => ({
         ...prev,
         ...cloudReport,
         staffAssignment: {
-          unitInCharge: Array.isArray(SaData.unitInCharge) ? SaData.unitInCharge : (SaData.unitInCharge ? (SaData.unitInCharge as string).split(', ') : []),
-          assistantEngineer: Array.isArray(SaData.assistantEngineer) ? SaData.assistantEngineer : (SaData.assistantEngineer ? (SaData.assistantEngineer as string).split(', ') : []),
-          assistantExecutiveEngineer: Array.isArray(SaData.assistantExecutiveEngineer) ? SaData.assistantExecutiveEngineer : (SaData.assistantExecutiveEngineer ? (SaData.assistantExecutiveEngineer as string).split(', ') : []),
-          supervisor: Array.isArray(SaData.supervisor) ? SaData.supervisor : (SaData.supervisor ? (SaData.supervisor as string).split(', ') : []),
-          otherStaff: Array.isArray(SaData.otherStaff) ? SaData.otherStaff : (SaData.otherStaff ? (SaData.otherStaff as string).split(', ') : [])
+          unitInCharge: Array.isArray(sa.unitInCharge) ? sa.unitInCharge : (sa.unitInCharge ? (sa.unitInCharge as string).split(', ') : []),
+          assistantEngineer: Array.isArray(sa.assistantEngineer) ? sa.assistantEngineer : (sa.assistantEngineer ? (sa.assistantEngineer as string).split(', ') : []),
+          assistantExecutiveEngineer: Array.isArray(sa.assistantExecutiveEngineer) ? sa.assistantExecutiveEngineer : (sa.assistantExecutiveEngineer ? (sa.assistantExecutiveEngineer as string).split(', ') : []),
+          supervisor: Array.isArray(sa.supervisor) ? sa.supervisor : (sa.supervisor ? (sa.supervisor as string).split(', ') : []),
+          otherStaff: Array.isArray(sa.otherStaff) ? sa.otherStaff : (sa.otherStaff ? (sa.otherStaff as string).split(', ') : [])
         }
       }));
     }
@@ -178,7 +173,7 @@ function UnifiedBorewellPumpingEntryContent() {
     setFormData((prev: any) => {
       const newTable = [...prev[tableKey]];
       newTable[index] = { ...newTable[index], [field]: value };
-      return { ...prev, [tableKey]: newTable };
+      return { ...prev, tableKey: newTable };
     });
   };
 
@@ -273,18 +268,14 @@ function UnifiedBorewellPumpingEntryContent() {
                 <Input disabled={!canModify} type="date" value={formData.reportDate || ''} onChange={(e) => updateField('reportDate', e.target.value)} className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl focus:bg-white" />
               </div>
               <div className="space-y-1">
-                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
-                  <Truck className="size-3" /> Conveyance
-                </Label>
+                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><Truck className="size-3" /> Conveyance</Label>
                 <Select disabled={!canModify} onValueChange={(v) => updateField('conveyance', v)} value={formData.conveyance || ''}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">{conveyanceOptions.map(o => <SelectItem key={o} value={o} className="text-xs font-bold">{o}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
-                  <Building className="size-3" /> Applied For
-                </Label>
+                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><Building className="size-3" /> Applied For</Label>
                 <Select disabled={!canModify} onValueChange={(v) => updateField('sector', v)} value={formData.sector || ''}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">

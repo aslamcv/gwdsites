@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -55,8 +54,8 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, doc, updateDoc, setDoc } from 'firebase/firestore';
+import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
+import { collection, doc, setDoc, updateDoc } from 'firebase/firestore';
 import type { GroundwaterReport, Employee } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -183,7 +182,6 @@ function SiteEntryContent() {
   const [selectedNearbyStructure, setSelectedNearbyStructure] = useState<string | null>(null);
   const [isVillageManual, setIsVillageManual] = useState(false);
 
-  // Role detection
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user?.email) return null;
     return doc(firestore, 'users', user.email.toLowerCase().trim());
@@ -208,6 +206,13 @@ function SiteEntryContent() {
   }, [firestore, id]);
 
   const { data: cloudReport, isLoading: isReportLoading } = useDoc<GroundwaterReport>(reportRef);
+
+  const isOwner = useMemo(() => {
+    if (!cloudReport || !user) return false;
+    return cloudReport.uploadedBy === user.uid;
+  }, [cloudReport, user]);
+
+  const canModify = isAllowed && (isOwner || user?.email === MASTER_ADMIN_EMAIL || userProfile?.role === 'admin');
 
   const { lsgs, lsgMappings } = useLsgdData();
 
@@ -280,7 +285,7 @@ function SiteEntryContent() {
   }, [employees]);
 
   const onSubmit = (values: ReportFormValues) => {
-    if (!user || !firestore || !isAllowed) return;
+    if (!user || !firestore || !canModify) return;
 
     startTransition(() => {
       const isUpdate = !!id;
@@ -311,7 +316,7 @@ function SiteEntryContent() {
       const operation = isUpdate ? updateDoc(reportDocRef, reportData) : setDoc(reportDocRef, reportData);
 
       operation.then(() => {
-        toast({ title: 'Technical Sync Complete', description: 'Investigation record synchronized with central node.' });
+        toast({ title: 'Technical Sync Complete', description: 'Investigation record synchronized.' });
         router.push('/ground-water-investigation');
       }).catch(async (error) => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({ path: reportDocRef.path, operation: isUpdate ? 'update' : 'create', requestResourceData: reportData }));
@@ -320,7 +325,7 @@ function SiteEntryContent() {
   };
 
   const handleNearbyTypeSelect = (type: string, value: string) => {
-    if (!isAllowed) return;
+    if (!canModify) return;
     if (value === 'none') {
         if(type === 'borewell') form.setValue('noNearbyBorewells', !form.getValues('noNearbyBorewells'));
         if(type === 'openwell') form.setValue('noNearbyOpenwells', !form.getValues('noNearbyOpenwells'));
@@ -335,10 +340,6 @@ function SiteEntryContent() {
 
   const recommendationType = form.watch('recommendationType');
   const isRecommendedToGp = form.watch('recommendedToGpSurvey');
-
-  if (isReportLoading && id) {
-    return <div className="p-12 text-center animate-pulse uppercase tracking-widest font-black opacity-30 text-slate-400">Initializing Workspace...</div>;
-  }
 
   const sectorOptions = [
     { id: 'private', label: 'Private' },
@@ -374,15 +375,15 @@ function SiteEntryContent() {
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4 w-full lg:w-auto">
               <div className="space-y-1">
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><CalendarIcon className="size-3 pointer-events-none" /> Start Date</Label>
-                <Input disabled={!isAllowed} type="date" value={staffFormData.startDate || ''} onChange={(e) => updateStaffField('startDate', e.target.value)} className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl focus:bg-white" />
+                <Input disabled={!canModify} type="date" value={staffFormData.startDate || ''} onChange={(e) => updateStaffField('startDate', e.target.value)} className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl focus:bg-white" />
               </div>
               <div className="space-y-1">
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><CalendarIcon className="size-3 pointer-events-none" /> End Date</Label>
-                <Input disabled={!isAllowed} type="date" value={staffFormData.endDate || ''} onChange={(e) => updateStaffField('endDate', e.target.value)} className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl focus:bg-white" />
+                <Input disabled={!canModify} type="date" value={staffFormData.endDate || ''} onChange={(e) => updateStaffField('endDate', e.target.value)} className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl focus:bg-white" />
               </div>
               <div className="space-y-1">
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><Truck className="size-3" /> Conveyance</Label>
-                <Select disabled={!isAllowed} onValueChange={(v) => updateStaffField('conveyance', v)} value={staffFormData.conveyance}>
+                <Select disabled={!canModify} onValueChange={(v) => updateStaffField('conveyance', v)} value={staffFormData.conveyance}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">
                     {conveyanceOptions.map(o => <SelectItem key={o} value={o} className="text-xs font-bold">{o}</SelectItem>)}
@@ -391,7 +392,7 @@ function SiteEntryContent() {
               </div>
               <div className="space-y-1">
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><Building className="size-3" /> Sector</Label>
-                <Select disabled={!isAllowed} onValueChange={(v) => updateStaffField('sector', v)} value={staffFormData.sector}>
+                <Select disabled={!canModify} onValueChange={(v) => updateStaffField('sector', v)} value={staffFormData.sector}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">
                     {sectorOptions.map(s => <SelectItem key={s.id} value={s.id} className="text-[10px] font-black uppercase">{s.label}</SelectItem>)}
@@ -400,7 +401,7 @@ function SiteEntryContent() {
               </div>
               <div className="space-y-1">
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><SearchCode className="size-3" /> Sub Category</Label>
-                <Select disabled={!isAllowed} onValueChange={(v) => updateStaffField('category', v)} value={staffFormData.category}>
+                <Select disabled={!canModify} onValueChange={(v) => updateStaffField('category', v)} value={staffFormData.category}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">
                     {categoryMappings[staffFormData.sector]?.map(c => <SelectItem key={c} value={c} className="text-[10px] font-black uppercase">{c}</SelectItem>)}
@@ -421,13 +422,13 @@ function SiteEntryContent() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-10 grid grid-cols-1 md:grid-cols-4 gap-8">
-                <FormField control={form.control} name="nameOfSite" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">1. Name of Site</FormLabel> <FormControl><Input disabled={!isAllowed} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                <FormField control={form.control} name="address" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">2. Address</FormLabel> <FormControl><Input disabled={!isAllowed} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                <FormField control={form.control} name="latitude" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">3. Latitude</FormLabel> <FormControl><Input disabled={!isAllowed} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                <FormField control={form.control} name="longitude" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">4. Longitude</FormLabel> <FormControl><Input disabled={!isAllowed} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                <FormField control={form.control} name="fileNo" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">5. File No</FormLabel> <FormControl><Input disabled={!isAllowed} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                <FormField control={form.control} name="applicantNameAddress" render={({ field }) => ( <FormItem className="md:col-span-2"> <FormLabel className="text-[10px] font-black uppercase text-slate-500">6. Applicant Details</FormLabel> <FormControl><Textarea disabled={!isAllowed} rows={1} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                <FormField control={form.control} name="applicationDate" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">7. Date of application</FormLabel> <FormControl><Input disabled={!isAllowed} type="date" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                <FormField control={form.control} name="nameOfSite" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">1. Name of Site</FormLabel> <FormControl><Input disabled={!canModify} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                <FormField control={form.control} name="address" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">2. Address</FormLabel> <FormControl><Input disabled={!canModify} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                <FormField control={form.control} name="latitude" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">3. Latitude</FormLabel> <FormControl><Input disabled={!canModify} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                <FormField control={form.control} name="longitude" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">4. Longitude</FormLabel> <FormControl><Input disabled={!canModify} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                <FormField control={form.control} name="fileNo" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">5. File No</FormLabel> <FormControl><Input disabled={!canModify} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                <FormField control={form.control} name="applicantNameAddress" render={({ field }) => ( <FormItem className="md:col-span-2"> <FormLabel className="text-[10px] font-black uppercase text-slate-500">6. Applicant Details</FormLabel> <FormControl><Textarea disabled={!canModify} rows={1} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                <FormField control={form.control} name="applicationDate" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">7. Date of application</FormLabel> <FormControl><Input disabled={!canModify} type="date" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
                 
                 <FormField control={form.control} name="village" render={({ field }) => (
                   <FormItem> 
@@ -440,9 +441,9 @@ function SiteEntryContent() {
                             className="h-10 text-xs font-bold uppercase border-blue-200 bg-blue-50/30" 
                             placeholder="ENTER VILLAGE"
                             autoFocus
-                            disabled={!isAllowed}
+                            disabled={!canModify}
                           />
-                          {isAllowed && (
+                          {canModify && (
                             <Button 
                               type="button" 
                               variant="ghost" 
@@ -458,7 +459,7 @@ function SiteEntryContent() {
                           )}
                         </div>
                       ) : (
-                        <Select disabled={!isAllowed} onValueChange={(val) => val === 'MANUAL' ? setIsVillageManual(true) : field.onChange(val)} value={field.value}>
+                        <Select disabled={!canModify} onValueChange={(val) => val === 'MANUAL' ? setIsVillageManual(true) : field.onChange(val)} value={field.value}>
                           <FormControl>
                             <SelectTrigger className="h-10 text-xs font-bold uppercase bg-slate-50/50 focus:bg-white">
                               <SelectValue placeholder="SELECT VILLAGE" />
@@ -480,12 +481,12 @@ function SiteEntryContent() {
                   </FormItem> 
                 )} />
 
-                <FormField control={form.control} name="ward" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">9. Ward</FormLabel> <FormControl><Input disabled={!isAllowed} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                <FormField control={form.control} name="altitude" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">10. Altitude</FormLabel> <FormControl><Input disabled={!isAllowed} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                <FormField control={form.control} name="ward" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">9. Ward</FormLabel> <FormControl><Input disabled={!canModify} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                <FormField control={form.control} name="altitude" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">10. Altitude</FormLabel> <FormControl><Input disabled={!canModify} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
                 <FormField control={form.control} name="lsgd" render={({ field }) => ( 
                   <FormItem> 
                     <FormLabel className="text-[10px] font-black uppercase text-slate-500">11. LSGD</FormLabel> 
-                    <Select disabled={!isAllowed} onValueChange={field.onChange} value={field.value}>
+                    <Select disabled={!canModify} onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger className="h-10 text-xs font-bold uppercase bg-slate-50/50 focus:bg-white">
                           <SelectValue placeholder="SELECT LSGD" />
@@ -506,7 +507,7 @@ function SiteEntryContent() {
                 <FormField control={form.control} name="block" render={({ field }) => ( 
                   <FormItem> 
                     <FormLabel className="text-[10px] font-black uppercase text-slate-500">13. Block</FormLabel> 
-                    <Select disabled={!isAllowed} onValueChange={field.onChange} value={field.value}>
+                    <Select disabled={!canModify} onValueChange={field.onChange} value={field.value}>
                       <FormControl><SelectTrigger className="h-10 text-xs font-bold uppercase"><SelectValue placeholder="SELECT BLOCK" /></SelectTrigger></FormControl>
                       <SelectContent className="rounded-xl">
                         {blockOptions.map(o => <SelectItem key={o} value={o} className="text-[10px] font-bold uppercase">{o}</SelectItem>)}
@@ -517,7 +518,7 @@ function SiteEntryContent() {
                 <FormField control={form.control} name="typeAppliedFor" render={({ field }) => ( 
                   <FormItem> 
                     <FormLabel className="text-[10px] font-black uppercase text-slate-500">14. Type Applied For</FormLabel> 
-                    <Select disabled={!isAllowed} onValueChange={field.onChange} value={field.value}>
+                    <Select disabled={!canModify} onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger className="h-10 text-xs bg-slate-50/50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue /></SelectTrigger>
                       </FormControl>
@@ -527,7 +528,7 @@ function SiteEntryContent() {
                     </Select>
                   </FormItem> 
                 )} />
-                <FormField control={form.control} name="dateOfFeasibility" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">15. Date of Feasibility</FormLabel> <FormControl><Input disabled={!isAllowed} type="date" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                <FormField control={form.control} name="dateOfFeasibility" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">15. Date of Feasibility</FormLabel> <FormControl><Input disabled={!canModify} type="date" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
               </CardContent>
             </Card>
 
@@ -538,11 +539,11 @@ function SiteEntryContent() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-10 grid grid-cols-1 md:grid-cols-4 gap-8">
-                <FormField control={form.control} name="noOfBeneficiaries" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">16. Beneficiaries</FormLabel> <FormControl><Input disabled={!isAllowed} type="text" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                <FormField control={form.control} name="toposheet" render={({ field }) => ( <FormItem className="md:col-span-2"> <FormLabel className="text-[10px] font-black uppercase text-slate-500">17. Toposheet/GW Prospect Map</FormLabel> <FormControl><Input disabled={!isAllowed} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                <FormField control={form.control} name="surveyNoArea" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">18. Survey No. & Area</FormLabel> <FormControl><Input disabled={!isAllowed} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                <FormField control={form.control} name="microWatershed" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">19. Micro water shed</FormLabel> <FormControl><Input disabled={!isAllowed} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                <FormField control={form.control} name="hydrogeology" render={({ field }) => ( <FormItem className="md:col-span-4"> <FormLabel className="text-[10px] font-black uppercase text-slate-500">20. Hydrogeology & Geology</FormLabel> <FormControl><Textarea disabled={!isAllowed} rows={5} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                <FormField control={form.control} name="noOfBeneficiaries" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">16. Beneficiaries</FormLabel> <FormControl><Input disabled={!canModify} type="text" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                <FormField control={form.control} name="toposheet" render={({ field }) => ( <FormItem className="md:col-span-2"> <FormLabel className="text-[10px] font-black uppercase text-slate-500">17. Toposheet/GW Prospect Map</FormLabel> <FormControl><Input disabled={!canModify} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                <FormField control={form.control} name="surveyNoArea" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">18. Survey No. & Area</FormLabel> <FormControl><Input disabled={!canModify} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                <FormField control={form.control} name="microWatershed" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">19. Micro water shed</FormLabel> <FormControl><Input disabled={!canModify} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                <FormField control={form.control} name="hydrogeology" render={({ field }) => ( <FormItem className="md:col-span-4"> <FormLabel className="text-[10px] font-black uppercase text-slate-500">20. Hydrogeology & Geology</FormLabel> <FormControl><Textarea disabled={!canModify} rows={5} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
               </CardContent>
             </Card>
 
@@ -565,13 +566,13 @@ function SiteEntryContent() {
                           variant={hasVal && !form.getValues('noNearbyBorewells') ? 'default' : 'ghost'} 
                           className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", hasVal && !form.getValues('noNearbyBorewells') ? "bg-[#1e3a8a] text-white shadow-md" : "text-slate-500")} 
                           onClick={() => handleNearbyTypeSelect('borewell', val)} 
-                          disabled={!isAllowed}
+                          disabled={!canModify}
                         >
                           BW-{idx + 1}
                         </Button>
                       );
                     })}
-                    <Button type="button" variant={form.watch('noNearbyBorewells') ? 'destructive' : 'ghost'} className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", form.watch('noNearbyBorewells') ? "bg-rose-600 text-white shadow-md" : "text-slate-500")} onClick={() => handleNearbyTypeSelect('borewell', 'none')} disabled={!isAllowed}>NO BOREWELL</Button>
+                    <Button type="button" variant={form.watch('noNearbyBorewells') ? 'destructive' : 'ghost'} className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", form.watch('noNearbyBorewells') ? "bg-rose-600 text-white shadow-md" : "text-slate-500")} onClick={() => handleNearbyTypeSelect('borewell', 'none')} disabled={!canModify}>NO BOREWELL</Button>
                   </div>
                 </div>
                 <div className="space-y-4">
@@ -586,13 +587,13 @@ function SiteEntryContent() {
                           variant={hasVal && !form.getValues('noNearbyOpenwells') ? 'default' : 'ghost'} 
                           className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", hasVal && !form.getValues('noNearbyOpenwells') ? "bg-emerald-600 text-white shadow-md" : "text-slate-500")} 
                           onClick={() => handleNearbyTypeSelect('openwell', val)} 
-                          disabled={!isAllowed}
+                          disabled={!canModify}
                         >
                           OW-{idx + 1}
                         </Button>
                       );
                     })}
-                    <Button type="button" variant={form.watch('noNearbyOpenwells') ? 'destructive' : 'ghost'} className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", form.watch('noNearbyOpenwells') ? "bg-rose-600 text-white shadow-md" : "text-slate-500")} onClick={() => handleNearbyTypeSelect('openwell', 'none')} disabled={!isAllowed}>NO OPENWELL</Button>
+                    <Button type="button" variant={form.watch('noNearbyOpenwells') ? 'destructive' : 'ghost'} className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", form.watch('noNearbyOpenwells') ? "bg-rose-600 text-white shadow-md" : "text-slate-500")} onClick={() => handleNearbyTypeSelect('openwell', 'none')} disabled={!canModify}>NO OPENWELL</Button>
                   </div>
                 </div>
               </CardContent>
@@ -610,7 +611,7 @@ function SiteEntryContent() {
                       return (
                         <FormItem className="w-full">
                           <FormLabel className="text-[10px] font-black uppercase text-slate-400">Recommendation Type</FormLabel>
-                          <Select disabled={!isAllowed} onValueChange={field.onChange} value={field.value}>
+                          <Select disabled={!canModify} onValueChange={field.onChange} value={field.value}>
                             <FormControl>
                               <SelectTrigger className="h-14 border-slate-200 rounded-2xl font-black uppercase text-xs tracking-widest shadow-sm bg-slate-50/50 focus:bg-white">
                                 <SelectValue placeholder="SELECT TYPE" />
@@ -631,43 +632,42 @@ function SiteEntryContent() {
                     <div className="space-y-4 pt-6">
                       <FormField control={form.control} name="recommendedToGpSurvey" render={({ field }) => (
                         <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                          <FormControl><Checkbox checked={field.value} onCheckedChange={(c) => { field.onChange(c); if(c) form.setValue('recommendedToPumpingTest', false); }} disabled={!isAllowed}/></FormControl>
+                          <FormControl><Checkbox checked={field.value} onCheckedChange={(c) => { field.onChange(c); if(c) form.setValue('recommendedToPumpingTest', false); }} disabled={!canModify}/></FormControl>
                           <Label className="text-[10px] font-black uppercase text-slate-700 cursor-pointer">RECOMMENDED TO GP SURVEY</Label>
                         </FormItem>
                       )} />
                       {form.watch('recommendedToGpSurvey') && (
-                        <FormField control={form.control} name="gpSurveyLocation" render={({ field }) => (<Input className="h-11 border-slate-200" placeholder="Location details for GP..." {...field} disabled={!isAllowed} />)} />
+                        <FormField control={form.control} name="gpSurveyLocation" render={({ field }) => (<Input className="h-11 border-slate-200" placeholder="Location details for GP..." {...field} disabled={!canModify} />)} />
                       )}
                       <FormField control={form.control} name="recommendedToPumpingTest" render={({ field }) => (
                         <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                          <FormControl><Checkbox checked={field.value} onCheckedChange={(c) => { field.onChange(c); if(c) form.setValue('recommendedToGpSurvey', false); }} disabled={!isAllowed}/></FormControl>
+                          <FormControl><Checkbox checked={field.value} onCheckedChange={(c) => { field.onChange(c); if(c) form.setValue('recommendedToGpSurvey', false); }} disabled={!canModify}/></FormControl>
                           <Label className="text-[10px] font-black uppercase text-slate-700 cursor-pointer">RECOMMENDED TO PUMPING TEST</Label>
                         </FormItem>
                       )} />
                     </div>
                 </div>
 
-                {/* Inline Technical Parameters */}
                 {(recommendationType === 'borewell' || recommendationType === 'tubewell' || recommendationType === 'filterpoint') && (
                   <div className="animate-in fade-in slide-in-from-top-4 duration-500 bg-slate-50 p-8 rounded-[32px] border border-slate-200 grid grid-cols-1 md:grid-cols-3 gap-8">
                     <div className="space-y-2">
                       <Label className="text-[10px] font-black uppercase text-slate-400">Proposed Total depth (m)</Label>
-                      <Input disabled={!isAllowed} {...form.register('recBorewellTotalDepth')} className="h-11 border-slate-200 font-bold bg-white" />
+                      <Input disabled={!canModify} {...form.register('recBorewellTotalDepth')} className="h-11 border-slate-200 font-bold bg-white" />
                     </div>
                     <div className="space-y-2">
                       <Label className="text-[10px] font-black uppercase text-slate-400">Proposed diameter</Label>
-                      <Select disabled={!isAllowed} onValueChange={v=>form.setValue('recBorewellDiameter', v)} value={form.watch('recBorewellDiameter')}>
+                      <Select disabled={!canModify} onValueChange={v=>form.setValue('recBorewellDiameter', v)} value={form.watch('recBorewellDiameter')}>
                         <SelectTrigger className="h-11 border-slate-200 font-bold bg-white"><SelectValue placeholder="SELECT" /></SelectTrigger>
                         <SelectContent className="rounded-xl">{borewellDiameterOptions.map(o=><SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-2">
                       <Label className="text-[10px] font-black uppercase text-slate-400">Expected Overburden (m)</Label>
-                      <Input disabled={!isAllowed} {...form.register('expectedOverburden')} className="h-11 border-slate-200 font-bold bg-white" />
+                      <Input disabled={!canModify} {...form.register('expectedOverburden')} className="h-11 border-slate-200 font-bold bg-white" />
                     </div>
                     <div className="space-y-2 md:col-span-3">
                       <Label className="text-[10px] font-black uppercase text-slate-400">Additional Borewell Details & Location</Label>
-                      <Textarea disabled={!isAllowed} {...form.register('recommendationBorewell')} rows={3} className="rounded-2xl border-slate-200 italic font-bold uppercase text-xs bg-white" />
+                      <Textarea disabled={!canModify} {...form.register('recommendationBorewell')} rows={3} className="rounded-2xl border-slate-200 italic font-bold uppercase text-xs bg-white" />
                     </div>
                   </div>
                 )}
@@ -676,18 +676,18 @@ function SiteEntryContent() {
                   <div className="animate-in fade-in slide-in-from-top-4 duration-500 bg-slate-50 p-8 rounded-[32px] border border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-2">
                       <Label className="text-[10px] font-black uppercase text-slate-400">Proposed total depth (m)</Label>
-                      <Input disabled={!isAllowed} {...form.register('recOpenwellTotalDepth')} className="h-11 border-slate-200 font-bold bg-white" />
+                      <Input disabled={!canModify} {...form.register('recOpenwellTotalDepth')} className="h-11 border-slate-200 font-bold bg-white" />
                     </div>
                     <div className="space-y-2">
                       <Label className="text-[10px] font-black uppercase text-slate-400">Proposed diameter (m)</Label>
-                      <Select disabled={!isAllowed} onValueChange={v=>form.setValue('recOpenwellDiameter', v)} value={form.watch('recOpenwellDiameter')}>
+                      <Select disabled={!canModify} onValueChange={v=>form.setValue('recOpenwellDiameter', v)} value={form.watch('recOpenwellDiameter')}>
                         <SelectTrigger className="h-11 border-slate-200 font-bold bg-white"><SelectValue placeholder="SELECT" /></SelectTrigger>
                         <SelectContent className="rounded-xl">{openwellDiameterOptions.map(o=><SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-2 md:col-span-2">
                       <Label className="text-[10px] font-black uppercase text-slate-400">Additional Open Well Details & Location</Label>
-                      <Textarea disabled={!isAllowed} {...form.register('recommendationOpenwell')} rows={3} className="rounded-2xl border-slate-200 italic font-bold uppercase text-xs bg-white" />
+                      <Textarea disabled={!canModify} {...form.register('recommendationOpenwell')} rows={3} className="rounded-2xl border-slate-200 italic font-bold uppercase text-xs bg-white" />
                     </div>
                   </div>
                 )}
@@ -696,17 +696,17 @@ function SiteEntryContent() {
 
             <Card><CardHeader className="bg-slate-50/50 border-b py-5 px-10"><CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3"><Users className="size-4 text-primary"/> 23. Staff Team Assignment</CardTitle></CardHeader>
               <CardContent className="p-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                <StaffMultiSelect label="Hydrogeologist" options={filteredStaff.hg} selected={staffFormData.staffAssignment.hydrogeologist} onChange={(names) => updateStaff('hydrogeologist', names)} max={1} disabled={!isAllowed} />
-                <StaffMultiSelect label="Jr. Hydrogeologist" options={filteredStaff.jhg} selected={staffFormData.staffAssignment.juniorHydrogeologist} onChange={(names) => updateStaff('juniorHydrogeologist', names)} max={1} disabled={!isAllowed} />
-                <StaffMultiSelect label="Geological Assistant" options={filteredStaff.ga} selected={staffFormData.staffAssignment.geologicalAssistant} onChange={(names) => updateStaff('geologicalAssistant', names)} max={2} disabled={!isAllowed} />
-                <StaffMultiSelect label="Other Staff" options={filteredStaff.other} selected={staffFormData.staffAssignment.otherStaff} onChange={(names) => updateStaff('otherStaff', names)} max={5} disabled={!isAllowed} />
+                <StaffMultiSelect label="Hydrogeologist" options={filteredStaff.hg} selected={staffFormData.staffAssignment.hydrogeologist} onChange={(names) => updateStaff('hydrogeologist', names)} max={1} disabled={!canModify} />
+                <StaffMultiSelect label="Jr. Hydrogeologist" options={filteredStaff.jhg} selected={staffFormData.staffAssignment.juniorHydrogeologist} onChange={(names) => updateStaff('juniorHydrogeologist', names)} max={1} disabled={!canModify} />
+                <StaffMultiSelect label="Geological Assistant" options={filteredStaff.ga} selected={staffFormData.staffAssignment.geologicalAssistant} onChange={(names) => updateStaff('geologicalAssistant', names)} max={2} disabled={!canModify} />
+                <StaffMultiSelect label="Other Staff" options={filteredStaff.other} selected={staffFormData.staffAssignment.otherStaff} onChange={(names) => updateStaff('otherStaff', names)} max={5} disabled={!canModify} />
               </CardContent>
             </Card>
 
             <div className="flex justify-end pt-8 pb-32">
-                <Button type="submit" disabled={isPending || !isAllowed} className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/20 transition-all hover:scale-[1.02]">
+                <Button type="submit" disabled={isPending || !canModify} className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/20 transition-all hover:scale-[1.02]">
                     {isPending ? <Loader2 className="size-5 animate-spin mr-2" /> : <Save className="size-5 mr-2" />}
-                    {isAllowed ? (id ? 'UPDATE' : 'SAVE') + ' INVESTIGATION RECORD' : 'ACCESS RESTRICTED'}
+                    {canModify ? (id ? 'UPDATE' : 'SAVE') + ' INVESTIGATION RECORD' : 'ACCESS RESTRICTED'}
                 </Button>
             </div>
         </form>
@@ -717,19 +717,12 @@ function SiteEntryContent() {
         onOpenChange={setIsNearbyDialogOpen}
         structureType={selectedNearbyStructure}
         form={form}
-        disabled={!isAllowed}
+        disabled={!canModify}
       />
 
     </div>
   );
 }
-
-const FormFieldItem = ({ label, id, children, className }: {label:string, id:string, children: React.ReactNode, className?:string}) => (
-  <div className={cn("space-y-2", className)}>
-    <Label htmlFor={id} className="text-[10px] font-black uppercase text-slate-500">{label}</Label>
-    {children}
-  </div>
-);
 
 const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, form, disabled}: {isOpen:boolean, onOpenChange:(o:boolean)=>void, structureType:string|null, form:any, disabled:boolean}) => {
   const isBorewell = structureType?.startsWith('borewell');
@@ -738,7 +731,7 @@ const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, form, disab
   return (
   <Dialog open={isOpen} onOpenChange={onOpenChange}>
     <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl text-left">
-      <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight">DETAILS FOR {structureType?.toUpperCase()}</DialogTitle></DialogHeader>
+      <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight text-center">DETAILS FOR {structureType?.toUpperCase()}</DialogTitle></DialogHeader>
       {isBorewell ? (
         <div className="space-y-6 py-4">
           <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Total Depth (m)</Label><Input disabled={disabled} {...form.register(`nearbyBorewell${index}Depth` as any)} /></div>
