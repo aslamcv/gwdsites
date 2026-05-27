@@ -96,7 +96,7 @@ export default function GroundWaterInvestigationPage() {
 
   const isAdmin = useMemo(() => {
     if (isUserLoading) return false;
-    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
+    if (user?.email === MASTER_ADMIN_EMAIL) return true;
     return userProfile?.role === 'admin';
   }, [user, userProfile, isUserLoading]);
 
@@ -123,7 +123,9 @@ export default function GroundWaterInvestigationPage() {
     const map = new Map();
     if (systemUsers) {
       systemUsers.forEach(u => {
-        if (u.uid) map.set(u.uid, u.displayName || u.email);
+        const name = u.displayName || u.email || 'Unknown';
+        if (u.uid) map.set(u.uid, name);
+        if (u.id) map.set(u.id.toLowerCase().trim(), name);
       });
     }
     return map;
@@ -298,7 +300,7 @@ export default function GroundWaterInvestigationPage() {
                     const hasFeasibility = hasBorewellFeasibility || hasOpenwellFeasibility;
                     
                     const canModifyRecord = isAdmin || (user?.uid === r.uploadedBy);
-                    const ownerName = userMap.get(r.uploadedBy) || '---';
+                    const ownerName = userMap.get(r.uploadedBy) || userMap.get(r.uploadedBy?.toLowerCase()) || '---';
 
                     return (
                       <TableRow key={r.id} className="h-20 border-slate-50 hover:bg-slate-50/80 transition-colors group">
@@ -386,8 +388,8 @@ export default function GroundWaterInvestigationPage() {
       
       {/* Data Viewer Dialog */}
       <Dialog open={!!viewingReport} onOpenChange={(open) => !open && setViewingReport(null)}>
-        <DialogContent className="max-w-3xl rounded-[32px] overflow-hidden p-0 border-none shadow-2xl bg-white">
-          <DialogHeader className="p-8 bg-slate-50/50 border-b">
+        <DialogContent className="max-w-3xl rounded-[32px] overflow-hidden p-0 border-none shadow-2xl bg-white text-left">
+          <DialogHeader className="p-8 bg-slate-50/50 border-b text-left">
             <DialogTitle className="text-xl font-black uppercase text-slate-900">Technical Record: {viewingReport?.fileNo || 'Preview'}</DialogTitle>
             <DialogDescription className="text-sm font-medium text-slate-500">Viewing all saved parameters for site: {viewingReport?.nameOfSite || viewingReport?.applicantName || viewingReport?.location}</DialogDescription>
           </DialogHeader>

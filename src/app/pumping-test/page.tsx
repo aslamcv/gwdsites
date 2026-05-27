@@ -115,7 +115,9 @@ export default function PumpingTestLedgerPage() {
     const map = new Map();
     if (systemUsers) {
       systemUsers.forEach(u => {
-        if (u.uid) map.set(u.uid, u.displayName || u.email);
+        const name = u.displayName || u.email || 'Unknown';
+        if (u.uid) map.set(u.uid, name);
+        if (u.id) map.set(u.id.toLowerCase().trim(), name);
       });
     }
     return map;
@@ -238,7 +240,7 @@ export default function PumpingTestLedgerPage() {
                     
                     const isOwner = user?.uid === r.uploadedBy;
                     const canModifyRecord = isAdmin || isOwner;
-                    const ownerName = userMap.get(r.uploadedBy) || '---';
+                    const ownerName = userMap.get(r.uploadedBy) || userMap.get(r.uploadedBy?.toLowerCase()) || '---';
 
                     return (
                       <TableRow key={r.id} className="h-20 border-slate-50 hover:bg-slate-50/50 transition-colors group">
@@ -251,8 +253,8 @@ export default function PumpingTestLedgerPage() {
                         </TableCell>
                         <TableCell>
                            <div className="flex justify-center gap-2">
-                              <Button asChild variant="outline" size="sm" className="h-7 px-3 text-[9px] font-black uppercase bg-blue-50 text-blue-700 border-blue-100 rounded-lg shadow-sm"><Link href={viewUrl} target="_blank"><FileText className="size-3 mr-1.5" /> Completion</Link></Button>
-                              <Button asChild variant="outline" size="sm" className="h-7 px-3 text-[9px] font-black uppercase bg-emerald-50 text-emerald-700 border-emerald-100 rounded-lg shadow-sm"><Link href={`/pumping-test/private/agriculture/yield-test-report?id=${r.id}`} target="_blank"><Activity className="size-3 mr-1.5" /> Yield Report</Link></Button>
+                              <Button asChild variant="outline" size="sm" className="h-7 px-3 text-[9px] font-black uppercase bg-blue-50 text-blue-700 border-blue-100 rounded-lg shadow-sm hover:bg-blue-100"><Link href={viewUrl} target="_blank"><FileText className="size-3 mr-1.5" /> Completion</Link></Button>
+                              <Button asChild variant="outline" size="sm" className="h-7 px-3 text-[9px] font-black uppercase bg-emerald-50 text-emerald-700 border-emerald-100 rounded-lg shadow-sm hover:bg-emerald-200 cursor-pointer"><Link href={`/pumping-test/private/agriculture/yield-test-report?id=${r.id}`} target="_blank"><Activity className="size-3 mr-1.5" /> Yield Report</Link></Button>
                            </div>
                         </TableCell>
                         <TableCell><Badge variant="secondary" className="text-[9px] font-black bg-slate-100 text-slate-500 uppercase tracking-tighter">{isBore ? 'Borewell' : 'Open Well'}</Badge></TableCell>
@@ -278,7 +280,7 @@ export default function PumpingTestLedgerPage() {
           </div>
         </CardContent>
         <CardFooter className="bg-slate-50/50 border-t py-4 px-8 flex justify-between items-center">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Showing {paginatedRecords.length} of {allRecords.length} District Technical Logs</p>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Showing {paginatedRecords.length} of {allRecords.length} District Supervision Logs</p>
             {totalPages > 1 && (
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} className="h-8 rounded-lg font-bold text-[10px] uppercase border-slate-200 bg-white">Previous</Button>

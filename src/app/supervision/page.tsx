@@ -120,7 +120,9 @@ export default function SupervisionLedgerPage() {
     const map = new Map();
     if (systemUsers) {
       systemUsers.forEach(u => {
-        if (u.uid) map.set(u.uid, u.displayName || u.email);
+        const name = u.displayName || u.email || 'Unknown';
+        if (u.uid) map.set(u.uid, name);
+        if (u.id) map.set(u.id.toLowerCase().trim(), name);
       });
     }
     return map;
@@ -316,7 +318,7 @@ export default function SupervisionLedgerPage() {
                     const category = getSupervisionCategory(r);
                     const isOwner = user?.uid === r.uploadedBy;
                     const canModifyRecord = isAdmin || isOwner;
-                    const ownerName = userMap.get(r.uploadedBy) || '---';
+                    const ownerName = userMap.get(r.uploadedBy) || userMap.get(r.uploadedBy?.toLowerCase()) || '---';
 
                     return (
                       <TableRow key={r.id} className="h-20 border-slate-50 hover:bg-slate-50/50 transition-colors group">
