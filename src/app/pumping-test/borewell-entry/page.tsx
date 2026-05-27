@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useMemo, useEffect, Suspense } from 'react';
@@ -98,6 +99,14 @@ function UnifiedBorewellPumpingEntryContent() {
     if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
     return (userProfile?.role === 'admin' || userProfile?.role === 'scientist' || userProfile?.role === 'engineer') && userProfile?.isApproved === true;
   }, [user, userProfile, isUserLoading, isProfileLoading]);
+
+  // Ownership check
+  const isOwner = useMemo(() => {
+    if (!cloudReport || !user) return false;
+    return cloudReport.uploadedBy === user.uid;
+  }, [cloudReport, user]);
+
+  const canModify = isAllowed && (isOwner || user?.email === MASTER_ADMIN_EMAIL || userProfile?.role === 'admin');
 
   // Fetch Employees for staff selection
   const employeesRef = useMemoFirebase(() => {
@@ -200,7 +209,7 @@ function UnifiedBorewellPumpingEntryContent() {
   }, [formData.lsgd, lsgMappings]);
 
   const handleSave = () => {
-    if (!user || !firestore || !isAllowed) return;
+    if (!user || !firestore || !canModify) return;
 
     startTransition(() => {
       const isUpdate = !!id;
@@ -214,6 +223,7 @@ function UnifiedBorewellPumpingEntryContent() {
         purpose: "Pumping Test / Bore Well",
         category: "Pumping Test / Bore Well",
         updatedAt: new Date().toISOString(),
+        uploadedBy: cloudReport?.uploadedBy || user.uid,
         assembly: detectedLac,
         staffAssignment: {
             assistantExecutiveEngineer: formData.staffAssignment.assistantExecutiveEngineer.join(', '),
@@ -260,13 +270,13 @@ function UnifiedBorewellPumpingEntryContent() {
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
                   <CalendarIcon className="size-3 pointer-events-none" /> Test Date
                 </Label>
-                <Input disabled={!isAllowed} type="date" value={formData.reportDate || ''} onChange={(e) => updateField('reportDate', e.target.value)} className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl focus:bg-white" />
+                <Input disabled={!canModify} type="date" value={formData.reportDate || ''} onChange={(e) => updateField('reportDate', e.target.value)} className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl focus:bg-white" />
               </div>
               <div className="space-y-1">
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
                   <Truck className="size-3" /> Conveyance
                 </Label>
-                <Select disabled={!isAllowed} onValueChange={(v) => updateField('conveyance', v)} value={formData.conveyance || ''}>
+                <Select disabled={!canModify} onValueChange={(v) => updateField('conveyance', v)} value={formData.conveyance || ''}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">{conveyanceOptions.map(o => <SelectItem key={o} value={o} className="text-xs font-bold">{o}</SelectItem>)}</SelectContent>
                 </Select>
@@ -275,7 +285,7 @@ function UnifiedBorewellPumpingEntryContent() {
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
                   <Building className="size-3" /> Applied For
                 </Label>
-                <Select disabled={!isAllowed} onValueChange={(v) => updateField('sector', v)} value={formData.sector || ''}>
+                <Select disabled={!canModify} onValueChange={(v) => updateField('sector', v)} value={formData.sector || ''}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">
                     {sectorOptions.map(s => <SelectItem key={s.id} value={s.id} className="text-[10px] font-black uppercase">{s.label}</SelectItem>)}
@@ -286,7 +296,7 @@ function UnifiedBorewellPumpingEntryContent() {
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
                   <SearchCode className="size-3" /> Sub Category
                 </Label>
-                <Select disabled={!isAllowed} onValueChange={(v) => updateField('category', v)} value={formData.category || ''}>
+                <Select disabled={!canModify} onValueChange={(v) => updateField('category', v)} value={formData.category || ''}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">
                     {categoryMappings[formData.sector]?.map(c => <SelectItem key={c} value={c} className="text-[10px] font-black uppercase">{c}</SelectItem>)}
@@ -308,15 +318,15 @@ function UnifiedBorewellPumpingEntryContent() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Name of Site</Label>
-              <Input disabled={!isAllowed} value={formData.nameOfSite || ''} onChange={(e) => updateField('nameOfSite', e.target.value)} className="h-11 border-slate-200 uppercase font-bold text-primary focus:bg-white" />
+              <Input disabled={!canModify} value={formData.nameOfSite || ''} onChange={(e) => updateField('nameOfSite', e.target.value)} className="h-11 border-slate-200 uppercase font-bold text-primary focus:bg-white" />
             </div>
             <div className="space-y-2 lg:col-span-1">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Address</Label>
-              <Input disabled={!isAllowed} value={formData.address || ''} onChange={(e) => updateField('address', e.target.value)} className="h-11 border-slate-200" />
+              <Input disabled={!canModify} value={formData.address || ''} onChange={(e) => updateField('address', e.target.value)} className="h-11 border-slate-200" />
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">LSGD</Label>
-              <Select disabled={!isAllowed} onValueChange={(v) => updateField('lsgd', v)} value={formData.lsgd || ''}>
+              <Select disabled={!canModify} onValueChange={(v) => updateField('lsgd', v)} value={formData.lsgd || ''}>
                 <SelectTrigger className="h-11 border-slate-200 font-bold"><SelectValue placeholder="Select" /></SelectTrigger>
                 <SelectContent className="max-h-[400px] rounded-2xl">{lsgs.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
               </Select>
@@ -332,19 +342,19 @@ function UnifiedBorewellPumpingEntryContent() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Depth (m)</Label>
-              <Input disabled={!isAllowed} type="number" value={formData.depthOfWell || ''} onChange={(e) => updateField('depthOfWell', e.target.value)} className="h-11 border-slate-200 font-bold" />
+              <Input disabled={!canModify} type="number" value={formData.depthOfWell || ''} onChange={(e) => updateField('depthOfWell', e.target.value)} className="h-11 border-slate-200 font-bold" />
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Diameter (m)</Label>
-              <Input disabled={!isAllowed} value={formData.diameterOfWell || ''} onChange={(e) => updateField('diameterOfWell', e.target.value)} className="h-11 border-slate-200" />
+              <Input disabled={!canModify} value={formData.diameterOfWell || ''} onChange={(e) => updateField('diameterOfWell', e.target.value)} className="h-11 border-slate-200" />
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Static WL (mbmp)</Label>
-              <Input disabled={!isAllowed} type="number" value={formData.staticWaterLevel || ''} onChange={(e) => updateField('staticWaterLevel', e.target.value)} className="h-11 border-slate-200 font-bold text-blue-600" />
+              <Input disabled={!canModify} type="number" value={formData.staticWaterLevel || ''} onChange={(e) => updateField('staticWaterLevel', e.target.value)} className="h-11 border-slate-200 font-bold text-blue-600" />
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Avg Discharge (lpm)</Label>
-              <Input disabled={!isAllowed} type="number" value={formData.averageDischarge || ''} onChange={(e) => updateField('averageDischarge', e.target.value)} className="h-11 border-slate-200 font-black text-primary" />
+              <Input disabled={!canModify} type="number" value={formData.averageDischarge || ''} onChange={(e) => updateField('averageDischarge', e.target.value)} className="h-11 border-slate-200 font-black text-primary" />
             </div>
           </div>
         </CardContent>
@@ -380,12 +390,12 @@ function UnifiedBorewellPumpingEntryContent() {
                   {timeIntervals.map((time, i) => (
                       <TableRow key={i} className={cn("h-11 border-slate-100", i % 2 === 0 ? "bg-white" : "bg-slate-50/20")}>
                           <TableCell className="text-center font-black text-slate-400 text-[10px] border-r">{time}</TableCell>
-                          <TableCell className="p-1 border-r"><Input disabled={!isAllowed} value={formData.step1[i]?.waterLevel || ''} onChange={e => updateTableData('step1', i, 'waterLevel', e.target.value)} className="h-8 text-center text-xs border-transparent bg-transparent" /></TableCell>
-                          <TableCell className="p-1 border-r bg-blue-50/10"><Input disabled={!isAllowed} value={formData.step1[i]?.drawdown || ''} onChange={e => updateTableData('step1', i, 'drawdown', e.target.value)} className="h-8 text-center text-xs border-transparent bg-transparent font-bold text-blue-700" /></TableCell>
-                          <TableCell className="p-1 border-r"><Input disabled={!isAllowed} value={formData.step2[i]?.waterLevel || ''} onChange={e => updateTableData('step2', i, 'waterLevel', e.target.value)} className="h-8 text-center text-xs border-transparent bg-transparent" /></TableCell>
-                          <TableCell className="p-1 border-r bg-emerald-50/10"><Input disabled={!isAllowed} value={formData.step2[i]?.drawdown || ''} onChange={e => updateTableData('step2', i, 'drawdown', e.target.value)} className="h-8 text-center text-xs border-transparent bg-transparent font-bold text-emerald-700" /></TableCell>
-                          <TableCell className="p-1 border-r"><Input disabled={!isAllowed} value={formData.step3[i]?.waterLevel || ''} onChange={(e) => updateTableData('step3', i, 'waterLevel', e.target.value)} className="h-8 text-center text-xs border-transparent bg-transparent" /></TableCell>
-                          <TableCell className="p-1 bg-amber-50/10"><Input disabled={!isAllowed} value={formData.step3[i]?.drawdown || ''} onChange={(e) => updateTableData('step3', i, 'drawdown', e.target.value)} className="h-8 text-center text-xs border-transparent bg-transparent font-bold text-amber-700" /></TableCell>
+                          <TableCell className="p-1 border-r"><Input disabled={!canModify} value={formData.step1[i]?.waterLevel || ''} onChange={e => updateTableData('step1', i, 'waterLevel', e.target.value)} className="h-8 text-center text-xs border-transparent bg-transparent" /></TableCell>
+                          <TableCell className="p-1 border-r bg-blue-50/10"><Input disabled={!canModify} value={formData.step1[i]?.drawdown || ''} onChange={e => updateTableData('step1', i, 'drawdown', e.target.value)} className="h-8 text-center text-xs border-transparent bg-transparent font-bold text-blue-700" /></TableCell>
+                          <TableCell className="p-1 border-r"><Input disabled={!canModify} value={formData.step2[i]?.waterLevel || ''} onChange={e => updateTableData('step2', i, 'waterLevel', e.target.value)} className="h-8 text-center text-xs border-transparent bg-transparent" /></TableCell>
+                          <TableCell className="p-1 border-r bg-emerald-50/10"><Input disabled={!canModify} value={formData.step2[i]?.drawdown || ''} onChange={e => updateTableData('step2', i, 'drawdown', e.target.value)} className="h-8 text-center text-xs border-transparent bg-transparent font-bold text-emerald-700" /></TableCell>
+                          <TableCell className="p-1 border-r"><Input disabled={!canModify} value={formData.step3[i]?.waterLevel || ''} onChange={(e) => updateTableData('step3', i, 'waterLevel', e.target.value)} className="h-8 text-center text-xs border-transparent bg-transparent" /></TableCell>
+                          <TableCell className="p-1 bg-amber-50/10"><Input disabled={!canModify} value={formData.step3[i]?.drawdown || ''} onChange={(e) => updateTableData('step3', i, 'drawdown', e.target.value)} className="h-8 text-center text-xs border-transparent bg-transparent font-bold text-amber-700" /></TableCell>
                       </TableRow>
                   ))}
                 </TableBody>
@@ -401,10 +411,10 @@ function UnifiedBorewellPumpingEntryContent() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-           <StaffMultiSelect label="Asst. Exec. Engineer" options={filteredStaff.aee} selected={formData.staffAssignment.assistantExecutiveEngineer} onChange={(names) => updateStaff('assistantExecutiveEngineer', names)} max={1} disabled={!isAllowed} />
-           <StaffMultiSelect label="Assistant Engineer" options={filteredStaff.ae} selected={formData.staffAssignment.assistantEngineer} onChange={(names) => updateStaff('assistantEngineer', names)} max={1} disabled={!isAllowed} />
-           <StaffMultiSelect label="Site Supervisor" options={filteredStaff.sup} selected={formData.staffAssignment.supervisor} onChange={(names) => updateStaff('supervisor', names)} max={1} disabled={!isAllowed} />
-           <StaffMultiSelect label="Other Staff" options={filteredStaff.other} selected={formData.staffAssignment.otherStaff} onChange={(names) => updateStaff('otherStaff', names)} max={10} disabled={!isAllowed} />
+           <StaffMultiSelect label="Asst. Exec. Engineer" options={filteredStaff.aee} selected={formData.staffAssignment.assistantExecutiveEngineer} onChange={(names) => updateStaff('assistantExecutiveEngineer', names)} max={1} disabled={!canModify} />
+           <StaffMultiSelect label="Assistant Engineer" options={filteredStaff.ae} selected={formData.staffAssignment.assistantEngineer} onChange={(names) => updateStaff('assistantEngineer', names)} max={1} disabled={!canModify} />
+           <StaffMultiSelect label="Site Supervisor" options={filteredStaff.sup} selected={formData.staffAssignment.supervisor} onChange={(names) => updateStaff('supervisor', names)} max={1} disabled={!canModify} />
+           <StaffMultiSelect label="Other Staff" options={filteredStaff.other} selected={formData.staffAssignment.otherStaff} onChange={(names) => updateStaff('otherStaff', names)} max={10} disabled={!canModify} />
         </CardContent>
       </Card>
 
@@ -420,10 +430,10 @@ function UnifiedBorewellPumpingEntryContent() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4 pr-2">
-            <Button onClick={handleSave} disabled={isPending || !isAllowed} className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/30 gap-3 hover:bg-blue-900 transition-all hover:scale-[1.02] active:scale-95">
+          <div className="pr-2">
+            <Button onClick={handleSave} disabled={isPending || !canModify} className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/30 gap-3 hover:bg-blue-900 transition-all hover:scale-[1.02] active:scale-95">
               {isPending ? <Loader2 className="size-5 animate-spin" /> : <Save className="size-5" />} 
-              {isAllowed ? (id ? 'UPDATE TEST RECORD' : 'SAVE TEST RECORD') : 'ACCESS RESTRICTED'}
+              {canModify ? (id ? 'UPDATE TEST RECORD' : 'SAVE TEST RECORD') : <Lock className="size-4" />}
             </Button>
           </div>
         </div>

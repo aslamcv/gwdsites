@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useSearchParams } from 'next/navigation';
@@ -22,7 +23,7 @@ function ReportContent() {
     return doc(firestore, 'groundwaterReports', id);
   }, [firestore, id]);
 
-  const { data: cloudReport, isLoading } = useDoc<GroundwaterReport>(reportRef);
+  const { data: cloudReport, isLoading: isReportLoading } = useDoc<GroundwaterReport>(reportRef);
 
   useEffect(() => {
     if (cloudReport?.fileNo) {
@@ -44,7 +45,7 @@ function ReportContent() {
     return null;
   }, [cloudReport]);
 
-  if (isLoading && id) {
+  if (isReportLoading && id) {
     return (
       <div className="min-h-screen bg-slate-50 p-8 flex flex-col items-center">
         <Skeleton className="h-[1000px] w-full max-w-[800px] bg-white shadow-xl rounded-none" />

@@ -32,6 +32,11 @@ service cloud.firestore {
       return isMasterAdmin() || (exists(userPath) && get(userPath).data.role == 'admin');
     }
 
+    // Helper to check ownership of technical records
+    function isOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.uploadedBy;
+    }
+
     // --- COLLECTION RULES ---
 
     // 1. Global Application Settings: Shared read, Admin modify.
@@ -52,37 +57,22 @@ service cloud.firestore {
       allow write: if isApproved() || isAdmin();
     }
 
-    // 4. Technical Reports Hub: Unified permissions for all approved technical roles
+    // 4. Technical Reports Hub: Enforcing Ownership or Administrative Override
     match /groundwaterReports/{reportId} {
       allow read: if isAuthenticated();
       
       // Allow any approved staff member to create records
       allow create: if isApproved() || isAdmin();
       
-      // Allow updates if:
-      // 1. The user is the original uploader (Owner) - Check UID and Email fallbacks
-      // 2. The user is an approved technical staff member
-      // 3. The user is a System Administrator
-      allow update: if isAuthenticated() && (
-        request.auth.uid == resource.data.uploadedBy || 
-        getUserEmail() == resource.data.uploadedBy ||
-        isApproved() || 
-        isAdmin()
-      );
-      
-      // Allow deletion if the user is:
-      // 1. A System Administrator
-      // 2. An approved technical staff member
-      // 3. The original owner of the record (checking both UID and Email for robustness)
-      allow delete: if isAdmin() || isApproved() || (isAuthenticated() && (request.auth.uid == resource.data.uploadedBy || getUserEmail() == resource.data.uploadedBy));
+      // Strict Ownership: Only the creator or an Admin can modify/delete
+      allow update: if isAdmin() || isOwner();
+      allow delete: if isAdmin() || isOwner();
     }
 
     // 5. User Profiles: Centralized profiles indexed by email.
     match /users/{userEmail} {
-      // allow get for unauthenticated to check registration status during login
       allow get: if true; 
       allow list: if isAuthenticated();
-      // Only admins or the owner can update the profile
       allow create: if isAdmin() || (isAuthenticated() && getUserEmail() == userEmail.lower());
       allow update: if isAdmin() || (isAuthenticated() && getUserEmail() == userEmail.lower());
       allow delete: if isAdmin();

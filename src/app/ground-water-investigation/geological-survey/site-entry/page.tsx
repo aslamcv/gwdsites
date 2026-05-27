@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -6,22 +7,17 @@ import {
   ArrowLeft, 
   Save, 
   ClipboardList, 
-  Calendar as CalendarIcon, 
+  Calendar, 
   Loader2, 
-  PlusCircle, 
   MapPin, 
-  ChevronDown, 
-  Activity, 
-  Settings, 
-  ShieldCheck, 
-  Users, 
-  Lock, 
   SearchCode, 
-  Calculator, 
-  ArrowRight,
-  Truck,
-  Building,
-  X
+  Users, 
+  ShieldCheck, 
+  Settings, 
+  ChevronDown, 
+  Lock, 
+  Activity, 
+  X 
 } from 'lucide-react';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
@@ -51,26 +47,16 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue, SelectSeparator } from '@/components/ui/select';
 import { useLsgdData } from '@/hooks/use-lsgd-data';
 import { useState, useTransition, useEffect, useMemo, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { 
-  useCollection, 
-  useUser, 
-  useFirestore, 
-  errorEmitter, 
-  FirestorePermissionError, 
-  useDoc, 
-  useMemoFirebase, 
-  updateDocumentNonBlocking, 
-  setDocumentNonBlocking 
-} from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase } from '@/firebase';
+import { collection, doc, updateDoc, setDoc } from 'firebase/firestore';
 import type { GroundwaterReport, Employee } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -145,17 +131,6 @@ const reportSchema = z.object({
 
 type ReportFormValues = z.infer<typeof reportSchema>;
 
-const borewellDiameterOptions = [
-  { value: '110mm', label: '110mm (4.5")' },
-  { value: '150mm', label: '150mm (6")' },
-  { value: '200mm', label: '200mm (8")' },
-];
-
-const openwellDiameterOptions = Array.from({ length: 11 }, (_, i) => {
-  const val = (1 + i * 0.5).toString();
-  return { value: val, label: `${val}m` };
-});
-
 const recommendationTypeOptions = [
   { value: 'borewell', label: 'Bore well' },
   { value: 'openwell', label: 'Open well' },
@@ -174,19 +149,16 @@ const villageOptions = [
   { label: "Kondotty Taluk", options: ["Edarikkode", "Kizhisseri", "Kondotty", "Kuzhimanna", "Morayur", "Muthuvallur", "Nediyiruppu", "Pallikkal", "Pulikkal", "Vazhakkad", "Vazhayur"] }
 ];
 
-const sectorOptions = [
-  { id: 'private', label: 'Private' },
-  { id: 'government', label: 'Government' },
-  { id: 'local_bodies', label: 'Local Bodies' },
-  { id: 'others', label: 'Others' },
+const borewellDiameterOptions = [
+  { value: '110mm', label: '110mm (4.5")' },
+  { value: '150mm', label: '150mm (6")' },
+  { value: '200mm', label: '200mm (8")' },
 ];
 
-const categoryMappings: Record<string, string[]> = {
-  private: ["Domestic", "Agriculture", "Industrial", "Infrastructure", "Institutional", "Others"],
-  government: ["Institutional", "Infrastructure", "Industrial", "Others"],
-  local_bodies: ["Scheme", "Institutional"],
-  others: ["Miscellaneous", "Emergency Work", "Special Survey"]
-};
+const openwellDiameterOptions = Array.from({ length: 11 }, (_, i) => {
+  const val = (1 + i * 0.5).toString();
+  return { value: val, label: `${val}m` };
+});
 
 const conveyanceOptions = [
   "TATA SUMO GOLD (KL01CE7618)",
@@ -211,6 +183,7 @@ function SiteEntryContent() {
   const [selectedNearbyStructure, setSelectedNearbyStructure] = useState<string | null>(null);
   const [isVillageManual, setIsVillageManual] = useState(false);
 
+  // Role detection
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user?.email) return null;
     return doc(firestore, 'users', user.email.toLowerCase().trim());
@@ -326,6 +299,7 @@ function SiteEntryContent() {
         purpose: "Ground Water Investigation / Geological Survey",
         dateOfInvestigation,
         updatedAt: new Date().toISOString(),
+        uploadedBy: cloudReport?.uploadedBy || user.uid,
         staffAssignment: {
             hydrogeologist: staffFormData.staffAssignment.hydrogeologist.join(', '),
             juniorHydrogeologist: staffFormData.staffAssignment.juniorHydrogeologist.join(', '),
@@ -334,10 +308,14 @@ function SiteEntryContent() {
         }
       };
 
-      const operation = isUpdate ? updateDocumentNonBlocking(reportDocRef, reportData) : setDocumentNonBlocking(reportDocRef, reportData, { merge: true });
+      const operation = isUpdate ? updateDoc(reportDocRef, reportData) : setDoc(reportDocRef, reportData);
 
-      toast({ title: 'Technical Sync Complete', description: 'Investigation record synchronized with central node.' });
-      router.push('/ground-water-investigation');
+      operation.then(() => {
+        toast({ title: 'Technical Sync Complete', description: 'Investigation record synchronized with central node.' });
+        router.push('/ground-water-investigation');
+      }).catch(async (error) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: reportDocRef.path, operation: isUpdate ? 'update' : 'create', requestResourceData: reportData }));
+      });
     });
   };
 
@@ -392,7 +370,9 @@ function SiteEntryContent() {
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><Truck className="size-3" /> Conveyance</Label>
                 <Select disabled={!isAllowed} onValueChange={(v) => updateStaffField('conveyance', v)} value={staffFormData.conveyance}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl"><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent className="rounded-xl border-slate-200">{conveyanceOptions.map(o => <SelectItem key={o} value={o} className="text-xs font-bold">{o}</SelectItem>)}</SelectContent>
+                  <SelectContent className="rounded-xl border-slate-200">
+                    {conveyanceOptions.map(o => <SelectItem key={o} value={o} className="text-xs font-bold">{o}</SelectItem>)}
+                  </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
@@ -405,7 +385,7 @@ function SiteEntryContent() {
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><SearchCode className="size-3" /> Category</Label>
+                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><SearchCode className="size-3" /> Sub Category</Label>
                 <Select disabled={!isAllowed} onValueChange={(v) => updateStaffField('category', v)} value={staffFormData.category}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">
@@ -513,7 +493,7 @@ function SiteEntryContent() {
                   <FormItem> 
                     <FormLabel className="text-[10px] font-black uppercase text-slate-500">13. Block</FormLabel> 
                     <Select disabled={!isAllowed} onValueChange={field.onChange} value={field.value}>
-                      <FormControl><SelectTrigger className="h-10 text-xs font-bold uppercase"><SelectValue/></SelectTrigger></FormControl>
+                      <FormControl><SelectTrigger className="h-10 text-xs font-bold uppercase"><SelectValue placeholder="SELECT BLOCK" /></SelectTrigger></FormControl>
                       <SelectContent className="rounded-xl">
                         {blockOptions.map(o => <SelectItem key={o} value={o} className="text-[10px] font-bold uppercase">{o}</SelectItem>)}
                       </SelectContent>
@@ -613,8 +593,6 @@ function SiteEntryContent() {
               <CardContent className="p-10 space-y-10">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start text-left">
                     <FormField control={form.control} name="recommendationType" render={({ field }) => {
-                      const currentType = field.value || '';
-                      const isTypeInList = recommendationTypeOptions.some(o => o.value === currentType);
                       return (
                         <FormItem className="w-full">
                           <FormLabel className="text-[10px] font-black uppercase text-slate-400">Recommendation Type</FormLabel>
@@ -665,7 +643,7 @@ function SiteEntryContent() {
                     <div className="space-y-2">
                       <Label className="text-[10px] font-black uppercase text-slate-400">Proposed diameter</Label>
                       <Select disabled={!isAllowed} onValueChange={v=>form.setValue('recBorewellDiameter', v)} value={form.watch('recBorewellDiameter')}>
-                        <SelectTrigger className="h-11 border-slate-200 font-bold bg-white"><SelectValue/></SelectTrigger>
+                        <SelectTrigger className="h-11 border-slate-200 font-bold bg-white"><SelectValue placeholder="SELECT" /></SelectTrigger>
                         <SelectContent className="rounded-xl">{borewellDiameterOptions.map(o=><SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
@@ -689,7 +667,7 @@ function SiteEntryContent() {
                     <div className="space-y-2">
                       <Label className="text-[10px] font-black uppercase text-slate-400">Proposed diameter (m)</Label>
                       <Select disabled={!isAllowed} onValueChange={v=>form.setValue('recOpenwellDiameter', v)} value={form.watch('recOpenwellDiameter')}>
-                        <SelectTrigger className="h-11 border-slate-200 font-bold bg-white"><SelectValue/></SelectTrigger>
+                        <SelectTrigger className="h-11 border-slate-200 font-bold bg-white"><SelectValue placeholder="SELECT" /></SelectTrigger>
                         <SelectContent className="rounded-xl">{openwellDiameterOptions.map(o=><SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
@@ -725,20 +703,14 @@ function SiteEntryContent() {
         onOpenChange={setIsNearbyDialogOpen}
         structureType={selectedNearbyStructure}
         form={form}
+        disabled={!isAllowed}
       />
 
     </div>
   );
 }
 
-const FormFieldItem = ({ label, id, children, className }: {label:string, id:string, children: React.ReactNode, className?:string}) => (
-  <div className={cn("space-y-2", className)}>
-    <Label htmlFor={id} className="text-[10px] font-black uppercase text-slate-500">{label}</Label>
-    {children}
-  </div>
-);
-
-const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, form}: {isOpen:boolean, onOpenChange:(o:boolean)=>void, structureType:string|null, form:any}) => {
+const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, form, disabled}: {isOpen:boolean, onOpenChange:(o:boolean)=>void, structureType:string|null, form:any, disabled:boolean}) => {
   const isBorewell = structureType?.startsWith('borewell');
   const index = structureType ? parseInt(structureType.slice(-1)) : 1;
   
@@ -748,18 +720,18 @@ const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, form}: {isO
       <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight">DETAILS FOR {structureType?.toUpperCase()}</DialogTitle></DialogHeader>
       {isBorewell ? (
         <div className="space-y-6 py-4">
-          <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Total Depth (m)</Label><Input {...form.register(`nearbyBorewell${index}Depth` as any)} /></div>
-          <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Diameter</Label><Input {...form.register(`nearbyBorewell${index}Diameter` as any)} /></div>
-          <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Fracture Zones</Label><Input {...form.register(`nearbyBorewell${index}Zones` as any)} /></div>
+          <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Total Depth (m)</Label><Input disabled={disabled} {...form.register(`nearbyBorewell${index}Depth` as any)} /></div>
+          <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Diameter</Label><Input disabled={disabled} {...form.register(`nearbyBorewell${index}Diameter` as any)} /></div>
+          <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Fracture Zones</Label><Input disabled={disabled} {...form.register(`nearbyBorewell${index}Zones` as any)} /></div>
         </div>
       ) : (
          <div className="space-y-6 py-4">
-          <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Total Depth (m)</Label><Input {...form.register(`nearbyOpenwell${index}Depth` as any)} /></div>
-          <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Water Level (m)</Label><Input {...form.register(`nearbyOpenwell${index}WaterLevel` as any)} /></div>
-          <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Parapet (m)</Label><Input {...form.register(`nearbyOpenwell${index}ParapetHeight` as any)} /></div>
+          <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Total Depth (m)</Label><Input disabled={disabled} {...form.register(`nearbyOpenwell${index}Depth` as any)} /></div>
+          <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Water Level (m)</Label><Input disabled={disabled} {...form.register(`nearbyOpenwell${index}WaterLevel` as any)} /></div>
+          <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Parapet (m)</Label><Input disabled={disabled} {...form.register(`nearbyOpenwell${index}ParapetHeight` as any)} /></div>
           <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Type</Label>
-            <Select onValueChange={v=>form.setValue(`nearbyOpenwell${index}Type` as any, v)} value={form.watch(`nearbyOpenwell${index}Type` as any)}>
-                <SelectTrigger className="h-10 text-xs bg-slate-50/50 border-slate-200"><SelectValue /></SelectTrigger>
+            <Select disabled={disabled} onValueChange={v=>form.setValue(`nearbyOpenwell${index}Type` as any, v)} value={form.watch(`nearbyOpenwell${index}Type` as any)}>
+                <SelectTrigger className="h-10 text-xs bg-slate-50/50 border-slate-200"><SelectValue placeholder="SELECT" /></SelectTrigger>
                 <SelectContent className="rounded-xl border-slate-200">
                     <SelectItem value="Perennial" className="text-xs font-bold uppercase">Perennial</SelectItem>
                     <SelectItem value="Seasonal" className="text-xs font-bold uppercase">Seasonal</SelectItem>
