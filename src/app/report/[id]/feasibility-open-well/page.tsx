@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
@@ -7,10 +6,10 @@ import type { GroundwaterReport } from '@/lib/types';
 import { use, useEffect, Suspense } from 'react';
 import { Printer, ArrowLeft, MapPin, Construction, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSearchParams } from 'next/navigation';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { formatToTechnicalDate } from '@/lib/malayalam-utils';
 

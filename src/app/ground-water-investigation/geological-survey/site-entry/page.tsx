@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -21,7 +20,8 @@ import {
   Calculator, 
   ArrowRight,
   Truck,
-  Building
+  Building,
+  X
 } from 'lucide-react';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
@@ -53,11 +53,11 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue, SelectSeparator } from '@/components/ui/select';
 import { useLsgdData } from '@/hooks/use-lsgd-data';
 import { useState, useTransition, useEffect, useMemo, Suspense } from 'react';
-import { Badge } from '@/components/ui/badge';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   useCollection, 
@@ -158,6 +158,12 @@ const recommendationTypeOptions = [
   { value: 'not_feasible', label: 'Not feasible for Open well & Bore well' },
 ];
 
+const blockOptions = [
+  "Areekode", "Perumpadappu", "Kalikavu", "Kondotty", "Kuttippuram", 
+  "Malappuram", "Mankada", "Nilambur", "Perinthalmanna", "Ponnani", 
+  "Tanur", "Tirur", "Tirurangadi", "Vengara", "Wandoor"
+];
+
 const villageOptions = [
   { label: "Eranad Taluk", options: ["Anakkayam", "Areacode", "Chembrasseri", "Cheekode", "Edavanna", "Elankur", "Karakunnu", "Kavanur", "Keezhuparamba", "Kizhuparamba", "Kodur", "Malappuram", "Manjeri", "Melmuri", "Narukara", "Panakkad", "Pandikkad", "Payyanad", "Perakamanna", "Pookkottur", "Pulpatta", "Trikkalangode", "Urangattiri", "Vettilappara", "Vettikattiri"] },
   { label: "Nilambur Taluk", options: ["Akampadam", "Amarambalam", "Chungathara", "Edakkara", "Karulai", "Karuvarakundu", "Kalikavu", "Mampad", "Moothedam", "Nilambur", "Pothukal", "Vazhikkadavu", "Chokkad"] },
@@ -166,12 +172,6 @@ const villageOptions = [
   { label: "Tirurangadi Taluk", options: ["Thenhipalam", "Chelembra", "Cherukavu", "Moonniyur", "Nannambra", "Neduva", "Oorakam", "Parappanangadi", "Parappur", "Peruvallur", "Vallikkunnu", "Vengara", "Velimukku", "Ponmundam", "Tanalur", "Tirurangadi", "Kottakkal"] },
   { label: "Ponnani Taluk", options: ["Alamkode", "Edappal", "Marancheri", "Nannammukku", "Perumpadappa", "Ponnani Nagaram", "Tavanur", "Vattamkulam", "Veliyankode"] },
   { label: "Kondotty Taluk", options: ["Edarikkode", "Kizhisseri", "Kondotty", "Kuzhimanna", "Morayur", "Muthuvallur", "Nediyiruppu", "Pallikkal", "Pulikkal", "Vazhakkad", "Vazhayur"] }
-];
-
-const blockOptions = [
-  "Areekode", "Perumpadappu", "Kalikavu", "Kondotty", "Kuttippuram", 
-  "Malappuram", "Mankada", "Nilambur", "Perinthalmanna", "Ponnani", 
-  "Tanur", "Tirur", "Tirurangadi", "Vengara", "Wandoor"
 ];
 
 const sectorOptions = [
@@ -438,28 +438,20 @@ function SiteEntryContent() {
                 <FormField control={form.control} name="applicationDate" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">7. Date of application</FormLabel> <FormControl><Input disabled={!isAllowed} type="date" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
                 
                 <FormField control={form.control} name="village" render={({ field }) => {
-                  const currentVillage = field.value || '';
-                  const isVillageInList = villageOptions.some(group => group.options.includes(currentVillage));
+                  const currentVal = field.value || "";
+                  const inList = villageOptions.some(g => g.options.includes(currentVal));
                   return (
                     <FormItem> 
                       <FormLabel className="text-[10px] font-black uppercase text-slate-500">8. Village</FormLabel> 
-                      <Select disabled={!isAllowed} onValueChange={(val) => {
-                        if (val === 'MANUAL_ENTRY_TRIGGER') {
-                          setIsManualVillageOpen(true);
-                        } else {
-                          field.onChange(val);
-                        }
-                      }} value={field.value}>
+                      <Select disabled={!isAllowed} onValueChange={(val) => val === 'MANUAL' ? setIsManualVillageOpen(true) : field.onChange(val)} value={field.value}>
                         <FormControl>
-                          <SelectTrigger className="h-10 text-xs font-bold uppercase border-slate-200">
+                          <SelectTrigger className="h-10 text-xs font-bold uppercase border-slate-200 shadow-sm bg-slate-50/50 focus:bg-white">
                             <SelectValue placeholder="SELECT VILLAGE" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent className="max-h-[400px] rounded-2xl">
-                          {!isVillageInList && currentVillage && currentVillage !== 'MANUAL_ENTRY_TRIGGER' && (
-                            <SelectItem value={currentVillage} className="rounded-xl py-2.5 px-6 font-bold text-xs uppercase cursor-pointer bg-blue-50/50">
-                              {currentVillage}
-                            </SelectItem>
+                          {!inList && currentVal && currentVal !== 'MANUAL' && (
+                            <SelectItem value={currentVal} className="font-black text-blue-600 bg-blue-50/50 uppercase py-3 px-6 rounded-xl mb-1">{currentVal}</SelectItem>
                           )}
                           {villageOptions.map((group, groupIdx) => (
                             <SelectGroup key={groupIdx}>
@@ -470,7 +462,7 @@ function SiteEntryContent() {
                             </SelectGroup>
                           ))}
                           <SelectSeparator />
-                          <SelectItem value="MANUAL_ENTRY_TRIGGER" className="rounded-xl py-3 px-6 font-black text-xs uppercase cursor-pointer text-blue-600 bg-blue-50 hover:bg-blue-100">
+                          <SelectItem value="MANUAL" className="rounded-xl py-3 px-6 font-black text-xs uppercase cursor-pointer text-blue-600 bg-blue-50 hover:bg-blue-100">
                             <div className="flex items-center gap-2">
                               <PlusCircle className="size-4" /> MANUAL ENTRY
                             </div>
@@ -486,23 +478,23 @@ function SiteEntryContent() {
                 <FormField control={form.control} name="altitude" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">10. Altitude</FormLabel> <FormControl><Input disabled={!isAllowed} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
                 <FormField control={form.control} name="lsgd" render={({ field }) => {
                   const currentLsgd = field.value || '';
-                  const isLsgdInList = lsgs.includes(currentLsgd);
+                  const inList = lsgs.includes(currentLsgd);
                   return (
                     <FormItem> 
                       <FormLabel className="text-[10px] font-black uppercase text-slate-500">11. LSGD</FormLabel> 
                       <Select disabled={!isAllowed} onValueChange={field.onChange} value={field.value}>
                         <FormControl>
-                          <SelectTrigger className="h-10 text-xs font-bold uppercase">
+                          <SelectTrigger className="h-10 text-xs font-bold uppercase bg-slate-50/50 focus:bg-white">
                             <SelectValue placeholder="SELECT LSGD" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent className="max-h-[400px] rounded-2xl">
-                          {!isLsgdInList && currentLsgd && (
-                            <SelectItem value={currentLsgd} className="text-[10px] font-bold uppercase bg-blue-50/50">
+                          {!inList && currentLsgd && (
+                            <SelectItem value={currentLsgd} className="font-black text-blue-600 bg-blue-50/50 py-3 px-6 rounded-xl mb-1">
                               {currentLsgd}
                             </SelectItem>
                           )}
-                          {lsgs.map(l => <SelectItem key={l} value={l} className="text-[10px] font-bold uppercase">{l}</SelectItem>)}
+                          {lsgs.map(l => <SelectItem key={l} value={l} className="text-[10px] font-bold uppercase py-2.5 px-6 rounded-xl">{l}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </FormItem> 
@@ -516,14 +508,14 @@ function SiteEntryContent() {
                 )} />
                 <FormField control={form.control} name="block" render={({ field }) => {
                   const currentBlock = field.value || '';
-                  const isBlockInList = blockOptions.includes(currentBlock);
+                  const inList = blockOptions.includes(currentBlock);
                   return (
                     <FormItem> 
                       <FormLabel className="text-[10px] font-black uppercase text-slate-500">13. Block</FormLabel> 
                       <Select disabled={!isAllowed} onValueChange={field.onChange} value={field.value}>
                         <FormControl><SelectTrigger className="h-10 text-xs font-bold uppercase"><SelectValue/></SelectTrigger></FormControl>
                         <SelectContent className="rounded-xl">
-                          {!isBlockInList && currentBlock && (
+                          {!inList && currentBlock && (
                             <SelectItem value={currentBlock} className="text-[10px] font-bold uppercase bg-blue-50/50">{currentBlock}</SelectItem>
                           )}
                           {blockOptions.map(o => <SelectItem key={o} value={o} className="text-[10px] font-bold uppercase">{o}</SelectItem>)}
@@ -632,7 +624,7 @@ function SiteEntryContent() {
                           <FormLabel className="text-[10px] font-black uppercase text-slate-400">Recommendation Type</FormLabel>
                           <Select disabled={!isAllowed} onValueChange={field.onChange} value={field.value}>
                             <FormControl>
-                              <SelectTrigger className="h-14 border-slate-200 rounded-2xl font-black uppercase text-xs tracking-widest shadow-sm">
+                              <SelectTrigger className="h-14 border-slate-200 rounded-2xl font-black uppercase text-xs tracking-widest shadow-sm bg-slate-50/50 focus:bg-white">
                                 <SelectValue placeholder="SELECT TYPE" />
                               </SelectTrigger>
                             </FormControl>
@@ -676,23 +668,23 @@ function SiteEntryContent() {
                 {(recommendationType === 'borewell' || recommendationType === 'tubewell' || recommendationType === 'filterpoint') && (
                   <div className="animate-in fade-in slide-in-from-top-4 duration-500 bg-slate-50 p-8 rounded-[32px] border border-slate-200 grid grid-cols-1 md:grid-cols-3 gap-8">
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-slate-400">Recommended total depth (m)</Label>
-                      <Input disabled={!isAllowed} {...form.register('recBorewellTotalDepth')} className="h-11 border-slate-200 font-bold" />
+                      <Label className="text-[10px] font-black uppercase text-slate-400">Proposed Total depth (m)</Label>
+                      <Input disabled={!isAllowed} {...form.register('recBorewellTotalDepth')} className="h-11 border-slate-200 font-bold bg-white" />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-slate-400">Recommended diameter</Label>
+                      <Label className="text-[10px] font-black uppercase text-slate-400">Proposed diameter</Label>
                       <Select disabled={!isAllowed} onValueChange={v=>form.setValue('recBorewellDiameter', v)} value={form.watch('recBorewellDiameter')}>
-                        <SelectTrigger className="h-11 border-slate-200 font-bold"><SelectValue/></SelectTrigger>
+                        <SelectTrigger className="h-11 border-slate-200 font-bold bg-white"><SelectValue/></SelectTrigger>
                         <SelectContent className="rounded-xl">{borewellDiameterOptions.map(o=><SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-2">
                       <Label className="text-[10px] font-black uppercase text-slate-400">Expected Overburden (m)</Label>
-                      <Input disabled={!isAllowed} {...form.register('expectedOverburden')} className="h-11 border-slate-200 font-bold" />
+                      <Input disabled={!isAllowed} {...form.register('expectedOverburden')} className="h-11 border-slate-200 font-bold bg-white" />
                     </div>
                     <div className="space-y-2 md:col-span-3">
                       <Label className="text-[10px] font-black uppercase text-slate-400">Additional Borewell Details & Location</Label>
-                      <Textarea disabled={!isAllowed} {...form.register('recommendationBorewell')} rows={3} className="rounded-2xl border-slate-200 italic font-bold uppercase text-xs" />
+                      <Textarea disabled={!isAllowed} {...form.register('recommendationBorewell')} rows={3} className="rounded-2xl border-slate-200 italic font-bold uppercase text-xs bg-white" />
                     </div>
                   </div>
                 )}
@@ -700,19 +692,19 @@ function SiteEntryContent() {
                 {recommendationType === 'openwell' && (
                   <div className="animate-in fade-in slide-in-from-top-4 duration-500 bg-slate-50 p-8 rounded-[32px] border border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-slate-400">Recommended total depth (m)</Label>
-                      <Input disabled={!isAllowed} {...form.register('recOpenwellTotalDepth')} className="h-11 border-slate-200 font-bold" />
+                      <Label className="text-[10px] font-black uppercase text-slate-400">Proposed total depth (m)</Label>
+                      <Input disabled={!isAllowed} {...form.register('recOpenwellTotalDepth')} className="h-11 border-slate-200 font-bold bg-white" />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-slate-400">Recommended diameter (m)</Label>
+                      <Label className="text-[10px] font-black uppercase text-slate-400">Proposed diameter (m)</Label>
                       <Select disabled={!isAllowed} onValueChange={v=>form.setValue('recOpenwellDiameter', v)} value={form.watch('recOpenwellDiameter')}>
-                        <SelectTrigger className="h-11 border-slate-200 font-bold"><SelectValue/></SelectTrigger>
+                        <SelectTrigger className="h-11 border-slate-200 font-bold bg-white"><SelectValue/></SelectTrigger>
                         <SelectContent className="rounded-xl">{openwellDiameterOptions.map(o=><SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-2 md:col-span-2">
                       <Label className="text-[10px] font-black uppercase text-slate-400">Additional Open Well Details & Location</Label>
-                      <Textarea disabled={!isAllowed} {...form.register('recommendationOpenwell')} rows={3} className="rounded-2xl border-slate-200 italic font-bold uppercase text-xs" />
+                      <Textarea disabled={!isAllowed} {...form.register('recommendationOpenwell')} rows={3} className="rounded-2xl border-slate-200 italic font-bold uppercase text-xs bg-white" />
                     </div>
                   </div>
                 )}

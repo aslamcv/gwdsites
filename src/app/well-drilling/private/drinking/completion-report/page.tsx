@@ -53,7 +53,7 @@ function ReportContent() {
   }
 
   if (!data) return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 text-left">
       <h1 className="text-xl font-bold text-slate-800 uppercase tracking-tight">Record Not Found</h1>
       <Button asChild className="mt-8 px-10 rounded-xl font-bold uppercase text-xs h-12">
         <Link href="/well-drilling">Back to Portal</Link>
