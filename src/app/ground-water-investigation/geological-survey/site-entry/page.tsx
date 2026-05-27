@@ -156,6 +156,24 @@ const recommendationTypeOptions = [
   { value: 'not_feasible', label: 'Not feasible for Open well & Bore well' },
 ];
 
+const blockOptions = [
+  "Areekode — Safe",
+  "Perumpadappu — Safe",
+  "Kalikavu — Safe",
+  "Kondotty — Semi-Critical",
+  "Kuttippuram — Semi-Critical",
+  "Malappuram — Semi-Critical",
+  "Mankada — Semi-Critical",
+  "Nilambur — Safe",
+  "Perinthalmanna — Safe",
+  "Ponnani — Safe",
+  "Tanur — Semi-Critical",
+  "Tirur — Semi-Critical",
+  "Tirurangadi — Semi-Critical",
+  "Vengara — Semi-Critical",
+  "Wandoor — Safe"
+];
+
 const villageOptions = [
   { label: "Eranad Taluk", options: ["Anakkayam", "Areacode", "Chembrasseri", "Cheekode", "Edavanna", "Elankur", "Karakunnu", "Kavanur", "Keezhuparamba", "Kizhuparamba", "Kodur", "Malappuram", "Manjeri", "Melmuri", "Narukara", "Panakkad", "Pandikkad", "Payyanad", "Perakamanna", "Pookkottur", "Pulpatta", "Trikkalangode", "Urangattiri", "Vettilappara", "Vettikattiri"] },
   { label: "Nilambur Taluk", options: ["Akampadam", "Amarambalam", "Chungathara", "Edakkara", "Karulai", "Karuvarakundu", "Kalikavu", "Mampad", "Moothedam", "Nilambur", "Pothukal", "Vazhikkadavu", "Chokkad"] },
@@ -525,7 +543,9 @@ function SiteEntryContent() {
                   <FormItem> 
                     <FormLabel className="text-[10px] font-black uppercase text-slate-500">14. Type Applied For</FormLabel> 
                     <Select disabled={!isAllowed} onValueChange={field.onChange} value={field.value}>
-                      <FormControl><SelectTrigger className="h-10 text-xs bg-slate-50/50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue /></SelectTrigger></FormControl>
+                      <FormControl>
+                        <SelectTrigger className="h-10 text-xs bg-slate-50/50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue /></SelectTrigger>
+                      </FormControl>
                       <SelectContent className="rounded-xl">
                         {recommendationTypeOptions.filter(o=>o.value !== 'not_feasible').map(o => <SelectItem key={o.value} value={o.value} className="text-[10px] font-bold uppercase">{o.label}</SelectItem>)}
                       </SelectContent>
@@ -736,7 +756,6 @@ function SiteEntryContent() {
 const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, form}: {isOpen:boolean, onOpenChange:(o:boolean)=>void, structureType:string|null, form:UseFormReturn<ReportFormValues>}) => {
   const isBorewell = structureType?.startsWith('borewell');
   const index = structureType ? parseInt(structureType.slice(-1)) : 1;
-  const watchedValues = form.getValues();
   
   return (
   <Dialog open={isOpen} onOpenChange={onOpenChange}>
