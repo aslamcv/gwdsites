@@ -47,7 +47,7 @@ function FeasibilityContent({ id }: { id: string }) {
 
   if (!report || !isOpenWellCompatible) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center">
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center text-left">
         <h1 className="text-xl font-bold text-slate-800 uppercase tracking-tight">Invalid Report Type</h1>
         <p className="text-sm text-slate-500 mt-2 font-medium">Feasibility reports in this format are only available for Open Well recommendations.</p>
         <Badge variant="outline" className="mt-4 uppercase font-bold text-xs bg-slate-50">Current Type: {report?.recommendationType || 'NOT SPECIFIED'}</Badge>
@@ -59,7 +59,7 @@ function FeasibilityContent({ id }: { id: string }) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100/50 pt-12 pb-4 px-4 print:bg-white print:p-0 font-malayalam text-black">
+    <div className="min-h-screen bg-slate-100/50 pt-12 pb-4 px-4 print:bg-white print:p-0 font-malayalam text-black text-left">
       <div className="max-w-[800px] mx-auto mb-4 flex items-center justify-between print:hidden">
         <Button variant="ghost" asChild className="gap-2 text-slate-600 h-8 text-xs">
           <Link href="/ground-water-investigation">
@@ -159,7 +159,7 @@ function FeasibilityContent({ id }: { id: string }) {
             </div>
         </div>
 
-        <div className="space-y-4 mb-12 text-left">
+        <div className="space-y-4 mb-12 text-left text-left">
             <h4 className="font-bold underline underline-offset-4 text-[13px]">നിബന്ധനകൾ</h4>
             <div className="space-y-4 text-[11.5px] leading-relaxed text-justify pr-2">
                 <p>
@@ -177,7 +177,7 @@ function FeasibilityContent({ id }: { id: string }) {
             </div>
         </div>
 
-        <div className="mt-auto flex flex-col items-end pt-10">
+        <div className="mt-auto flex flex-col items-end pt-10 text-left">
             <div className="text-center min-w-[200px] space-y-1">
                 <p className="font-bold">വിശ്വസ്തതയോടെ,</p>
                 <div className="h-20"></div>

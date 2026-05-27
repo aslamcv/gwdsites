@@ -209,8 +209,7 @@ function SiteEntryContent() {
 
   const [isNearbyDialogOpen, setIsNearbyDialogOpen] = useState(false);
   const [selectedNearbyStructure, setSelectedNearbyStructure] = useState<string | null>(null);
-  const [isManualVillageOpen, setIsManualVillageOpen] = useState(false);
-  const [manualVillageName, setManualVillageName] = useState('');
+  const [isVillageManual, setIsVillageManual] = useState(false);
 
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user?.email) return null;
@@ -261,6 +260,14 @@ function SiteEntryContent() {
     if (cloudReport) {
       form.reset({ ...defaultValues, ...cloudReport });
       const sa = cloudReport.staffAssignment || {};
+      
+      // If the village is not in the standard list, enable manual mode
+      const villageVal = cloudReport.village || "";
+      const inList = villageOptions.some(g => g.options.includes(villageVal));
+      if (villageVal && !inList) {
+        setIsVillageManual(true);
+      }
+
       setStaffFormData({
         startDate: cloudReport.reportDate || cloudReport.startDate || new Date().toISOString().split('T')[0],
         endDate: cloudReport.endDate || '',
@@ -349,18 +356,6 @@ function SiteEntryContent() {
     }
   };
 
-  const handleManualVillageSave = () => {
-    if (manualVillageName.trim()) {
-      form.setValue('village', manualVillageName.trim().toUpperCase());
-      setIsManualVillageOpen(false);
-      setManualVillageName('');
-    }
-  };
-
-  if (isReportLoading && id) {
-    return <div className="p-12 text-center animate-pulse uppercase tracking-widest font-black opacity-30 text-slate-400">Initializing Workspace...</div>;
-  }
-
   const recommendationType = form.watch('recommendationType');
   const isRecommendedToGp = form.watch('recommendedToGpSurvey');
 
@@ -437,48 +432,65 @@ function SiteEntryContent() {
                 <FormField control={form.control} name="applicantNameAddress" render={({ field }) => ( <FormItem className="md:col-span-2"> <FormLabel className="text-[10px] font-black uppercase text-slate-500">6. Applicant Details</FormLabel> <FormControl><Textarea disabled={!isAllowed} rows={1} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
                 <FormField control={form.control} name="applicationDate" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">7. Date of application</FormLabel> <FormControl><Input disabled={!isAllowed} type="date" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
                 
-                <FormField control={form.control} name="village" render={({ field }) => {
-                  const currentVal = field.value || "";
-                  const inList = villageOptions.some(g => g.options.includes(currentVal));
-                  return (
-                    <FormItem> 
-                      <FormLabel className="text-[10px] font-black uppercase text-slate-500">8. Village</FormLabel> 
-                      <Select disabled={!isAllowed} onValueChange={(val) => val === 'MANUAL' ? setIsManualVillageOpen(true) : field.onChange(val)} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="h-10 text-xs font-bold uppercase border-slate-200 shadow-sm bg-slate-50/50 focus:bg-white">
-                            <SelectValue placeholder="SELECT VILLAGE" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent className="max-h-[400px] rounded-2xl">
-                          {!inList && currentVal && currentVal !== 'MANUAL' && (
-                            <SelectItem value={currentVal} className="font-black text-blue-600 bg-blue-50/50 uppercase py-3 px-6 rounded-xl mb-1">{currentVal}</SelectItem>
+                <FormField control={form.control} name="village" render={({ field }) => (
+                  <FormItem> 
+                    <FormLabel className="text-[10px] font-black uppercase text-slate-500">8. Village</FormLabel> 
+                    <div className="flex gap-2">
+                      {isVillageManual ? (
+                        <div className="flex-1 relative">
+                          <Input 
+                            {...field} 
+                            className="h-10 text-xs font-bold uppercase border-blue-200 bg-blue-50/30" 
+                            placeholder="ENTER VILLAGE"
+                            autoFocus
+                            disabled={!isAllowed}
+                          />
+                          {isAllowed && (
+                            <Button 
+                              type="button" 
+                              variant="ghost" 
+                              size="icon" 
+                              className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-slate-400 hover:text-primary"
+                              onClick={() => {
+                                setIsVillageManual(false);
+                                field.onChange("");
+                              }}
+                            >
+                              <X className="size-4" />
+                            </Button>
                           )}
-                          {villageOptions.map((group, groupIdx) => (
-                            <SelectGroup key={groupIdx}>
-                              <SelectLabel className="px-4 py-2 text-[10px] font-black uppercase text-slate-400 bg-slate-50/50">{group.label}</SelectLabel>
-                              {group.options.map((v, i) => (
-                                <SelectItem key={i} value={v} className="rounded-xl py-2.5 px-6 font-bold text-xs uppercase cursor-pointer">{v}</SelectItem>
-                              ))}
-                            </SelectGroup>
-                          ))}
-                          <SelectSeparator />
-                          <SelectItem value="MANUAL" className="rounded-xl py-3 px-6 font-black text-xs uppercase cursor-pointer text-blue-600 bg-blue-50 hover:bg-blue-100">
-                            <div className="flex items-center gap-2">
-                              <PlusCircle className="size-4" /> MANUAL ENTRY
-                            </div>
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage /> 
-                    </FormItem> 
-                  );
-                }} />
+                        </div>
+                      ) : (
+                        <Select disabled={!isAllowed} onValueChange={(val) => val === 'MANUAL' ? setIsVillageManual(true) : field.onChange(val)} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="h-10 text-xs font-bold uppercase bg-slate-50/50 focus:bg-white">
+                              <SelectValue placeholder="SELECT VILLAGE" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="max-h-[300px] rounded-2xl">
+                             {field.value && !villageOptions.some(g => g.options.includes(field.value)) && (
+                               <SelectItem value={field.value} className="font-bold text-blue-600 uppercase py-2.5 px-6 rounded-xl">{field.value}</SelectItem>
+                             )}
+                             {villageOptions.map((group, groupIdx) => (
+                                <SelectGroup key={groupIdx}>
+                                  <SelectLabel className="px-4 py-2 text-[9px] font-black uppercase text-slate-400 bg-slate-50/50">{group.label}</SelectLabel>
+                                  {group.options.map(v => <SelectItem key={v} value={v} className="rounded-xl py-2.5 px-6 font-bold text-xs uppercase">{v}</SelectItem>)}
+                                </SelectGroup>
+                             ))}
+                             <SelectSeparator />
+                             <SelectItem value="MANUAL" className="text-blue-600 font-black py-3 px-6 text-xs uppercase cursor-pointer bg-blue-50">+ MANUAL ENTRY</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
+                  </FormItem> 
+                )} />
 
                 <FormField control={form.control} name="ward" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">9. Ward</FormLabel> <FormControl><Input disabled={!isAllowed} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
                 <FormField control={form.control} name="altitude" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">10. Altitude</FormLabel> <FormControl><Input disabled={!isAllowed} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
                 <FormField control={form.control} name="lsgd" render={({ field }) => {
-                  const currentLsgd = field.value || '';
-                  const inList = lsgs.includes(currentLsgd);
+                  const val = field.value || "";
+                  const inList = lsgs.includes(val);
                   return (
                     <FormItem> 
                       <FormLabel className="text-[10px] font-black uppercase text-slate-500">11. LSGD</FormLabel> 
@@ -489,10 +501,8 @@ function SiteEntryContent() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent className="max-h-[400px] rounded-2xl">
-                          {!inList && currentLsgd && (
-                            <SelectItem value={currentLsgd} className="font-black text-blue-600 bg-blue-50/50 py-3 px-6 rounded-xl mb-1">
-                              {currentLsgd}
-                            </SelectItem>
+                          {!inList && val && (
+                            <SelectItem value={val} className="font-black text-blue-600 bg-blue-50/50 py-3 px-6 rounded-xl mb-1">{val}</SelectItem>
                           )}
                           {lsgs.map(l => <SelectItem key={l} value={l} className="text-[10px] font-bold uppercase py-2.5 px-6 rounded-xl">{l}</SelectItem>)}
                         </SelectContent>
@@ -506,24 +516,20 @@ function SiteEntryContent() {
                     <FormControl><Input {...field} disabled className="bg-slate-50 font-black text-blue-600 uppercase h-10 text-xs" /></FormControl>
                   </FormItem> 
                 )} />
-                <FormField control={form.control} name="block" render={({ field }) => {
-                  const currentBlock = field.value || '';
-                  const inList = blockOptions.includes(currentBlock);
-                  return (
-                    <FormItem> 
-                      <FormLabel className="text-[10px] font-black uppercase text-slate-500">13. Block</FormLabel> 
-                      <Select disabled={!isAllowed} onValueChange={field.onChange} value={field.value}>
-                        <FormControl><SelectTrigger className="h-10 text-xs font-bold uppercase"><SelectValue/></SelectTrigger></FormControl>
-                        <SelectContent className="rounded-xl">
-                          {!inList && currentBlock && (
-                            <SelectItem value={currentBlock} className="text-[10px] font-bold uppercase bg-blue-50/50">{currentBlock}</SelectItem>
-                          )}
-                          {blockOptions.map(o => <SelectItem key={o} value={o} className="text-[10px] font-bold uppercase">{o}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </FormItem> 
-                  );
-                }} />
+                <FormField control={form.control} name="block" render={({ field }) => ( 
+                  <FormItem> 
+                    <FormLabel className="text-[10px] font-black uppercase text-slate-500">13. Block</FormLabel> 
+                    <Select disabled={!isAllowed} onValueChange={field.onChange} value={field.value}>
+                      <FormControl><SelectTrigger className="h-10 text-xs font-bold uppercase"><SelectValue/></SelectTrigger></FormControl>
+                      <SelectContent className="rounded-xl">
+                        {field.value && !blockOptions.includes(field.value) && (
+                          <SelectItem value={field.value} className="text-[10px] font-bold uppercase bg-blue-50/50">{field.value}</SelectItem>
+                        )}
+                        {blockOptions.map(o => <SelectItem key={o} value={o} className="text-[10px] font-bold uppercase">{o}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </FormItem> 
+                )} />
                 <FormField control={form.control} name="typeAppliedFor" render={({ field }) => ( 
                   <FormItem> 
                     <FormLabel className="text-[10px] font-black uppercase text-slate-500">14. Type Applied For</FormLabel> 
@@ -736,20 +742,16 @@ function SiteEntryContent() {
         form={form}
       />
 
-      <Dialog open={isManualVillageOpen} onOpenChange={setIsManualVillageOpen}>
-        <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl text-left">
-          <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight text-center">MANUAL VILLAGE ENTRY</DialogTitle></DialogHeader>
-          <div className="py-4 space-y-2">
-              <Label className="text-[10px] font-black uppercase text-slate-500">Village Name</Label>
-              <Input value={manualVillageName} onChange={(e) => setManualVillageName(e.target.value)} placeholder="ENTER NAME" className="h-12 border-slate-200 font-bold uppercase" />
-          </div>
-          <DialogFooter><Button type="button" onClick={handleManualVillageSave} className="w-full h-12 rounded-xl font-black uppercase text-[11px] bg-primary text-white">Confirm Entry</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
-
     </div>
   );
 }
+
+const FormFieldItem = ({ label, id, children, className }: {label:string, id:string, children: React.ReactNode, className?:string}) => (
+  <div className={cn("space-y-2", className)}>
+    <Label htmlFor={id} className="text-[10px] font-black uppercase text-slate-500">{label}</Label>
+    {children}
+  </div>
+);
 
 const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, form}: {isOpen:boolean, onOpenChange:(o:boolean)=>void, structureType:string|null, form:any}) => {
   const isBorewell = structureType?.startsWith('borewell');

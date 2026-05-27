@@ -47,7 +47,7 @@ function FeasibilityContent({ id }: { id: string }) {
 
   if (!report || !isBorewellCompatible) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center">
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center text-left">
         <h1 className="text-xl font-bold text-slate-800 uppercase tracking-tight">Invalid Report Type</h1>
         <p className="text-sm text-slate-500 mt-2 font-medium">Feasibility reports in this format are only available for Bore Well recommendations.</p>
         <Badge variant="outline" className="mt-4 uppercase font-bold text-xs bg-slate-50">Current Type: {report?.recommendationType || 'NOT SPECIFIED'}</Badge>
@@ -161,7 +161,7 @@ function FeasibilityContent({ id }: { id: string }) {
             </div>
         </div>
 
-        <div className="space-y-4 mb-8 text-left">
+        <div className="space-y-4 mb-8 text-left text-left">
             <h4 className="font-bold underline underline-offset-4 text-[13px]">നിബന്ധനകൾ</h4>
             <div className="space-y-4 text-[11.5px] leading-relaxed text-justify pr-2">
                 <p>
@@ -179,13 +179,13 @@ function FeasibilityContent({ id }: { id: string }) {
             </div>
         </div>
 
-        <div className="mb-8 p-6 border border-slate-300 rounded-[20px] bg-slate-50/50 text-[#1e3a8a] text-[13.5px] leading-relaxed text-left">
+        <div className="mb-8 p-6 border border-slate-300 rounded-[20px] bg-slate-50/50 text-[#1e3a8a] text-[13.5px] leading-relaxed text-left text-left">
             <p className="font-bold italic">
                 * താങ്കളുടെ സൈറ്റ് ഈ ഓഫീസിലെ SKE റിഗ്ഗിന് അനുയോജ്യമാണെങ്കിൽ താങ്കൾ ആവശ്യപ്പെടുന്ന പക്ഷം കുഴൽ കിണർ നിർമ്മിക്കുന്നതിന് എസ്റ്റിമേറ്റ് നൽകുന്നതാണ്.
             </p>
         </div>
 
-        <div className="space-y-4 mb-10 text-[11px] leading-[1.5] text-justify pr-2">
+        <div className="space-y-4 mb-10 text-[11px] leading-[1.5] text-justify pr-2 text-left">
             <p className="font-bold italic">
                 <span className="underline">കുറിപ്പ്</span> :- മേൽപ്പറഞ്ഞ ഗവേണഫലം വിശദമായ ഭൂജല പര്യവേക്ഷണത്തിന്റെ അടിസ്ഥാനത്തിലാണ്. എങ്കിലും ചില സാങ്കേതികകാരണങ്ങളാൽ പരാജയപ്പെടുകയും ചെയ്യാറുണ്ട്. ആയാൽ പരാജയപ്പെടുകയാണെങ്കിൽ യാതൊരുവിധ നഷ്ടപരിഹാരവും അനുവദിക്കുന്നതല്ല.
             </p>
@@ -199,7 +199,7 @@ function FeasibilityContent({ id }: { id: string }) {
 
         <div className="flex-grow"></div>
 
-        <div className="mt-auto flex flex-col items-end pt-10">
+        <div className="mt-auto flex flex-col items-end pt-10 text-left">
             <div className="text-center min-w-[200px] space-y-1">
                 <p className="font-bold">വിശ്വസ്തതയോടെ,</p>
                 <div className="h-20"></div>
