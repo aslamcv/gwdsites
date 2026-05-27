@@ -80,6 +80,12 @@ import { Separator } from '@/components/ui/separator';
 
 const MASTER_ADMIN_EMAIL = 'gwdmpm@gmail.com';
 
+const blockOptions = [
+  "Areekode", "Perumpadappu", "Kalikavu", "Kondotty", "Kuttippuram", 
+  "Malappuram", "Mankada", "Nilambur", "Perinthalmanna", "Ponnani", 
+  "Tanur", "Tirur", "Tirurangadi", "Vengara", "Wandoor"
+];
+
 const reportSchema = z.object({
   nameOfSite: z.string().min(1, 'Name of site is required.'),
   address: z.string().optional(),
@@ -156,12 +162,6 @@ const recommendationTypeOptions = [
   { value: 'filterpoint', label: 'Filter point well' },
   { value: 'tubewell', label: 'Tube well' },
   { value: 'not_feasible', label: 'Not feasible for Open well & Bore well' },
-];
-
-const blockOptions = [
-  "Areekode", "Perumpadappu", "Kalikavu", "Kondotty", "Kuttippuram", 
-  "Malappuram", "Mankada", "Nilambur", "Perinthalmanna", "Ponnani", 
-  "Tanur", "Tirur", "Tirurangadi", "Vengara", "Wandoor"
 ];
 
 const villageOptions = [
@@ -261,7 +261,6 @@ function SiteEntryContent() {
       form.reset({ ...defaultValues, ...cloudReport });
       const sa = cloudReport.staffAssignment || {};
       
-      // If the village is not in the standard list, enable manual mode
       const villageVal = cloudReport.village || "";
       const inList = villageOptions.some(g => g.options.includes(villageVal));
       if (villageVal && !inList) {
@@ -358,6 +357,10 @@ function SiteEntryContent() {
 
   const recommendationType = form.watch('recommendationType');
   const isRecommendedToGp = form.watch('recommendedToGpSurvey');
+
+  if (isReportLoading && id) {
+    return <div className="p-12 text-center animate-pulse uppercase tracking-widest font-black opacity-30 text-slate-400">Initializing Workspace...</div>;
+  }
 
   return (
     <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black text-left">
@@ -468,9 +471,6 @@ function SiteEntryContent() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent className="max-h-[300px] rounded-2xl">
-                             {field.value && !villageOptions.some(g => g.options.includes(field.value)) && (
-                               <SelectItem value={field.value} className="font-bold text-blue-600 uppercase py-2.5 px-6 rounded-xl">{field.value}</SelectItem>
-                             )}
                              {villageOptions.map((group, groupIdx) => (
                                 <SelectGroup key={groupIdx}>
                                   <SelectLabel className="px-4 py-2 text-[9px] font-black uppercase text-slate-400 bg-slate-50/50">{group.label}</SelectLabel>
@@ -488,28 +488,21 @@ function SiteEntryContent() {
 
                 <FormField control={form.control} name="ward" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">9. Ward</FormLabel> <FormControl><Input disabled={!isAllowed} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
                 <FormField control={form.control} name="altitude" render={({ field }) => ( <FormItem> <FormLabel className="text-[10px] font-black uppercase text-slate-500">10. Altitude</FormLabel> <FormControl><Input disabled={!isAllowed} {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                <FormField control={form.control} name="lsgd" render={({ field }) => {
-                  const val = field.value || "";
-                  const inList = lsgs.includes(val);
-                  return (
-                    <FormItem> 
-                      <FormLabel className="text-[10px] font-black uppercase text-slate-500">11. LSGD</FormLabel> 
-                      <Select disabled={!isAllowed} onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="h-10 text-xs font-bold uppercase bg-slate-50/50 focus:bg-white">
-                            <SelectValue placeholder="SELECT LSGD" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent className="max-h-[400px] rounded-2xl">
-                          {!inList && val && (
-                            <SelectItem value={val} className="font-black text-blue-600 bg-blue-50/50 py-3 px-6 rounded-xl mb-1">{val}</SelectItem>
-                          )}
-                          {lsgs.map(l => <SelectItem key={l} value={l} className="text-[10px] font-bold uppercase py-2.5 px-6 rounded-xl">{l}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </FormItem> 
-                  );
-                }} />
+                <FormField control={form.control} name="lsgd" render={({ field }) => ( 
+                  <FormItem> 
+                    <FormLabel className="text-[10px] font-black uppercase text-slate-500">11. LSGD</FormLabel> 
+                    <Select disabled={!isAllowed} onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="h-10 text-xs font-bold uppercase bg-slate-50/50 focus:bg-white">
+                          <SelectValue placeholder="SELECT LSGD" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="max-h-[400px] rounded-2xl">
+                        {lsgs.map(l => <SelectItem key={l} value={l} className="text-[10px] font-bold uppercase py-2.5 px-6 rounded-xl">{l}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </FormItem> 
+                )} />
                 <FormField control={form.control} name="assembly" render={({ field }) => ( 
                   <FormItem> 
                     <FormLabel className="text-[10px] font-black uppercase text-slate-500">12. Constituency (LAC)</FormLabel> 
@@ -522,9 +515,6 @@ function SiteEntryContent() {
                     <Select disabled={!isAllowed} onValueChange={field.onChange} value={field.value}>
                       <FormControl><SelectTrigger className="h-10 text-xs font-bold uppercase"><SelectValue/></SelectTrigger></FormControl>
                       <SelectContent className="rounded-xl">
-                        {field.value && !blockOptions.includes(field.value) && (
-                          <SelectItem value={field.value} className="text-[10px] font-bold uppercase bg-blue-50/50">{field.value}</SelectItem>
-                        )}
                         {blockOptions.map(o => <SelectItem key={o} value={o} className="text-[10px] font-bold uppercase">{o}</SelectItem>)}
                       </SelectContent>
                     </Select>
@@ -635,11 +625,6 @@ function SiteEntryContent() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent className="rounded-2xl border-slate-200 shadow-2xl">
-                              {!isTypeInList && currentType && (
-                                <SelectItem value={currentType} className="py-3 font-bold text-xs uppercase bg-blue-50/50">
-                                  {currentType.toUpperCase()}
-                                </SelectItem>
-                              )}
                               {recommendationTypeOptions.map(o => (
                                 <SelectItem key={o.value} value={o.value} className="py-3 font-bold text-xs uppercase cursor-pointer">
                                   {o.label}

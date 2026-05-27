@@ -33,9 +33,17 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { collection, doc, setDoc, updateDoc } from 'firebase/firestore';
 import type { GroundwaterReport, Employee } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
 import { StaffMultiSelect } from '@/components/investigation/staff-multi-select';
@@ -81,15 +89,14 @@ function UnifiedBorewellPumpingEntryContent() {
   // Role detection
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user?.email) return null;
-    return doc(firestore, 'users', user.email);
+    return doc(firestore, 'users', user.email.toLowerCase().trim());
   }, [firestore, user?.email]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
   
   const isAllowed = useMemo(() => {
     if (isUserLoading || isProfileLoading) return false;
-    if (user?.email === MASTER_ADMIN_EMAIL) return true;
-    const hasTechnicalRole = userProfile?.role === 'admin' || userProfile?.role === 'scientist' || userProfile?.role === 'engineer';
-    return hasTechnicalRole && userProfile?.isApproved === true;
+    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
+    return (userProfile?.role === 'admin' || userProfile?.role === 'scientist' || userProfile?.role === 'engineer') && userProfile?.isApproved === true;
   }, [user, userProfile, isUserLoading, isProfileLoading]);
 
   // Fetch Employees for staff selection
@@ -188,10 +195,7 @@ function UnifiedBorewellPumpingEntryContent() {
 
   const detectedLac = useMemo(() => {
     if (!formData.lsgd || !lsgMappings || lsgMappings.length === 0) return '';
-    const searchLsg = formData.lsgd.toLowerCase().trim();
-    const mapping = lsgMappings.find(m => 
-      m.lsg.toLowerCase().trim() === searchLsg
-    );
+    const mapping = lsgMappings.find(m => m.lsg === formData.lsgd);
     return mapping?.constituency || '';
   }, [formData.lsgd, lsgMappings]);
 
@@ -393,7 +397,7 @@ function UnifiedBorewellPumpingEntryContent() {
       <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
           <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3">
-             <Users className="size-4" /> STAFF DETAILS (TEAM ASSIGNMENT)
+             <Users className="size-4" /> 4. STAFF DETAILS (TEAM ASSIGNMENT)
           </CardTitle>
         </CardHeader>
         <CardContent className="p-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">

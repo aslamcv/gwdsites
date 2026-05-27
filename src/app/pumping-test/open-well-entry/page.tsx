@@ -87,13 +87,13 @@ function UnifiedOpenWellPumpingEntryContent() {
   // Role detection
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user?.email) return null;
-    return doc(firestore, 'users', user.email);
+    return doc(firestore, 'users', user.email.toLowerCase().trim());
   }, [firestore, user?.email]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
   
   const isAllowed = useMemo(() => {
     if (isUserLoading || isProfileLoading) return false;
-    if (user?.email === MASTER_ADMIN_EMAIL) return true;
+    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
     return (userProfile?.role === 'admin' || userProfile?.role === 'scientist' || userProfile?.role === 'engineer') && userProfile?.isApproved === true;
   }, [user, userProfile, isUserLoading, isProfileLoading]);
 
@@ -191,10 +191,7 @@ function UnifiedOpenWellPumpingEntryContent() {
   // AUTO-POPULATE LAC logic with robust matching
   const detectedLac = useMemo(() => {
     if (!formData.lsgd || !lsgMappings || lsgMappings.length === 0) return '';
-    const searchLsg = formData.lsgd.toLowerCase().trim();
-    const mapping = lsgMappings.find(m => 
-      m.lsg.toLowerCase().trim() === searchLsg
-    );
+    const mapping = lsgMappings.find(m => m.lsg === formData.lsgd);
     return mapping?.constituency || '';
   }, [formData.lsgd, lsgMappings]);
 
@@ -334,7 +331,7 @@ function UnifiedOpenWellPumpingEntryContent() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Depth (m)</Label>
-              <Input disabled={!isAllowed} type="number" value={formData.depthOfWell || ''} onChange={(e) => updateField('depthOfWell', e.target.value)} className="h-11 border-slate-200" />
+              <Input disabled={!isAllowed} type="text" value={formData.depthOfWell || ''} onChange={(e) => updateField('depthOfWell', e.target.value)} className="h-11 border-slate-200" />
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Diameter (m)</Label>
@@ -342,16 +339,16 @@ function UnifiedOpenWellPumpingEntryContent() {
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Static WL (mbmp)</Label>
-              <Input disabled={!isAllowed} type="number" value={formData.staticWaterLevel || ''} onChange={(e) => updateField('staticWaterLevel', e.target.value)} className="h-11 border-slate-200 font-bold text-blue-600" />
+              <Input disabled={!isAllowed} type="text" value={formData.staticWaterLevel || ''} onChange={(e) => updateField('staticWaterLevel', e.target.value)} className="h-11 border-slate-200 font-bold text-blue-600" />
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Avg Discharge (lph)</Label>
-              <Input disabled={!isAllowed} type="number" value={formData.averageDischarge || ''} onChange={(e) => updateField('averageDischarge', e.target.value)} className="h-11 border-slate-200 font-black text-primary" />
+              <Input disabled={!isAllowed} type="text" value={formData.averageDischarge || ''} onChange={(e) => updateField('averageDischarge', e.target.value)} className="h-11 border-slate-200 font-black text-primary" />
             </div>
           </div>
         </CardContent>
       </Card>
-
+      
       <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
           <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center justify-between">

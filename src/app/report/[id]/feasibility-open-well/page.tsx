@@ -113,10 +113,10 @@ function FeasibilityContent({ id }: { id: string }) {
                       const firstCommaIndex = text.indexOf(',');
                       if (firstCommaIndex === -1) return <span>{text}</span>;
                       return (
-                        <>
+                        <div className="flex flex-col justify-center items-start leading-tight">
                           <span>{text.substring(0, firstCommaIndex + 1)}</span>
                           <span className="mt-1">{text.substring(firstCommaIndex + 1).trim()}</span>
-                        </>
+                        </div>
                       );
                     })()}
                 </div>
