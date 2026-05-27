@@ -173,7 +173,7 @@ function UnifiedBorewellPumpingEntryContent() {
     setFormData((prev: any) => {
       const newTable = [...prev[tableKey]];
       newTable[index] = { ...newTable[index], [field]: value };
-      return { ...prev, tableKey: newTable };
+      return { ...prev, [tableKey]: newTable };
     });
   };
 
@@ -381,12 +381,12 @@ function UnifiedBorewellPumpingEntryContent() {
                   {timeIntervals.map((time, i) => (
                       <TableRow key={i} className={cn("h-11 border-slate-100", i % 2 === 0 ? "bg-white" : "bg-slate-50/20")}>
                           <TableCell className="text-center font-black text-slate-400 text-[10px] border-r">{time}</TableCell>
-                          <TableCell className="p-1 border-r"><Input disabled={!canModify} value={formData.step1[i]?.waterLevel || ''} onChange={e => updateTableData('step1', i, 'waterLevel', e.target.value)} className="h-8 text-center text-xs border-transparent bg-transparent" /></TableCell>
-                          <TableCell className="p-1 border-r bg-blue-50/10"><Input disabled={!canModify} value={formData.step1[i]?.drawdown || ''} onChange={e => updateTableData('step1', i, 'drawdown', e.target.value)} className="h-8 text-center text-xs border-transparent bg-transparent font-bold text-blue-700" /></TableCell>
-                          <TableCell className="p-1 border-r"><Input disabled={!canModify} value={formData.step2[i]?.waterLevel || ''} onChange={e => updateTableData('step2', i, 'waterLevel', e.target.value)} className="h-8 text-center text-xs border-transparent bg-transparent" /></TableCell>
-                          <TableCell className="p-1 border-r bg-emerald-50/10"><Input disabled={!canModify} value={formData.step2[i]?.drawdown || ''} onChange={e => updateTableData('step2', i, 'drawdown', e.target.value)} className="h-8 text-center text-xs border-transparent bg-transparent font-bold text-emerald-700" /></TableCell>
-                          <TableCell className="p-1 border-r"><Input disabled={!canModify} value={formData.step3[i]?.waterLevel || ''} onChange={(e) => updateTableData('step3', i, 'waterLevel', e.target.value)} className="h-8 text-center text-xs border-transparent bg-transparent" /></TableCell>
-                          <TableCell className="p-1 bg-amber-50/10"><Input disabled={!canModify} value={formData.step3[i]?.drawdown || ''} onChange={(e) => updateTableData('step3', i, 'drawdown', e.target.value)} className="h-8 text-center text-xs border-transparent bg-transparent font-bold text-amber-700" /></TableCell>
+                          <TableCell className="p-1 border-r"><Input disabled={!canModify} value={formData.step1[i]?.waterLevel || ''} onChange={e => updateTableData('step1', i, 'waterLevel', e.target.value)} className="h-8 text-center text-xs border-none bg-transparent focus:bg-white" /></TableCell>
+                          <TableCell className="p-1 border-r bg-blue-50/10"><Input disabled={!canModify} value={formData.step1[i]?.drawdown || ''} onChange={e => updateTableData('step1', i, 'drawdown', e.target.value)} className="h-8 text-center text-xs border-none bg-transparent font-bold text-blue-700 focus:bg-white" /></TableCell>
+                          <TableCell className="p-1 border-r"><Input disabled={!canModify} value={formData.step2[i]?.waterLevel || ''} onChange={e => updateTableData('step2', i, 'waterLevel', e.target.value)} className="h-8 text-center text-xs border-none bg-transparent focus:bg-white" /></TableCell>
+                          <TableCell className="p-1 border-r bg-emerald-50/10"><Input disabled={!canModify} value={formData.step2[i]?.drawdown || ''} onChange={e => updateTableData('step2', i, 'drawdown', e.target.value)} className="h-8 text-center text-xs border-none bg-transparent font-bold text-emerald-700 focus:bg-white" /></TableCell>
+                          <TableCell className="p-1 border-r"><Input disabled={!canModify} value={formData.step3[i]?.waterLevel || ''} onChange={(e) => updateTableData('step3', i, 'waterLevel', e.target.value)} className="h-8 text-center text-xs border-none bg-transparent focus:bg-white" /></TableCell>
+                          <TableCell className="p-1 bg-amber-50/10"><Input disabled={!canModify} value={formData.step3[i]?.drawdown || ''} onChange={(e) => updateTableData('step3', i, 'drawdown', e.target.value)} className="h-8 text-center text-xs border-none bg-transparent font-bold text-amber-700 focus:bg-white" /></TableCell>
                       </TableRow>
                   ))}
                 </TableBody>

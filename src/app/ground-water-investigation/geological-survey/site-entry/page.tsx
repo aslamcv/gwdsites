@@ -6,7 +6,7 @@ import {
   ArrowLeft, 
   Save, 
   ClipboardList, 
-  Calendar, 
+  Calendar as CalendarIcon, 
   Loader2, 
   MapPin, 
   SearchCode, 
@@ -16,7 +16,9 @@ import {
   ChevronDown, 
   Lock, 
   Activity, 
-  X 
+  X,
+  Truck,
+  Building2 as Building
 } from 'lucide-react';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
@@ -46,13 +48,13 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue, SelectSeparator } from '@/components/ui/select';
 import { useLsgdData } from '@/hooks/use-lsgd-data';
 import { useState, useTransition, useEffect, useMemo, Suspense } from 'react';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
 import { collection, doc, setDoc, updateDoc } from 'firebase/firestore';
@@ -62,6 +64,7 @@ import { cn } from '@/lib/utils';
 import { Logo } from '@/components/logo';
 import { StaffMultiSelect } from '@/components/investigation/staff-multi-select';
 import { Separator } from '@/components/ui/separator';
+import { formatToTechnicalDate } from '@/lib/malayalam-utils';
 
 const MASTER_ADMIN_EMAIL = 'gwdmpm@gmail.com';
 

@@ -373,12 +373,12 @@ function UnifiedOpenWellPumpingEntryContent() {
                   {formData.pumpingData.map((row: any, i: number) => (
                     <TableRow key={i} className={cn("h-11 border-slate-100", i % 2 === 0 ? "bg-white" : "bg-slate-50/20")}>
                       <TableCell className="text-center font-black text-slate-400 text-[10px] border-r">{row.timeSincePumpingStarted}</TableCell>
-                      <TableCell className="p-0.5 border-r"><Input disabled={!canModify} type="date" value={row.date || ''} onChange={e => updateTableData(i, 'date', e.target.value)} className="h-8 text-xs border-none bg-transparent" /></TableCell>
-                      <TableCell className="p-0.5 border-r"><Input disabled={!canModify} type="time" value={row.timeHrMin || ''} onChange={e => updateTableData(i, 'timeHrMin', e.target.value)} className="h-8 text-xs border-none bg-transparent" /></TableCell>
-                      <TableCell className="p-0.5 border-r"><Input disabled={!canModify} value={row.depthToWaterLevel || ''} onChange={e => updateTableData(i, 'depthToWaterLevel', e.target.value)} className="h-8 text-xs border-none bg-transparent font-bold" /></TableCell>
-                      <TableCell className="p-0.5 border-r"><Input disabled={!canModify} value={row.drawdown || ''} onChange={e => updateTableData(i, 'drawdown', e.target.value)} className="h-8 text-xs border-none bg-transparent font-black text-blue-600" /></TableCell>
-                      <TableCell className="p-0.5 border-r"><Input disabled={!canModify} value={row.obw1 || ''} onChange={e => updateTableData(i, 'obw1', e.target.value)} className="h-8 text-xs border-none bg-transparent" /></TableCell>
-                      <TableCell className="p-0.5"><Input disabled={!canModify} value={row.remarks || ''} onChange={e => updateTableData(i, 'remarks', e.target.value)} className="h-8 text-xs border-none bg-transparent italic" /></TableCell>
+                      <TableCell className="p-0.5 border-r"><Input disabled={!canModify} type="date" value={row.date || ''} onChange={e => updateTableData(i, 'date', e.target.value)} className="h-8 text-xs border-none bg-transparent focus:bg-white" /></TableCell>
+                      <TableCell className="p-0.5 border-r"><Input disabled={!canModify} type="time" value={row.timeHrMin || ''} onChange={e => updateTableData(i, 'timeHrMin', e.target.value)} className="h-8 text-xs border-none bg-transparent focus:bg-white" /></TableCell>
+                      <TableCell className="p-0.5 border-r"><Input disabled={!canModify} value={row.depthToWaterLevel || ''} onChange={e => updateTableData(i, 'depthToWaterLevel', e.target.value)} className="h-8 text-xs border-none bg-transparent font-bold focus:bg-white" /></TableCell>
+                      <TableCell className="p-0.5 border-r"><Input disabled={!canModify} value={row.drawdown || ''} onChange={e => updateTableData(i, 'drawdown', e.target.value)} className="h-8 text-xs border-none bg-transparent font-black text-blue-600 focus:bg-white" /></TableCell>
+                      <TableCell className="p-0.5 border-r"><Input disabled={!canModify} value={row.obw1 || ''} onChange={e => updateTableData(i, 'obw1', e.target.value)} className="h-8 text-xs border-none bg-transparent focus:bg-white" /></TableCell>
+                      <TableCell className="p-0.5"><Input disabled={!canModify} value={row.remarks || ''} onChange={e => updateTableData(i, 'remarks', e.target.value)} className="h-8 text-xs border-none bg-transparent italic focus:bg-white" /></TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
