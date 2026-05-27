@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
@@ -41,12 +42,16 @@ function FeasibilityContent({ id }: { id: string }) {
     );
   }
 
-  if (!report || (report.recommendationType !== 'borewell' && report.recommendationType !== 'tubewell' && report.recommendationType !== 'filterpoint')) {
+  const normalizedRecType = (report?.recommendationType || '').toLowerCase().trim();
+  const isBorewellCompatible = ['borewell', 'tubewell', 'filterpoint'].includes(normalizedRecType);
+
+  if (!report || !isBorewellCompatible) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4">
-        <h1 className="text-xl font-bold text-slate-800">Invalid Report Type</h1>
-        <p className="text-sm text-slate-500 mt-2">Feasibility reports in this format are only available for Bore Well recommendations.</p>
-        <Button asChild className="mt-6">
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center">
+        <h1 className="text-xl font-bold text-slate-800 uppercase tracking-tight">Invalid Report Type</h1>
+        <p className="text-sm text-slate-500 mt-2 font-medium">Feasibility reports in this format are only available for Bore Well recommendations.</p>
+        <Badge variant="outline" className="mt-4 uppercase font-bold text-xs bg-slate-50">Current Type: {report?.recommendationType || 'NOT SPECIFIED'}</Badge>
+        <Button asChild className="mt-8 px-10 rounded-xl font-bold uppercase h-12">
           <Link href="/ground-water-investigation">Back to Portal</Link>
         </Button>
       </div>
@@ -152,7 +157,7 @@ function FeasibilityContent({ id }: { id: string }) {
                 <p>ശുപാർശ ചെയ്യുന്ന ആകെ ആഴം : <span className="font-bold border-b border-black min-w-[60px] inline-block text-center">{report.recBorewellTotalDepth || '--'}</span> m</p>
                 <p>ശുപാർശ ചെയ്യുന്ന വ്യാസം : <span className="font-bold border-b border-black min-w-[120px] inline-block text-center">{report.recBorewellDiameter || '--'}</span></p>
                 <p>പ്രതീക്ഷിക്കുന്ന മണ്ണ് പാളിയുടെ കനം : <span className="font-bold border-b border-black min-w-[60px] inline-block text-center">{report.expectedOverburden || '--'}</span> m</p>
-                <p>ശുപാർശ ചെയ്യുന്ന കിണറിൻറെ തരം : <span className="font-bold">കുഴൽ കിണർ</span></p>
+                <p>ശുപാർശ ചെയ്യുന്ന കിണറിൻറെ തരം : <span className="font-bold">कुഴൽ കിണർ</span></p>
             </div>
         </div>
 

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
@@ -9,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSearchParams } from 'next/navigation';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { formatToTechnicalDate } from '@/lib/malayalam-utils';
 
@@ -41,12 +43,16 @@ function FeasibilityContent({ id }: { id: string }) {
     );
   }
 
-  if (!report || report.recommendationType !== 'openwell') {
+  const normalizedRecType = (report?.recommendationType || '').toLowerCase().trim();
+  const isOpenWellCompatible = normalizedRecType === 'openwell';
+
+  if (!report || !isOpenWellCompatible) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4">
-        <h1 className="text-xl font-bold text-slate-800">Invalid Report Type</h1>
-        <p className="text-sm text-slate-500 mt-2">Feasibility reports in this format are only available for Open Well recommendations.</p>
-        <Button asChild className="mt-6">
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center">
+        <h1 className="text-xl font-bold text-slate-800 uppercase tracking-tight">Invalid Report Type</h1>
+        <p className="text-sm text-slate-500 mt-2 font-medium">Feasibility reports in this format are only available for Open Well recommendations.</p>
+        <Badge variant="outline" className="mt-4 uppercase font-bold text-xs bg-slate-50">Current Type: {report?.recommendationType || 'NOT SPECIFIED'}</Badge>
+        <Button asChild className="mt-8 px-10 rounded-xl font-bold uppercase h-12">
           <Link href="/ground-water-investigation">Return to Portal</Link>
         </Button>
       </div>
@@ -95,7 +101,7 @@ function FeasibilityContent({ id }: { id: string }) {
             </div>
         </div>
 
-        <div className="space-y-6 mb-8 text-left">
+        <div className="space-y-6 mb-8 text-left text-[12px]">
             <div className="flex flex-col">
                 <p>പ്രേഷകൻ,</p>
                 <p className="pl-16 font-bold">ജില്ലാ ഓഫീസർ, ഭൂജല വകുപ്പ്, മലപ്പുറം</p>
@@ -164,7 +170,7 @@ function FeasibilityContent({ id }: { id: string }) {
                     2. കിണർ നിർമ്മാണം വേനൽ കാലത്ത് പൂർത്തീകരിക്കേണ്ടതും കിണറിന്റെ താഴ്ച നിർമ്മാണ സമയത്തു കിണറിൽ 4 മീറ്റർ കനത്തിൽ വെള്ളം ഉണ്ടാകുന്ന രീതിയിലോ കട്ടിയുള്ള കളിമണ്ണ് കാണുന്ന രീതിയിലോ ഏതാണോ കുറവ് അത്രയും താഴ്ചയിൽ നിജപ്പെടുത്താവുന്നതാണ്.
                 </p>
                 <p>
-                    3. ഭൂജല മലിനീകരണ സാധ്യത ഒഴിവാക്കുന്നതിനും ജലലഭ്യത ഉറപ്പ് വരുത്തുന്നതിനുമായി കിണറിന് ആൾമറ കെട്ടേണ്ടതും കിണറിന്റെ ആൾമറയുടെ മുകൾ വശത്ത് നിന്നും കിണറിന്റെ വശങ്ങളിലൂടെ കിണറിലേക്ക് വെള്ളം ഇറങ്ങാത്ത രീതിയിൽ വാട്ടർ ടൈറ്റ് ( water tight ) ആയുള്ള നിർമ്മാണ രീതികൾ അവലംബിക്കേണ്ടതും ആയതിന് താഴോട്ട് ഭൂജലം ഉൾക്കൊള്ളുന്ന ഫോർമേഷനുമായി (formation) നല്ല സമ്പർക്കം നിലനിർത്തുന്ന രീതിയിൽ വേണ്ടത്ര സുഷിരങ്ങൾ ഉൾക്കൊള്ളിച്ചുള്ള നിർമ്മാണ രീതികൾ അവലംബിക്കേണ്ടതും ആണ്.
+                    3. ഭൂജല മലിനീകരണ സാധ്യത ഒഴിവാക്കുന്നതിനും ജലലഭ്യത ഉറപ്പ് വരുത്തുന്നതിനുമായി കിണറിന് ആൾമറ കെട്ടേണ്ടതും കിണറിന്റെ ആൾമറയുടെ മുകൾ വശത്ത് നിന്നും കിണറിന്റെ വശങ്ങളിലൂടെ കിണറിലേക്ക് വെള്ളം ഇറങ്ങാത്ത രീതിയിൽ വാട്ടർ ടൈറ്റ് ( water tight ) ആയുള്ള നിർമ്മാണ രീതികൾ അവലംബിക്കേണ്ടതും ആയതിന് താഴോട്ട് ഭൂജലം ഉൾക്കൊള്ളുന്ന ഫോർമേഷനുമായി (formation) നല്ല സമ്പർക്കം നിലനിർത്തുന്ന രീതിയിൽ വേണ്ടത്ര സഷിരങ്ങൾ ഉൾക്കൊള്ളിച്ചുള്ള നിർമ്മാണ രീതികൾ അവലംബിക്കേണ്ടതും ആണ്.
                 </p>
                 <p>
                     4. ഭൂജല മലിനീകരണ സാധ്യത ഒഴിവാക്കുന്നതിനായി കിണറിന് ചുറ്റും 1 മീറ്റർ വീതിയിൽ, പുറം വശത്തേക്ക് ചരിവോടെ, സിമന്റ് പ്ലാറ്റ്ഫോം ( cement platform ) നിർമ്മിക്കുന്നത് ഉചിതമാണ്.

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useTransition, useEffect, useMemo, Suspense } from 'react';
+import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { 
   ArrowLeft, 
@@ -24,7 +24,7 @@ import {
   Building
 } from 'lucide-react';
 import Link from 'next/link';
-import { useForm, UseFormReturn } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
@@ -47,6 +47,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -55,8 +56,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue, SelectSeparator } from '@/components/ui/select';
 import { useLsgdData } from '@/hooks/use-lsgd-data';
+import { useState, useTransition, useEffect, useMemo, Suspense } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   useCollection, 
   useUser, 
@@ -156,14 +158,6 @@ const recommendationTypeOptions = [
   { value: 'not_feasible', label: 'Not feasible for Open well & Bore well' },
 ];
 
-const blockOptions = [
-  "Areekode — Safe", "Perumpadappu — Safe", "Kalikavu — Safe",
-  "Kondotty — Semi-Critical", "Kuttippuram — Semi-Critical", "Malappuram — Semi-Critical",
-  "Mankada — Semi-Critical", "Nilambur — Safe", "Perinthalmanna — Safe",
-  "Ponnani — Safe", "Tanur — Semi-Critical", "Tirur — Semi-Critical",
-  "Tirurangadi — Semi-Critical", "Vengara — Semi-Critical", "Wandoor — Safe"
-];
-
 const villageOptions = [
   { label: "Eranad Taluk", options: ["Anakkayam", "Areacode", "Chembrasseri", "Cheekode", "Edavanna", "Elankur", "Karakunnu", "Kavanur", "Keezhuparamba", "Kizhuparamba", "Kodur", "Malappuram", "Manjeri", "Melmuri", "Narukara", "Panakkad", "Pandikkad", "Payyanad", "Perakamanna", "Pookkottur", "Pulpatta", "Trikkalangode", "Urangattiri", "Vettilappara", "Vettikattiri"] },
   { label: "Nilambur Taluk", options: ["Akampadam", "Amarambalam", "Chungathara", "Edakkara", "Karulai", "Karuvarakundu", "Kalikavu", "Mampad", "Moothedam", "Nilambur", "Pothukal", "Vazhikkadavu", "Chokkad"] },
@@ -172,6 +166,14 @@ const villageOptions = [
   { label: "Tirurangadi Taluk", options: ["Thenhipalam", "Chelembra", "Cherukavu", "Moonniyur", "Nannambra", "Neduva", "Oorakam", "Parappanangadi", "Parappur", "Peruvallur", "Vallikkunnu", "Vengara", "Velimukku", "Ponmundam", "Tanalur", "Tirurangadi", "Kottakkal"] },
   { label: "Ponnani Taluk", options: ["Alamkode", "Edappal", "Marancheri", "Nannammukku", "Perumpadappa", "Ponnani Nagaram", "Tavanur", "Vattamkulam", "Veliyankode"] },
   { label: "Kondotty Taluk", options: ["Edarikkode", "Kizhisseri", "Kondotty", "Kuzhimanna", "Morayur", "Muthuvallur", "Nediyiruppu", "Pallikkal", "Pulikkal", "Vazhakkad", "Vazhayur"] }
+];
+
+const blockOptions = [
+  "Areekode — Safe", "Perumpadappu — Safe", "Kalikavu — Safe",
+  "Kondotty — Semi-Critical", "Kuttippuram — Semi-Critical", "Malappuram — Semi-Critical",
+  "Mankada — Semi-Critical", "Nilambur — Safe", "Perinthalmanna — Safe",
+  "Ponnani — Safe", "Tanur — Semi-Critical", "Tirur — Semi-Critical",
+  "Tirurangadi — Semi-Critical", "Vengara — Semi-Critical", "Wandoor — Safe"
 ];
 
 const sectorOptions = [
@@ -758,7 +760,7 @@ function SiteEntryContent() {
   );
 }
 
-const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, form}: {isOpen:boolean, onOpenChange:(o:boolean)=>void, structureType:string|null, form:UseFormReturn<ReportFormValues>}) => {
+const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, form}: {isOpen:boolean, onOpenChange:(o:boolean)=>void, structureType:string|null, form:any}) => {
   const isBorewell = structureType?.startsWith('borewell');
   const index = structureType ? parseInt(structureType.slice(-1)) : 1;
   
