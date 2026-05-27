@@ -50,9 +50,9 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue, SelectSeparator } from '@/components/ui/select';
 import { useLsgdData } from '@/hooks/use-lsgd-data';
@@ -169,11 +169,9 @@ const villageOptions = [
 ];
 
 const blockOptions = [
-  "Areekode — Safe", "Perumpadappu — Safe", "Kalikavu — Safe",
-  "Kondotty — Semi-Critical", "Kuttippuram — Semi-Critical", "Malappuram — Semi-Critical",
-  "Mankada — Semi-Critical", "Nilambur — Safe", "Perinthalmanna — Safe",
-  "Ponnani — Safe", "Tanur — Semi-Critical", "Tirur — Semi-Critical",
-  "Tirurangadi — Semi-Critical", "Vengara — Semi-Critical", "Wandoor — Safe"
+  "Areekode", "Perumpadappu", "Kalikavu", "Kondotty", "Kuttippuram", 
+  "Malappuram", "Mankada", "Nilambur", "Perinthalmanna", "Ponnani", 
+  "Tanur", "Tirur", "Tirurangadi", "Vengara", "Wandoor"
 ];
 
 const sectorOptions = [
@@ -203,7 +201,6 @@ function SiteEntryContent() {
   const { toast } = useToast();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { lsgs, lsgMappings } = useLsgdData();
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
   const [isPending, startTransition] = useTransition();
@@ -239,6 +236,8 @@ function SiteEntryContent() {
   }, [firestore, id]);
 
   const { data: cloudReport, isLoading: isReportLoading } = useDoc<GroundwaterReport>(reportRef);
+
+  const { lsgs, lsgMappings } = useLsgdData();
 
   const [staffFormData, setStaffFormData] = useState<any>({
     startDate: new Date().toISOString().split('T')[0],
@@ -527,7 +526,7 @@ function SiteEntryContent() {
                           {!isBlockInList && currentBlock && (
                             <SelectItem value={currentBlock} className="text-[10px] font-bold uppercase bg-blue-50/50">{currentBlock}</SelectItem>
                           )}
-                          {blockOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                          {blockOptions.map(o => <SelectItem key={o} value={o} className="text-[10px] font-bold uppercase">{o}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </FormItem> 
