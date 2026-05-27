@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
@@ -43,7 +42,7 @@ function FeasibilityContent({ id }: { id: string }) {
     );
   }
 
-  const normalizedRecType = (report?.recommendationType || '').toLowerCase().trim();
+  const normalizedRecType = (report?.recommendationType || '').toLowerCase().trim().replace(/\s+/g, '');
   const isOpenWellCompatible = normalizedRecType === 'openwell';
 
   if (!report || !isOpenWellCompatible) {

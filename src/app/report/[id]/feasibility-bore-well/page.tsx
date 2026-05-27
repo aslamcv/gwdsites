@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
@@ -10,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSearchParams } from 'next/navigation';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { formatToTechnicalDate } from '@/lib/malayalam-utils';
 
@@ -42,8 +42,8 @@ function FeasibilityContent({ id }: { id: string }) {
     );
   }
 
-  const normalizedRecType = (report?.recommendationType || '').toLowerCase().trim();
-  const isBorewellCompatible = ['borewell', 'tubewell', 'filterpoint'].includes(normalizedRecType);
+  const normalizedRecType = (report?.recommendationType || '').toLowerCase().trim().replace(/\s+/g, '');
+  const isBorewellCompatible = ['borewell', 'tubewell', 'filterpoint', 'borewell', 'tubewell', 'filterpointwell'].includes(normalizedRecType);
 
   if (!report || !isBorewellCompatible) {
     return (
@@ -157,7 +157,7 @@ function FeasibilityContent({ id }: { id: string }) {
                 <p>ശുപാർശ ചെയ്യുന്ന ആകെ ആഴം : <span className="font-bold border-b border-black min-w-[60px] inline-block text-center">{report.recBorewellTotalDepth || '--'}</span> m</p>
                 <p>ശുപാർശ ചെയ്യുന്ന വ്യാസം : <span className="font-bold border-b border-black min-w-[120px] inline-block text-center">{report.recBorewellDiameter || '--'}</span></p>
                 <p>പ്രതീക്ഷിക്കുന്ന മണ്ണ് പാളിയുടെ കനം : <span className="font-bold border-b border-black min-w-[60px] inline-block text-center">{report.expectedOverburden || '--'}</span> m</p>
-                <p>ശുപാർശ ചെയ്യുന്ന കിണറിൻറെ തരം : <span className="font-bold">कुഴൽ കിണർ</span></p>
+                <p>ശുപാർശ ചെയ്യുന്ന കിണറിൻറെ തരം : <span className="font-bold">കുഴൽ കിണർ</span></p>
             </div>
         </div>
 
