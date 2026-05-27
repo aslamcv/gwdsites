@@ -340,6 +340,20 @@ function SiteEntryContent() {
     return <div className="p-12 text-center animate-pulse uppercase tracking-widest font-black opacity-30 text-slate-400">Initializing Workspace...</div>;
   }
 
+  const sectorOptions = [
+    { id: 'private', label: 'Private' },
+    { id: 'government', label: 'Government' },
+    { id: 'local_bodies', label: 'Local Bodies' },
+    { id: 'others', label: 'Others' },
+  ];
+
+  const categoryMappings: Record<string, string[]> = {
+    private: ["Domestic", "Agriculture", "Industrial", "Infrastructure", "Institutional"],
+    government: ["Institutional", "Infrastructure", "Industrial", "Others"],
+    local_bodies: ["Scheme", "Institutional"],
+    others: ["Miscellaneous", "Emergency Work", "Special Survey"]
+  };
+
   return (
     <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black text-left">
       
@@ -709,6 +723,13 @@ function SiteEntryContent() {
     </div>
   );
 }
+
+const FormFieldItem = ({ label, id, children, className }: {label:string, id:string, children: React.ReactNode, className?:string}) => (
+  <div className={cn("space-y-2", className)}>
+    <Label htmlFor={id} className="text-[10px] font-black uppercase text-slate-500">{label}</Label>
+    {children}
+  </div>
+);
 
 const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, form, disabled}: {isOpen:boolean, onOpenChange:(o:boolean)=>void, structureType:string|null, form:any, disabled:boolean}) => {
   const isBorewell = structureType?.startsWith('borewell');

@@ -105,11 +105,15 @@ export default function GIRDownloadCenterPage() {
   
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user?.email) return null;
-    return doc(firestore, 'users', user.email);
+    return doc(firestore, 'users', user.email.toLowerCase().trim());
   }, [firestore, user?.email]);
   const { data: userProfile } = useDoc(userProfileRef);
-  const userRole = userProfile?.role;
-  const isMasterAdmin = user?.email === MASTER_ADMIN_EMAIL || userRole === 'admin';
+  
+  const isAdmin = useMemo(() => {
+    if (isUserLoading) return false;
+    if (user?.email === MASTER_ADMIN_EMAIL) return true;
+    return userProfile?.role === 'admin';
+  }, [user, userProfile, isUserLoading]);
 
   // Filters
   const [globalSearch, setGlobalSearch] = useState('');
@@ -155,28 +159,6 @@ export default function GIRDownloadCenterPage() {
     const cat = report.category || '';
     if (cat === 'ESTIMATE_MEASUREMENT') return report.reportType || 'Measurement';
     return cat.split(' / ')[0] || 'General';
-  };
-
-  const checkHasWriteAccess = (report: GroundwaterReport) => {
-    if (isMasterAdmin) return true;
-    const cat = (report.category || '').toLowerCase();
-    const purp = (report.purpose || '').toLowerCase();
-    
-    if (userRole === 'scientist') {
-      return cat.includes('investigation') || purp.includes('investigation') || 
-             cat.includes('geological') || cat.includes('geophysical') ||
-             cat.includes('pumping test') || purp.includes('pumping test') ||
-             purp.includes('census');
-    }
-    if (userRole === 'engineer') {
-      return cat.includes('drilling') || purp.includes('drilling') || 
-             cat.includes('flushing') || purp.includes('flushing') ||
-             cat.includes('pumping test') || purp.includes('pumping test') ||
-             cat.includes('supervision') || purp.includes('supervision') ||
-             cat.includes('estimate') || cat.includes('measurement') ||
-             purp.includes('census');
-    }
-    return false;
   };
 
   const { filteredReports, metrics, uniqueVillages, uniqueTypes } = useMemo(() => {
@@ -232,111 +214,70 @@ export default function GIRDownloadCenterPage() {
   const totalPages = Math.ceil(filteredReports.length / itemsPerPage);
 
   const getEditUrl = (report: GroundwaterReport) => {
-    const mainCategory = (report.category || '').split(' / ')[0].trim().toLowerCase();
     const id = report.id;
-  
-    switch (mainCategory) {
-      case "well drilling":
-        return `/well-drilling/drilling-entry?id=${id}`;
-      case "well flushing":
-        return `/well-drilling/flushing-entry?id=${id}`;
-      case "geological survey":
-        return `/ground-water-investigation/geological-survey/site-entry?id=${id}`;
-      case "geophysical survey":
-        return `/ground-water-investigation/geophysical-survey/site-entry?id=${id}`;
-      case "pumping test":
-        if (report.category?.toLowerCase().includes('bore well')) {
-          return `/pumping-test/borewell-entry?id=${id}`;
-        }
-        return `/pumping-test/open-well-entry?id=${id}`;
-      case "supervision":
-        const purp = report.purpose?.toLowerCase() || '';
-        if (purp.includes('drilling')) return `/supervision/bw-construction/drilling-entry?id=${id}`;
-        if (purp.includes('flushing')) return `/supervision/bw-construction/flushing-entry?id=${id}`;
-        if (purp.includes('mwss') && purp.includes('reno')) return `/supervision/mwss-reno/reno-entry?id=${id}`;
-        if (purp.includes('mwss')) return `/supervision/mwss-reno/mwss-entry?id=${id}`;
-        if (purp.includes('hps')) return `/supervision/hps/site-entry?id=${id}`;
-        if (purp.includes('hpr')) return `/supervision/hpr/site-entry?id=${id}`;
-        if (report.arsSubType === 'ARS_DUG_WELL_RECHARGE') return `/supervision/ars/dugwell-entry?id=${id}`;
-        if (report.arsSubType === 'ARS_PIT_RECHARGE') return `/supervision/ars/pit-entry?id=${id}`;
-        return '#';
-      case "estimate_measurement":
-        return report.reportType === "ESTIMATE" ? `/estimate-measurement/estimate?id=${id}` : `/estimate-measurement/measurement?id=${id}`;
-      default:
-        return `/ground-water-investigation/geological-survey/site-entry?id=${id}`;
+    const purpose = (report.purpose || '').toLowerCase();
+    const category = (report.category || '').toLowerCase();
+    
+    const isVes = !!report.vesData || category.includes('geophysical');
+    const isEM = category.includes('estimate_measurement') || !!report.reportType;
+    const isSupervision = purpose.includes('supervision') || category.includes('supervision') || !!report.arsSubType;
+
+    if (isEM) {
+      return report.reportType === 'MEASUREMENT' ? `/estimate-measurement/measurement?id=${id}` : `/estimate-measurement/estimate?id=${id}`;
     }
+    if (isSupervision) {
+      if (report.arsSubType === 'ARS_DUG_WELL_RECHARGE') return `/supervision/ars/dugwell-entry?id=${id}`;
+      if (report.arsSubType === 'ARS_PIT_RECHARGE') return `/supervision/ars/pit/inspection?id=${id}`;
+      if (purpose.includes('hps')) return `/supervision/hps/site-entry?id=${id}`;
+      if (purpose.includes('hpr')) return `/supervision/hpr/site-entry?id=${id}`;
+      if (purpose.includes('mwss')) return `/supervision/mwss-reno/mwss-entry?id=${id}`;
+      if (purpose.includes('drilling')) return `/supervision/bw-construction/drilling-entry?id=${id}`;
+      if (purpose.includes('flushing')) return `/supervision/bw-construction/flushing-entry?id=${id}`;
+    }
+    if (purpose.includes('drilling') || report.workType === 'DRILLING') return `/well-drilling/drilling-entry?id=${id}`;
+    if (purpose.includes('flushing') || report.workType === 'FLUSHING') return `/well-drilling/flushing-entry?id=${id}`;
+    if (purpose.includes('pumping test')) return report.category?.includes('Bore') ? `/pumping-test/borewell-entry?id=${id}` : `/pumping-test/open-well-entry?id=${id}`;
+    
+    return isVes ? `/ground-water-investigation/geophysical-survey/site-entry?id=${id}` : `/ground-water-investigation/geological-survey/site-entry?id=${id}`;
   };
 
   const getTechnicalDocuments = (report: GroundwaterReport) => {
-    const mainCategory = (report.category || '').split(' / ')[0].trim().toLowerCase();
     const id = report.id;
+    const mainCategory = getMainCategory(report);
   
     switch (mainCategory) {
-      case "well drilling":
+      case "Well Drilling":
         return [
           { name: "BWC COMPLETION REPORT", type: "BWC", color: "blue", icon: FileText, url: `/well-drilling/private/drinking/completion-report?id=${id}` },
           { name: "FINAL BILL – Drilling", type: "BILL_DRILLING", color: "green", icon: ReceiptIndianRupee, url: `/well-drilling/private/drinking/final-bill?id=${id}` }
         ];
-      case "well flushing":
+      case "Well Flushing":
         return [
           { name: "BWF COMPLETION REPORT", type: "BWF", color: "blue", icon: FileText, url: `/well-drilling/private/drinking/flushing-report?id=${id}` },
           { name: "FINAL BILL – Flushing", type: "BILL_FLUSHING", color: "green", icon: ReceiptIndianRupee, url: `/well-drilling/private/drinking/final-bill?id=${id}` }
         ];
-      case "geological survey":
+      case "Investigation":
+        const isVes = !!report.vesData || report.category?.toLowerCase().includes('geophysical');
+        if (isVes) return [{ name: "GEOPHYSICAL INVESTIGATION REPORT", type: "geophysical", color: "blue", icon: FileSearch, url: `/report/${id}/ves` }];
         return [
           { name: "INVESTIGATION REPORT", type: "investigation", color: "blue", icon: FileSearch, url: `/report/${id}` },
           { name: "FEASIBILITY REPORT", type: "feasibility", color: "green", icon: FileCheck, url: report.recommendationType === 'openwell' ? `/report/${id}/feasibility-open-well` : `/report/${id}/feasibility-bore-well` }
         ];
-      case "geophysical survey":
-         return [{ name: "GEOPHYSICAL INVESTIGATION REPORT", type: "geophysical", color: "blue", icon: FileSearch, url: `/report/${id}/ves` }];
-      case "pumping test":
-        const isBorewell = report.category?.toLowerCase().includes('bore well') || report.purpose?.toLowerCase().includes('bore well');
+      case "Pumping Test":
         return [
-          { 
-            name: "YT COMPLETION REPORT", 
-            type: "YT", 
-            color: "blue", 
-            icon: FileText, 
-            url: isBorewell 
-              ? `/pumping-test/private/agriculture/bore-well/yield-test/completion-report?id=${id}` 
-              : `/pumping-test/private/agriculture/open-well/yield-test/completion-report?id=${id}`
-          },
-          {
-            name: "YIELD TEST REPORT",
-            type: "YIELD",
-            color: "purple",
-            icon: Activity,
-            url: `/pumping-test/private/agriculture/yield-test-report?id=${id}`
-          },
-          { 
-            name: "PUMPING DATA REPORT", 
-            type: "PUMPING_DATA", 
-            color: "green", 
-            icon: FileSpreadsheet,
-            url: isBorewell 
-              ? `/pumping-test/private/agriculture/pumping-data?id=${id}`
-              : `/pumping-test/private/agriculture/open-well/yield-test/pumping-data?id=${id}`
-          }
+          { name: "YT COMPLETION REPORT", type: "YT", color: "blue", icon: FileText, url: report.category?.includes('Bore') ? `/pumping-test/private/agriculture/bore-well/yield-test/completion-report?id=${id}` : `/pumping-test/private/agriculture/open-well/yield-test/completion-report?id=${id}` },
+          { name: "YIELD TEST REPORT", type: "YIELD", color: "purple", icon: Activity, url: `/pumping-test/private/agriculture/yield-test-report?id=${id}` }
         ];
-      case "supervision":
-        let supWork = null;
-        const purp = report.purpose?.toLowerCase() || '';
-        if (report.arsSubType === 'ARS_DUG_WELL_RECHARGE') supWork = 'ARS_DUG';
-        else if (report.arsSubType === 'ARS_PIT_RECHARGE') supWork = 'ARS_PIT';
-        else if (purp.includes('hps')) supWork = 'HPS';
-        else if (purp.includes('hpr')) supWork = 'HPR';
-        else if (purp.includes('mwss') && purp.includes('reno')) supWork = 'MWSS_RENO';
-        else if (purp.includes('mwss')) supWork = 'MWSS';
-        else if (purp.includes('drilling')) supWork = 'BWC';
-        else if (purp.includes('flushing')) supWork = 'BWF';
-
-        if (supWork) {
-            const reportNames: Record<string, string> = { BWC: "BWC COMPLETION REPORT", BWF: "BWF COMPLETION REPORT", MWSS: "MWSS COMPLETION REPORT", MWSS_RENO: "MWSS RENO COMPLETION REPORT", HPS: "HPS COMPLETION REPORT", HPR: "HPR COMPLETION REPORT", ARS_PIT: "ARS PIT COMPLETION REPORT", ARS_DUG: "ARS DUG WELL COMPLETION REPORT" };
-            const urls: Record<string, string> = { BWC: `/supervision/bw-construction/drilling-completion-report?id=${id}`, BWF: `/supervision/bw-construction/flushing-completion-report?id=${id}`, MWSS: `/supervision/mwss-reno/completion-report?id=${id}`, MWSS_RENO: `/supervision/mwss-reno/completion-report?id=${id}`, HPS: `/supervision/hps/completion-report?id=${id}`, HPR: `/supervision/hpr/completion-report?id=${id}`, ARS_PIT: `/supervision/ars/completion-report?id=${id}`, ARS_DUG: `/supervision/ars/completion-report?id=${id}` };
-            return [{ name: reportNames[supWork], type: supWork, color: "blue", icon: FileText, url: urls[supWork] }];
-        }
-        return [];
-      case "estimate_measurement":
+      case "Supervision":
+        let supUrl = '#';
+        let supLabel = 'COMPLETION REPORT';
+        const purpose = (report.purpose || '').toLowerCase();
+        if (report.arsSubType) supUrl = `/supervision/ars/completion-report?id=${id}`;
+        else if (purpose.includes('hps')) supUrl = `/supervision/hps/completion-report?id=${id}`;
+        else if (purpose.includes('hpr')) supUrl = `/supervision/hpr/completion-report?id=${id}`;
+        else if (purpose.includes('mwss')) supUrl = `/supervision/mwss-reno/completion-report?id=${id}`;
+        return [{ name: supLabel, type: "SUP", color: "blue", icon: FileText, url: supUrl }];
+      case "Estimate/Measurement":
          return [{ name: report.reportType === "ESTIMATE" ? "ESTIMATE REPORT" : "MEASUREMENT REPORT", type: "EM", color: "blue", icon: FileText, url: "#", isModal: true }];
       default:
         return [];
@@ -347,14 +288,14 @@ export default function GIRDownloadCenterPage() {
     if (!firestore || !reportToDelete) return;
     const docRef = doc(firestore, `groundwaterReports`, reportToDelete.id);
     deleteDocumentNonBlocking(docRef);
-    toast({ title: "Record Deleted", description: `The report "${reportToDelete.fileNo || reportToDelete.id}" has been permanently removed.`, variant: "destructive" });
+    toast({ title: "Record Deleted", variant: "destructive" });
     setReportToDelete(null);
   };
 
   const keysToIgnore = ['id', 'uploadedBy', 'createdAt', 'updatedAt', 'staffAssignment', 'works', 'vesData', 'pumpingData', 'recoveryData', 'sites', 'pitTable'];
 
   return (
-    <div className="p-4 sm:p-6 space-y-8 min-h-screen bg-background">
+    <div className="p-4 sm:p-6 space-y-8 min-h-screen bg-background text-left">
       <div className="flex items-center justify-between gap-4 border-b border-slate-200 pb-6">
         <div className="flex items-center gap-5">
           <div className="bg-primary/10 p-2.5 rounded-2xl border border-primary/20 shadow-sm"><Logo /></div>
@@ -430,7 +371,9 @@ export default function GIRDownloadCenterPage() {
                       Array.from({ length: 5 }).map((_, i) => <TableRow key={i}><TableCell colSpan={7}><Skeleton className="h-12 w-full" /></TableCell></TableRow>)
                     ) : paginatedReports.length > 0 ? (
                       paginatedReports.map((report, index) => {
-                        const canEditRecord = checkHasWriteAccess(report);
+                        const isOwner = user?.uid === report.uploadedBy;
+                        const canModifyRecord = isAdmin || isOwner;
+                        
                         return (
                           <TableRow key={report.id} className="hover:bg-slate-50/80 group">
                             <TableCell className="text-center font-bold text-slate-400 text-xs">{ (currentPage - 1) * itemsPerPage + index + 1 }</TableCell>
@@ -442,11 +385,11 @@ export default function GIRDownloadCenterPage() {
                             <TableCell className="text-right pr-4">
                               <div className="flex items-center justify-end gap-1">
                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-blue-600 transition-colors" title="View Report" onClick={() => setViewingReport(report)}><Eye className="h-4 w-4"/></Button>
-                                <Button asChild variant="ghost" size="icon" className={cn("h-8 w-8 text-slate-400 hover:text-green-600 transition-colors", !canEditRecord && "opacity-20 pointer-events-none")} title={canEditRecord ? "Edit Record" : "Record is finalized"}>{canEditRecord ? <Link href={getEditUrl(report)}><Edit3 className="h-4 w-4"/></Link> : <span><Lock className="h-3 w-3"/></span>}</Button>
+                                <Button asChild variant="ghost" size="icon" className={cn("h-8 w-8 transition-colors", canModifyRecord ? "text-slate-400 hover:text-green-600" : "opacity-20 pointer-events-none")} title={canModifyRecord ? "Edit Record" : "Access Restricted"}>{canModifyRecord ? <Link href={getEditUrl(report)}><Edit3 className="h-4 w-4"/></Link> : <span><Lock className="h-3 w-3"/></span>}</Button>
                                 <AlertDialog>
                                   <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" size="icon" disabled={!canEditRecord} className={cn("size-8 transition-colors", canEditRecord ? "text-rose-200 hover:text-rose-600 hover:bg-rose-50 rounded-xl" : "opacity-20")} title="Delete Record">
-                                      {canEditRecord ? <Trash2 className="size-4" /> : <Lock className="size-3 text-slate-300"/>}
+                                    <Button variant="ghost" size="icon" disabled={!canModifyRecord} className={cn("size-8 transition-colors", canModifyRecord ? "text-rose-200 hover:text-rose-600 hover:bg-rose-50 rounded-xl" : "opacity-20")} title="Delete Record">
+                                      {canModifyRecord ? <Trash2 className="size-4" /> : <Lock className="size-3 text-slate-300"/>}
                                     </Button>
                                   </AlertDialogTrigger>
                                   <AlertDialogContent className="rounded-3xl p-8">
@@ -502,7 +445,7 @@ export default function GIRDownloadCenterPage() {
       <ReportDialog report={selectedEmReport} isOpen={isEmModalOpen} onOpenChange={setIsEmModalOpen} />
 
       <AlertDialog open={!!reportToDelete} onOpenChange={(open) => !open && setReportToDelete(null)}>
-        <AlertDialogContent className="rounded-3xl p-8">
+        <AlertDialogContent className="rounded-3xl p-8 text-left">
             <AlertDialogHeader className="flex flex-col items-center text-center">
                 <div className="size-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-4"><Trash2 className="size-8" /></div>
                 <AlertDialogTitle className="text-2xl font-black text-slate-800 uppercase tracking-tight">Delete Technical Record?</AlertDialogTitle>
@@ -516,8 +459,8 @@ export default function GIRDownloadCenterPage() {
       </AlertDialog>
 
       <Dialog open={!!viewingReport} onOpenChange={(open) => !open && setViewingReport(null)}>
-        <DialogContent className="max-w-3xl rounded-[32px] overflow-hidden p-0 border-none shadow-2xl bg-white">
-          <DialogHeader className="p-8 bg-slate-50/50 border-b">
+        <DialogContent className="max-w-3xl rounded-[32px] overflow-hidden p-0 border-none shadow-2xl bg-white text-left">
+          <DialogHeader className="p-8 bg-slate-50/50 border-b text-left">
             <DialogTitle className="text-xl font-black uppercase text-slate-900">Technical Record: {viewingReport?.fileNo}</DialogTitle>
             <DialogDescription className="text-sm font-medium text-slate-500">Viewing all saved parameters for site: {viewingReport?.nameOfSite || viewingReport?.applicantName || viewingReport?.location}</DialogDescription>
           </DialogHeader>
@@ -531,7 +474,7 @@ export default function GIRDownloadCenterPage() {
                     </div>
                 ))}
                 {viewingReport.staffAssignment && Object.entries(viewingReport.staffAssignment).filter(([, value]) => value).length > 0 && (
-                     <div className="py-3.5">
+                     <div className="py-3.5 text-left">
                         <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-right pr-4 mb-2">Staff Assignment</h4>
                          {Object.entries(viewingReport.staffAssignment).filter(([, value]) => value).map(([key, value]) => (
                              <div key={key} className="grid grid-cols-[240px_1fr] items-start gap-4 py-2 border-b border-slate-50 last:border-b-0">

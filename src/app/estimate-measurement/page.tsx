@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -87,11 +88,17 @@ export default function EstimateMeasurementLedgerPage() {
   }, [firestore, user?.email]);
   const { data: userProfile } = useDoc(userProfileRef);
   
-  const isAllowed = useMemo(() => {
+  const isAdmin = useMemo(() => {
     if (isUserLoading) return false;
     if (user?.email === MASTER_ADMIN_EMAIL) return true;
-    return (userProfile?.role === 'admin' || userProfile?.role === 'engineer') && userProfile?.isApproved === true;
+    return userProfile?.role === 'admin';
   }, [user, userProfile, isUserLoading]);
+
+  const isAllowed = useMemo(() => {
+    if (isUserLoading) return false;
+    if (isAdmin) return true;
+    return (userProfile?.role === 'engineer' || userProfile?.role === 'scientist') && userProfile?.isApproved === true;
+  }, [isAdmin, userProfile, isUserLoading]);
 
   const reportsQuery = useMemoFirebase(() => {
     if (!firestore || isUserLoading || !user) return null;
@@ -140,10 +147,8 @@ export default function EstimateMeasurementLedgerPage() {
     setReportToDelete(null);
   };
 
-  const canEdit = isAllowed;
-
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-8 animate-in fade-in duration-700">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-8 animate-in fade-in duration-700 text-left">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-3xl font-black tracking-tight text-slate-900 uppercase">Estimate/Measurement Ledger</h1>
@@ -152,7 +157,7 @@ export default function EstimateMeasurementLedgerPage() {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button disabled={!canEdit} size="lg" className="h-14 px-8 rounded-2xl bg-[#1e3a8a] hover:bg-blue-900 shadow-xl shadow-blue-900/20 font-black uppercase tracking-widest text-[11px] gap-3">
+            <Button disabled={!isAllowed} size="lg" className="h-14 px-8 rounded-2xl bg-[#1e3a8a] hover:bg-blue-900 shadow-xl shadow-blue-900/20 font-black uppercase tracking-widest text-[11px] gap-3">
               <PlusCircle className="size-5" />
               NEW E/M RECORD
               <ChevronDown className="size-4 opacity-50" />
@@ -194,7 +199,7 @@ export default function EstimateMeasurementLedgerPage() {
                 <TableRow className="border-slate-100">
                   <TableHead className="pl-8 text-[10px] font-black uppercase tracking-widest text-slate-400">Log Date</TableHead>
                   <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Site / Reference</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Technical Report</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Technical Report</TableHead>
                   <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Record Type</TableHead>
                   <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Status</TableHead>
                   <TableHead className="text-right pr-8 text-[10px] font-black uppercase tracking-widest text-slate-400">Actions</TableHead>
@@ -208,7 +213,11 @@ export default function EstimateMeasurementLedgerPage() {
                     </TableRow>
                   ))
                 ) : paginatedRecords.length > 0 ? (
-                  paginatedRecords.map((r) => (
+                  paginatedRecords.map((r) => {
+                    const isOwner = user?.uid === r.uploadedBy;
+                    const canModifyRecord = isAdmin || isOwner;
+
+                    return (
                       <TableRow key={r.id} className="h-20 border-slate-50 hover:bg-slate-50/50 transition-colors group">
                         <TableCell className="pl-8 font-bold text-xs text-slate-700">{r.reportDate || '---'}</TableCell>
                         <TableCell>
@@ -218,7 +227,7 @@ export default function EstimateMeasurementLedgerPage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                           <button onClick={() => { setSelectedEmReport(r); setIsEmModalOpen(true); }} className={cn("h-7 px-3 text-[9px] font-black uppercase rounded-lg border-none shadow-sm flex items-center justify-center transition-colors", r.reportType === 'ESTIMATE' ? "bg-blue-50 text-blue-700 hover:bg-blue-100" : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100")}>
+                           <button onClick={() => { setSelectedEmReport(r); setIsEmModalOpen(true); }} className={cn("h-7 px-3 mx-auto text-[9px] font-black uppercase rounded-lg border-none shadow-sm flex items-center justify-center transition-colors", r.reportType === 'ESTIMATE' ? "bg-blue-50 text-blue-700 hover:bg-blue-100" : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100")}>
                               <FileSpreadsheet className="size-3 mr-1.5" /> View {r.reportType} Report
                            </button>
                         </TableCell>
@@ -227,16 +236,17 @@ export default function EstimateMeasurementLedgerPage() {
                         <TableCell className="text-right pr-8">
                           <div className="flex items-center justify-end gap-1.5">
                              <Button variant="ghost" size="icon" onClick={() => setViewingReport(r)} className="size-8 rounded-lg bg-white ring-1 ring-slate-100 shadow-sm" title="View Saved Data"><Eye className="size-3.5 text-slate-400 hover:text-primary" /></Button>
-                             <Button variant="ghost" size="icon" asChild className="size-8 rounded-lg bg-white ring-1 ring-slate-100 shadow-sm" title="Edit/View Record">
-                                <Link href={r.reportType === 'MEASUREMENT' ? `/estimate-measurement/measurement?id=${r.id}` : `/estimate-measurement/estimate?id=${r.id}`}>
-                                   <Edit3 className="size-3.5 text-slate-400 hover:text-emerald-600" />
+                             <Button variant="ghost" size="icon" asChild disabled={!canModifyRecord} className="size-8 rounded-lg bg-white ring-1 ring-slate-100 shadow-sm" title={canModifyRecord ? 'Edit Record' : 'Access Restricted'}>
+                                <Link href={canModifyRecord ? (r.reportType === 'MEASUREMENT' ? `/estimate-measurement/measurement?id=${r.id}` : `/estimate-measurement/estimate?id=${r.id}`) : '#'}>
+                                   <Edit3 className={cn("size-3.5", canModifyRecord ? "text-slate-400 hover:text-emerald-600" : "opacity-30")} />
                                 </Link>
                              </Button>
-                             <Button variant="ghost" size="icon" onClick={() => canEdit && setReportToDelete(r)} disabled={!canEdit} className={cn("size-8 rounded-lg transition-colors bg-white ring-1 ring-slate-100", canEdit ? "text-rose-400 hover:text-rose-600 hover:bg-rose-50" : "opacity-20")} title={canEdit ? 'Delete' : 'Access Restricted'}><Trash2 className="size-3.5" /></Button>
+                             <Button variant="ghost" size="icon" onClick={() => canModifyRecord && setReportToDelete(r)} disabled={!canModifyRecord} className={cn("size-8 rounded-lg transition-colors bg-white ring-1 ring-slate-100", canModifyRecord ? "text-rose-400 hover:text-rose-600 hover:bg-rose-50" : "opacity-20")} title={canModifyRecord ? 'Delete' : 'Access Restricted'}><Trash2 className="size-3.5" /></Button>
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))
+                    );
+                  })
                 ) : (
                   <TableRow><TableCell colSpan={6} className="h-64 text-center opacity-20"><FilterX className="size-16 mx-auto mb-4" /><p className="font-black uppercase text-sm">No E/M records found</p></TableCell></TableRow>
                 )}
@@ -275,8 +285,8 @@ export default function EstimateMeasurementLedgerPage() {
 
       {/* Data Viewer Dialog */}
       <Dialog open={!!viewingReport} onOpenChange={(open) => !open && setViewingReport(null)}>
-        <DialogContent className="max-w-3xl rounded-[32px] overflow-hidden p-0 border-none shadow-2xl bg-white">
-          <DialogHeader className="p-8 bg-slate-50/50 border-b">
+        <DialogContent className="max-w-3xl rounded-[32px] overflow-hidden p-0 border-none shadow-2xl bg-white text-left">
+          <DialogHeader className="p-8 bg-slate-50/50 border-b text-left">
             <DialogTitle className="text-xl font-black uppercase text-slate-900">Technical Record: {viewingReport?.fileNo || 'Preview'}</DialogTitle>
             <DialogDescription className="text-sm font-medium text-slate-500">Viewing all saved parameters for site: {viewingReport?.nameOfSite || viewingReport?.applicantName || viewingReport?.location}</DialogDescription>
           </DialogHeader>

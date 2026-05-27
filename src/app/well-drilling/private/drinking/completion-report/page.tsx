@@ -97,7 +97,7 @@ function ReportContent() {
       <div className="bg-white mx-auto w-full max-w-[210mm] min-h-[297mm] shadow-xl print:shadow-none p-[12mm] flex flex-col text-[12px] leading-tight text-black border border-slate-200 print:border-none overflow-hidden relative">
         
         <div className="absolute top-10 left-10 text-left uppercase">
-          <p className="text-[12px] font-black text-black leading-none">
+          <p className="text-[13px] font-black text-black leading-none">
             (SKE/240)
           </p>
         </div>

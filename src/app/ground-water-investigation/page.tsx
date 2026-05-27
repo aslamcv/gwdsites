@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -92,11 +93,17 @@ export default function GroundWaterInvestigationPage() {
   }, [firestore, user?.email]);
   const { data: userProfile } = useDoc(userProfileRef);
 
+  const isAdmin = useMemo(() => {
+    if (isUserLoading) return false;
+    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
+    return userProfile?.role === 'admin';
+  }, [user, userProfile, isUserLoading]);
+
   const isAllowed = useMemo(() => {
     if (isUserLoading) return false;
-    if (user?.email === MASTER_ADMIN_EMAIL) return true;
-    return (userProfile?.role === 'admin' || userProfile?.role === 'scientist') && userProfile?.isApproved === true;
-  }, [user, userProfile, isUserLoading]);
+    if (isAdmin) return true;
+    return (userProfile?.role === 'scientist' || userProfile?.role === 'engineer') && userProfile?.isApproved === true;
+  }, [isAdmin, userProfile, isUserLoading]);
 
   const reportsQuery = useMemoFirebase(() => {
     if (!firestore || isUserLoading || !user) return null;
@@ -169,8 +176,6 @@ export default function GroundWaterInvestigationPage() {
     }
   };
 
-  const canEdit = isAllowed;
-
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-8 animate-in fade-in duration-700">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -191,7 +196,7 @@ export default function GroundWaterInvestigationPage() {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button disabled={!canEdit} size="lg" className="h-14 px-8 rounded-2xl bg-[#1e3a8a] hover:bg-blue-900 shadow-xl shadow-blue-900/20 font-black uppercase tracking-widest text-[11px] gap-3">
+              <Button disabled={!isAllowed} size="lg" className="h-14 px-8 rounded-2xl bg-[#1e3a8a] hover:bg-blue-900 shadow-xl shadow-blue-900/20 font-black uppercase tracking-widest text-[11px] gap-3">
                 <PlusCircle className="size-5" />
                 NEW TECHNICAL ENTRY
                 <ChevronDown className="size-4 opacity-50" />
@@ -273,6 +278,8 @@ export default function GroundWaterInvestigationPage() {
                     const hasBorewellFeasibility = recType === 'borewell' || recType === 'tubewell' || recType === 'filterpoint';
                     const hasOpenwellFeasibility = recType === 'openwell';
                     const hasFeasibility = hasBorewellFeasibility || hasOpenwellFeasibility;
+                    
+                    const canModifyRecord = isAdmin || (user?.uid === r.uploadedBy);
 
                     return (
                       <TableRow key={r.id} className="h-20 border-slate-50 hover:bg-slate-50/80 transition-colors group">
@@ -316,15 +323,6 @@ export default function GroundWaterInvestigationPage() {
                                   </Badge>
                                 </Link>
                               )}
-
-                              {!isGeological && !isVes && !hasFeasibility && (
-                                <Link href={`/report/${r.id}`} target="_blank">
-                                  <Badge className="bg-slate-100 text-slate-700 border-none hover:bg-slate-200 cursor-pointer text-[9px] font-black uppercase h-7 px-3 flex items-center gap-1.5 transition-all">
-                                    <FileSearch className="size-3" />
-                                    TECHNICAL REPORT
-                                  </Badge>
-                                </Link>
-                              )}
                            </div>
                         </TableCell>
                         <TableCell>
@@ -336,10 +334,10 @@ export default function GroundWaterInvestigationPage() {
                         <TableCell className="text-right pr-8">
                           <div className="flex items-center justify-end gap-1.5">
                              <Button variant="ghost" size="icon" onClick={() => setViewingReport(r)} className="size-8 rounded-lg bg-white ring-1 ring-slate-100 shadow-sm" title="View Saved Data"><Eye className="size-3.5 text-slate-400 hover:text-primary" /></Button>
-                             <Button variant="ghost" size="icon" asChild disabled={!canEdit} className="size-8 rounded-lg bg-white ring-1 ring-slate-100 shadow-sm" title={canEdit ? 'Edit Record' : 'Access Restricted'}>
-                                <Link href={canEdit ? (isVes ? `/ground-water-investigation/geophysical-survey/site-entry?id=${r.id}` : `/ground-water-investigation/geological-survey/site-entry?id=${r.id}`) : '#'} className={!canEdit ? "pointer-events-none opacity-50" : ""}><Edit3 className="size-3.5 text-slate-400 hover:text-emerald-600" /></Link>
+                             <Button variant="ghost" size="icon" asChild disabled={!canModifyRecord} className="size-8 rounded-lg bg-white ring-1 ring-slate-100 shadow-sm" title={canModifyRecord ? 'Edit Record' : 'Access Restricted'}>
+                                <Link href={canModifyRecord ? (isVes ? `/ground-water-investigation/geophysical-survey/site-entry?id=${r.id}` : `/ground-water-investigation/geological-survey/site-entry?id=${r.id}`) : '#'} className={!canModifyRecord ? "pointer-events-none opacity-50" : ""}><Edit3 className="size-3.5 text-slate-400 hover:text-emerald-600" /></Link>
                              </Button>
-                             <Button variant="ghost" size="icon" onClick={() => canEdit && setReportToDelete(r)} disabled={!canEdit} className={cn("size-8 rounded-lg transition-colors bg-white ring-1 ring-slate-100", canEdit ? "text-rose-400 hover:text-rose-600 hover:bg-rose-50" : "opacity-20")} title={canEdit ? 'Delete' : 'Access Restricted'}><Trash2 className="size-3.5" /></Button>
+                             <Button variant="ghost" size="icon" onClick={() => canModifyRecord && setReportToDelete(r)} disabled={!canModifyRecord} className={cn("size-8 rounded-lg transition-colors bg-white ring-1 ring-slate-100", canModifyRecord ? "text-rose-400 hover:text-rose-600 hover:bg-rose-50" : "opacity-20")} title={canModifyRecord ? 'Delete' : 'Access Restricted'}><Trash2 className="size-3.5" /></Button>
                           </div>
                         </TableCell>
                       </TableRow>

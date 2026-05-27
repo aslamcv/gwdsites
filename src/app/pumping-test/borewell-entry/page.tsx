@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useTransition, useMemo, useEffect, Suspense } from 'react';
+import { useState, useTransition, useEffect, useMemo, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -44,7 +44,7 @@ import {
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
-import { collection, doc, setDoc, updateDoc } from 'firebase/firestore';
+import { collection, doc, setDoc } from 'firebase/firestore';
 import type { GroundwaterReport, Employee } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
 import { StaffMultiSelect } from '@/components/investigation/staff-multi-select';
@@ -233,7 +233,7 @@ function UnifiedBorewellPumpingEntryContent() {
         }
       };
 
-      const operation = isUpdate ? updateDoc(reportDocRef, reportData) : setDoc(reportDocRef, reportData);
+      const operation = isUpdate ? updateDocumentNonBlocking(reportDocRef, reportData) : setDocumentNonBlocking(reportDocRef, reportData, { merge: true });
 
       operation.then(() => {
         toast({ title: isUpdate ? 'Record Updated' : 'Record Saved', description: 'Borewell pumping test record synchronized.' });
@@ -249,7 +249,7 @@ function UnifiedBorewellPumpingEntryContent() {
   }
 
   return (
-    <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black">
+    <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black text-left">
       
       <div className="bg-white border border-slate-200 p-8 rounded-[32px] shadow-sm ring-1 ring-slate-200/50">
         <div className="flex flex-col space-y-8">
@@ -342,7 +342,7 @@ function UnifiedBorewellPumpingEntryContent() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Depth (m)</Label>
-              <Input disabled={!canModify} type="number" value={formData.depthOfWell || ''} onChange={(e) => updateField('depthOfWell', e.target.value)} className="h-11 border-slate-200 font-bold" />
+              <Input disabled={!canModify} type="text" value={formData.depthOfWell || ''} onChange={(e) => updateField('depthOfWell', e.target.value)} className="h-11 border-slate-200 font-bold" />
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Diameter (m)</Label>
@@ -350,11 +350,11 @@ function UnifiedBorewellPumpingEntryContent() {
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Static WL (mbmp)</Label>
-              <Input disabled={!canModify} type="number" value={formData.staticWaterLevel || ''} onChange={(e) => updateField('staticWaterLevel', e.target.value)} className="h-11 border-slate-200 font-bold text-blue-600" />
+              <Input disabled={!canModify} type="text" value={formData.staticWaterLevel || ''} onChange={(e) => updateField('staticWaterLevel', e.target.value)} className="h-11 border-slate-200 font-bold text-blue-600" />
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Avg Discharge (lpm)</Label>
-              <Input disabled={!canModify} type="number" value={formData.averageDischarge || ''} onChange={(e) => updateField('averageDischarge', e.target.value)} className="h-11 border-slate-200 font-black text-primary" />
+              <Input disabled={!canModify} type="text" value={formData.averageDischarge || ''} onChange={(e) => updateField('averageDischarge', e.target.value)} className="h-11 border-slate-200 font-black text-primary" />
             </div>
           </div>
         </CardContent>

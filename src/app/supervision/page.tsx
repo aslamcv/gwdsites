@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -89,12 +90,17 @@ export default function SupervisionLedgerPage() {
   }, [firestore, user?.email]);
   const { data: userProfile } = useDoc(userProfileRef);
   
-  const canEdit = useMemo(() => {
+  const isAdmin = useMemo(() => {
     if (isUserLoading) return false;
     if (user?.email === MASTER_ADMIN_EMAIL) return true;
-    const role = userProfile?.role;
-    return (role === 'admin' || role === 'engineer') && userProfile?.isApproved === true;
+    return userProfile?.role === 'admin';
   }, [user, userProfile, isUserLoading]);
+
+  const isAllowed = useMemo(() => {
+    if (isUserLoading) return false;
+    if (isAdmin) return true;
+    return (userProfile?.role === 'engineer') && userProfile?.isApproved === true;
+  }, [isAdmin, userProfile, isUserLoading]);
 
   const reportsQuery = useMemoFirebase(() => {
     if (!firestore || isUserLoading || !user) return null;
@@ -187,7 +193,7 @@ export default function SupervisionLedgerPage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-8 animate-in fade-in duration-700">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-8 animate-in fade-in duration-700 text-left">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-3xl font-black tracking-tight text-[#1e3a8a] uppercase">Supervision Ledger</h1>
@@ -196,7 +202,7 @@ export default function SupervisionLedgerPage() {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button disabled={!canEdit} size="lg" className="h-14 px-8 rounded-2xl bg-[#1e3a8a] hover:bg-blue-900 shadow-xl shadow-blue-900/20 font-black uppercase tracking-widest text-[11px] gap-3">
+            <Button disabled={!isAllowed} size="lg" className="h-14 px-8 rounded-2xl bg-[#1e3a8a] hover:bg-blue-900 shadow-xl shadow-blue-900/20 font-black uppercase tracking-widest text-[11px] gap-3">
               <PlusCircle className="size-5" />
               NEW SUPERVISION ENTRY
               <ChevronDown className="size-4 opacity-50" />
@@ -290,6 +296,9 @@ export default function SupervisionLedgerPage() {
                 ) : paginatedRecords.length > 0 ? (
                   paginatedRecords.map((r) => {
                     const category = getSupervisionCategory(r);
+                    const isOwner = user?.uid === r.uploadedBy;
+                    const canModifyRecord = isAdmin || isOwner;
+
                     return (
                       <TableRow key={r.id} className="h-20 border-slate-50 hover:bg-slate-50/50 transition-colors group">
                         <TableCell className="pl-8 font-bold text-xs text-slate-700">{r.reportDate || '---'}</TableCell>
@@ -307,8 +316,8 @@ export default function SupervisionLedgerPage() {
                         <TableCell className="text-right pr-8">
                           <div className="flex items-center justify-end gap-1.5">
                              <Button variant="ghost" size="icon" onClick={() => setViewingReport(r)} className="size-8 rounded-lg bg-white ring-1 ring-slate-100 shadow-sm" title="View Saved Data"><Eye className="size-3.5 text-slate-400 hover:text-primary" /></Button>
-                             <Button variant="ghost" size="icon" asChild disabled={!canEdit} className="size-8 rounded-lg bg-white ring-1 ring-slate-100 shadow-sm" title={canEdit ? 'Edit Record' : 'Access Restricted'}><Link href={canEdit ? getEditUrl(r) : '#'} className={!canEdit ? "pointer-events-none opacity-50" : ""}><Edit3 className="size-3.5 text-slate-400 hover:text-emerald-600" /></Link></Button>
-                             <Button variant="ghost" size="icon" onClick={() => canEdit && setReportToDelete(r)} disabled={!canEdit} className={cn("size-8 rounded-lg transition-colors bg-white ring-1 ring-slate-100", canEdit ? "text-rose-400 hover:text-rose-600 hover:bg-rose-50" : "opacity-20")} title={canEdit ? 'Delete' : 'Access Restricted'}><Trash2 className="size-3.5" /></Button>
+                             <Button variant="ghost" size="icon" asChild disabled={!canModifyRecord} className="size-8 rounded-lg bg-white ring-1 ring-slate-100 shadow-sm" title={canModifyRecord ? 'Edit Record' : 'Access Restricted'}><Link href={canModifyRecord ? getEditUrl(r) : '#'} className={!canModifyRecord ? "pointer-events-none opacity-50" : ""}><Edit3 className="size-3.5 text-slate-400 hover:text-emerald-600" /></Link></Button>
+                             <Button variant="ghost" size="icon" onClick={() => canModifyRecord && setReportToDelete(r)} disabled={!canModifyRecord} className={cn("size-8 rounded-lg transition-colors bg-white ring-1 ring-slate-100", canModifyRecord ? "text-rose-400 hover:text-rose-600 hover:bg-rose-50" : "opacity-20")} title={canModifyRecord ? 'Delete' : 'Access Restricted'}><Trash2 className="size-3.5" /></Button>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -334,8 +343,8 @@ export default function SupervisionLedgerPage() {
       </Card>
       
       <Dialog open={!!viewingReport} onOpenChange={(open) => !open && setViewingReport(null)}>
-        <DialogContent className="max-w-3xl rounded-[32px] overflow-hidden p-0 border-none shadow-2xl bg-white">
-          <DialogHeader className="p-8 bg-slate-50/50 border-b">
+        <DialogContent className="max-w-3xl rounded-[32px] overflow-hidden p-0 border-none shadow-2xl bg-white text-left">
+          <DialogHeader className="p-8 bg-slate-50/50 border-b text-left">
             <DialogTitle className="text-xl font-black uppercase text-slate-900">Technical Record: {viewingReport?.fileNo || 'Preview'}</DialogTitle>
             <DialogDescription className="text-sm font-medium text-slate-500">Viewing all saved parameters for site: {viewingReport?.nameOfSite || viewingReport?.applicantName || viewingReport?.location}</DialogDescription>
           </DialogHeader>

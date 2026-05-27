@@ -85,12 +85,17 @@ export default function PumpingTestLedgerPage() {
   }, [firestore, user?.email]);
   const { data: userProfile } = useDoc(userProfileRef);
   
-  const isAllowed = useMemo(() => {
+  const isAdmin = useMemo(() => {
     if (isUserLoading) return false;
     if (user?.email === MASTER_ADMIN_EMAIL) return true;
-    const role = userProfile?.role;
-    return (role === 'admin' || role === 'scientist' || role === 'engineer') && userProfile?.isApproved === true;
+    return userProfile?.role === 'admin';
   }, [user, userProfile, isUserLoading]);
+
+  const isAllowed = useMemo(() => {
+    if (isUserLoading) return false;
+    if (isAdmin) return true;
+    return (userProfile?.role === 'scientist' || userProfile?.role === 'engineer') && userProfile?.isApproved === true;
+  }, [isAdmin, userProfile, isUserLoading]);
 
   const reportsQuery = useMemoFirebase(() => {
     if (!firestore || isUserLoading || !user) return null;
@@ -142,11 +147,9 @@ export default function PumpingTestLedgerPage() {
     setReportToDelete(null);
   };
 
-  const isAdmin = user?.email === MASTER_ADMIN_EMAIL || userProfile?.role === 'admin';
-
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-8 animate-in fade-in duration-700">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 text-left">
         <div>
           <h1 className="text-3xl font-black tracking-tight text-slate-900 uppercase">Yield Testing Ledger</h1>
           <p className="text-slate-500 font-bold text-[10px] uppercase tracking-widest mt-2">Technical Records of Pumping Tests & Recovery Logs</p>
@@ -196,7 +199,7 @@ export default function PumpingTestLedgerPage() {
                 <TableRow className="border-slate-100">
                   <TableHead className="pl-8 text-[10px] font-black uppercase tracking-widest text-slate-400">Test Date</TableHead>
                   <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Site / Location</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Technical Reports</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Technical Reports</TableHead>
                   <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Well Type</TableHead>
                   <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Status</TableHead>
                   <TableHead className="text-right pr-8 text-[10px] font-black uppercase tracking-widest text-slate-400">Actions</TableHead>
@@ -222,18 +225,18 @@ export default function PumpingTestLedgerPage() {
                       <TableRow key={r.id} className="h-20 border-slate-50 hover:bg-slate-50/50 transition-colors group">
                         <TableCell className="pl-8 font-bold text-xs text-slate-700">{r.reportDate || '---'}</TableCell>
                         <TableCell>
-                          <div className="flex flex-col">
+                          <div className="flex flex-col text-left">
                             <span className="font-black text-xs text-slate-900 uppercase tracking-tight">{r.nameOfSite || 'Unnamed Site'}</span>
                             <span className="text-[9px] font-bold text-slate-400 uppercase">{r.fileNo || '---'}</span>
                           </div>
                         </TableCell>
                         <TableCell>
-                           <div className="flex gap-2">
+                           <div className="flex justify-center gap-2">
                               <Button asChild variant="outline" size="sm" className="h-7 px-3 text-[9px] font-black uppercase bg-blue-50 text-blue-700 border-blue-100 rounded-lg shadow-sm"><Link href={viewUrl} target="_blank"><FileText className="size-3 mr-1.5" /> Completion</Link></Button>
                               <Button asChild variant="outline" size="sm" className="h-7 px-3 text-[9px] font-black uppercase bg-emerald-50 text-emerald-700 border-emerald-100 rounded-lg shadow-sm"><Link href={`/pumping-test/private/agriculture/yield-test-report?id=${r.id}`} target="_blank"><Activity className="size-3 mr-1.5" /> Yield Report</Link></Button>
                            </div>
                         </TableCell>
-                        <TableCell><Badge variant="secondary" className="text-[9px] font-black bg-slate-100 text-slate-500 uppercase">{isBore ? 'Borewell' : 'Open Well'}</Badge></TableCell>
+                        <TableCell><Badge variant="secondary" className="text-[9px] font-black bg-slate-100 text-slate-500 uppercase tracking-tighter">{isBore ? 'Borewell' : 'Open Well'}</Badge></TableCell>
                         <TableCell><Badge variant={r.status === 'Published' ? 'default' : 'secondary'} className={cn('text-[9px] font-black uppercase', r.status === 'Published' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800')}>{r.status || 'Draft'}</Badge></TableCell>
                         <TableCell className="text-right pr-8">
                           <div className="flex items-center justify-end gap-1.5">
@@ -266,8 +269,8 @@ export default function PumpingTestLedgerPage() {
 
       {/* Data Viewer Dialog */}
       <Dialog open={!!viewingReport} onOpenChange={(open) => !open && setViewingReport(null)}>
-        <DialogContent className="max-w-3xl rounded-[32px] overflow-hidden p-0 border-none shadow-2xl bg-white">
-          <DialogHeader className="p-8 bg-slate-50/50 border-b">
+        <DialogContent className="max-w-3xl rounded-[32px] overflow-hidden p-0 border-none shadow-2xl bg-white text-left">
+          <DialogHeader className="p-8 bg-slate-50/50 border-b text-left">
             <DialogTitle className="text-xl font-black uppercase text-slate-900">Technical Record: {viewingReport?.fileNo || 'Preview'}</DialogTitle>
             <DialogDescription className="text-sm font-medium text-slate-500">Viewing all saved parameters for site: {viewingReport?.nameOfSite || viewingReport?.applicantName || viewingReport?.location}</DialogDescription>
           </DialogHeader>
@@ -275,7 +278,7 @@ export default function PumpingTestLedgerPage() {
             <ScrollArea className="max-h-[60vh]">
               <div className="py-2 px-8">
                 {Object.entries(viewingReport).filter(([key, value]) => value !== undefined && value !== null && value !== '' && !keysToIgnore.includes(key) && (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean')).map(([key, value]) => (
-                    <div key={key} className="grid grid-cols-[240px_1fr] items-start gap-4 py-3.5 border-b border-slate-100 last-border-b-0">
+                    <div key={key} className="grid grid-cols-[240px_1fr] items-start gap-4 py-3.5 border-b border-slate-100 last:border-b-0">
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-right pr-4">{key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</span>
                         <span className="font-semibold text-slate-800 text-sm break-words">{String(value)}</span>
                     </div>
