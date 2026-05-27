@@ -92,19 +92,19 @@ export default function GroundWaterInvestigationPage() {
     if (!firestore || !user?.email) return null;
     return doc(firestore, 'users', user.email.toLowerCase().trim());
   }, [firestore, user?.email]);
-  const { data: userProfile } = useDoc(userProfileRef);
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
 
   const isAdmin = useMemo(() => {
-    if (isUserLoading) return false;
-    if (user?.email === MASTER_ADMIN_EMAIL) return true;
+    if (isUserLoading || isProfileLoading) return false;
+    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
     return userProfile?.role === 'admin';
-  }, [user, userProfile, isUserLoading]);
+  }, [user, userProfile, isUserLoading, isProfileLoading]);
 
   const isAllowed = useMemo(() => {
-    if (isUserLoading) return false;
+    if (isUserLoading || isProfileLoading) return false;
     if (isAdmin) return true;
     return (userProfile?.role === 'scientist' || userProfile?.role === 'engineer') && userProfile?.isApproved === true;
-  }, [isAdmin, userProfile, isUserLoading]);
+  }, [isAdmin, userProfile, isUserLoading, isProfileLoading]);
 
   const reportsQuery = useMemoFirebase(() => {
     if (!firestore || isUserLoading || !user) return null;
@@ -114,9 +114,9 @@ export default function GroundWaterInvestigationPage() {
   const { data: reports, isLoading } = useCollection<GroundwaterReport>(reportsQuery);
 
   const usersQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || isUserLoading || !user) return null;
     return query(collection(firestore, 'users'));
-  }, [firestore]);
+  }, [firestore, user, isUserLoading]);
   const { data: systemUsers } = useCollection(usersQuery);
 
   const userMap = useMemo(() => {
@@ -125,7 +125,8 @@ export default function GroundWaterInvestigationPage() {
       systemUsers.forEach(u => {
         const name = u.displayName || u.email || 'Unknown';
         if (u.uid) map.set(u.uid, name);
-        if (u.id) map.set(u.id.toLowerCase().trim(), name);
+        if (u.id) map.set(u.id, name);
+        if (u.email) map.set(u.email.toLowerCase().trim(), name);
       });
     }
     return map;
