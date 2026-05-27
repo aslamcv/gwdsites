@@ -447,18 +447,16 @@ function SiteEntryContent() {
                             disabled={!canModify}
                           />
                           {canModify && (
-                            <Button 
+                            <button 
                               type="button" 
-                              variant="ghost" 
-                              size="icon" 
-                              className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-slate-400 hover:text-primary"
+                              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors"
                               onClick={() => {
                                 setIsVillageManual(false);
                                 field.onChange("");
                               }}
                             >
                               <X className="size-4" />
-                            </Button>
+                            </button>
                           )}
                         </div>
                       ) : (

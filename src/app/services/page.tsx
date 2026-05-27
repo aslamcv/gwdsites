@@ -28,6 +28,7 @@ import { useUser, useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking 
 import { doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { formatToTechnicalDate } from '@/lib/malayalam-utils';
 
 const MASTER_ADMIN_EMAIL = 'gwdmpm@gmail.com';
 

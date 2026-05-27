@@ -198,7 +198,6 @@ function UnifiedBorewellPumpingEntryContent() {
   }, [employees]);
 
   const detectedLac = useMemo(() => {
-    if (!formData.lsgd || !lsgMappings || lsgMappings.length === 0) return '';
     const mapping = lsgMappings.find(m => m.lsg === formData.lsgd);
     return mapping?.constituency || '';
   }, [formData.lsgd, lsgMappings]);
