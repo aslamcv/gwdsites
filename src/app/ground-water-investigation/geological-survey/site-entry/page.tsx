@@ -367,13 +367,7 @@ function SiteEntryContent() {
   };
 
   if (isReportLoading && id) {
-    return (
-      <div className="p-4 sm:p-6 space-y-6 text-left">
-        <Skeleton className="h-10 w-1/3" />
-        <Skeleton className="h-24 w-full" />
-        <Skeleton className="h-64 w-full" />
-      </div>
-    );
+    return <div className="p-12 text-center animate-pulse uppercase tracking-widest font-black opacity-30 text-slate-400">Initializing Workspace...</div>;
   }
 
   const recommendationType = form.watch('recommendationType');
@@ -528,17 +522,24 @@ function SiteEntryContent() {
                     <FormControl><Input {...field} disabled className="bg-slate-50 font-black text-blue-600 uppercase h-10 text-xs" /></FormControl>
                   </FormItem> 
                 )} />
-                <FormField control={form.control} name="block" render={({ field }) => ( 
-                  <FormItem> 
-                    <FormLabel className="text-[10px] font-black uppercase text-slate-500">13. Block</FormLabel> 
-                    <Select disabled={!isAllowed} onValueChange={field.onChange} value={field.value}>
-                      <FormControl><SelectTrigger className="h-10 text-xs font-bold uppercase"><SelectValue/></SelectTrigger></FormControl>
-                      <SelectContent className="rounded-xl">
-                        {blockOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </FormItem> 
-                )} />
+                <FormField control={form.control} name="block" render={({ field }) => {
+                  const currentBlock = field.value || '';
+                  const isBlockInList = blockOptions.includes(currentBlock);
+                  return (
+                    <FormItem> 
+                      <FormLabel className="text-[10px] font-black uppercase text-slate-500">13. Block</FormLabel> 
+                      <Select disabled={!isAllowed} onValueChange={field.onChange} value={field.value}>
+                        <FormControl><SelectTrigger className="h-10 text-xs font-bold uppercase"><SelectValue/></SelectTrigger></FormControl>
+                        <SelectContent className="rounded-xl">
+                          {!isBlockInList && currentBlock && (
+                            <SelectItem value={currentBlock} className="text-[10px] font-bold uppercase bg-blue-50/50">{currentBlock}</SelectItem>
+                          )}
+                          {blockOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </FormItem> 
+                  );
+                }} />
                 <FormField control={form.control} name="typeAppliedFor" render={({ field }) => ( 
                   <FormItem> 
                     <FormLabel className="text-[10px] font-black uppercase text-slate-500">14. Type Applied For</FormLabel> 
@@ -752,6 +753,13 @@ function SiteEntryContent() {
     </div>
   );
 }
+
+const FormFieldItem = ({ label, id, children, className }: {label:string, id:string, children: React.ReactNode, className?:string}) => (
+  <div className={cn("space-y-2", className)}>
+    <Label htmlFor={id} className="text-[10px] font-black uppercase text-slate-500">{label}</Label>
+    {children}
+  </div>
+);
 
 const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, form}: {isOpen:boolean, onOpenChange:(o:boolean)=>void, structureType:string|null, form:UseFormReturn<ReportFormValues>}) => {
   const isBorewell = structureType?.startsWith('borewell');
