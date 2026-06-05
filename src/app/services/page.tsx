@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect, useTransition } from 'react';
@@ -293,7 +294,7 @@ export default function ServicesRatesCatalog() {
 
   return (
     <div className="min-h-screen bg-slate-50/50 p-4 sm:p-8 animate-in fade-in duration-700 pb-32">
-      <div className="max-w-7xl mx-auto space-y-8">
+      <div className="max-w-7xl mx-auto space-y-8 text-left">
         
         <Card className="border-none shadow-xl shadow-slate-200/50 rounded-[32px] overflow-hidden ring-1 ring-slate-200 bg-white">
           <div className="bg-[#1e3a8a] p-8 text-white relative">
@@ -527,18 +528,18 @@ export default function ServicesRatesCatalog() {
                                       )}
                                     </td>
                                   )}
-                                  <td className="border-r px-2">
+                                  <td className="border-r px-2 text-center">
                                      {isAdmin ? (
                                        <Input type="date" value={item.dateFrom || ''} onChange={(e) => updateItem(service.id, item.id, 'dateFrom', e.target.value)} className="h-8 text-[9px] px-1 border-slate-200" />
                                      ) : (
-                                       <span className="text-[9px] font-bold text-slate-500 block text-center">{formatToTechnicalDate(item.dateFrom) || '---'}</span>
+                                       <span className="text-[9px] font-bold text-slate-500 block">{formatToTechnicalDate(item.dateFrom) || '---'}</span>
                                      )}
                                   </td>
-                                  <td className="border-r px-2">
+                                  <td className="border-r px-2 text-center">
                                      {isAdmin ? (
                                        <Input type="date" value={item.dateTo || ''} onChange={(e) => updateItem(service.id, item.id, 'dateTo', e.target.value)} className="h-8 text-[9px] px-1 border-slate-200" />
                                      ) : (
-                                       <span className="text-[9px] font-bold text-slate-500 block text-center">{formatToTechnicalDate(item.dateTo) || 'PRESENT'}</span>
+                                       <span className="text-[9px] font-bold text-slate-500 block">{formatToTechnicalDate(item.dateTo) || 'PRESENT'}</span>
                                      )}
                                   </td>
                                   {isAdmin && (
@@ -650,18 +651,18 @@ export default function ServicesRatesCatalog() {
                                         )}
                                       </td>
                                     )}
-                                    <td className="border-r px-2">
+                                    <td className="border-r px-2 text-center">
                                       {isAdmin ? (
                                         <Input type="date" value={item.dateFrom || ''} onChange={(e) => updateItem(service.id, item.id, 'dateFrom', e.target.value)} className="h-8 text-[9px] px-1 border-slate-200" />
                                       ) : (
-                                        <span className="text-center block text-[9px] font-medium text-slate-400">{formatToTechnicalDate(item.dateFrom)}</span>
+                                        <span className="block text-[9px] font-medium text-slate-400">{formatToTechnicalDate(item.dateFrom)}</span>
                                       )}
                                     </td>
-                                    <td className="border-r px-2">
+                                    <td className="border-r px-2 text-center">
                                       {isAdmin ? (
                                         <Input type="date" value={item.dateTo || ''} onChange={(e) => updateItem(service.id, item.id, 'dateTo', e.target.value)} className="h-8 text-[9px] px-1 border-slate-200" />
                                       ) : (
-                                        <span className="text-center block text-[9px] font-medium text-slate-400">{formatToTechnicalDate(item.dateTo)}</span>
+                                        <span className="block text-[9px] font-medium text-slate-400">{formatToTechnicalDate(item.dateTo)}</span>
                                       )}
                                     </td>
                                     {isAdmin && (

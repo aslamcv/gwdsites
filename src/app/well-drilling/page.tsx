@@ -88,12 +88,10 @@ export default function WellDrillingLedgerPage() {
   const isAdmin = useMemo(() => {
     if (isUserLoading || isProfileLoading) return false;
     if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
-    return userProfile?.role === 'admin';
+    return userProfile?.role?.toLowerCase() === 'admin';
   }, [user, userProfile, isUserLoading, isProfileLoading]);
 
-  const isEngineer = useMemo(() => {
-    return userProfile?.role === 'engineer';
-  }, [userProfile]);
+  const isEngineer = useMemo(() => userProfile?.role?.toLowerCase() === 'engineer', [userProfile]);
 
   const isAllowedToAdd = useMemo(() => {
     if (isUserLoading || isProfileLoading) return false;
@@ -116,6 +114,8 @@ export default function WellDrillingLedgerPage() {
 
   const userMap = useMemo(() => {
     const map = new Map();
+    map.set(MASTER_ADMIN_EMAIL, 'District Officer');
+    
     if (systemUsers) {
       systemUsers.forEach(u => {
         const name = u.displayName || u.email || 'Unknown';
@@ -189,7 +189,7 @@ export default function WellDrillingLedgerPage() {
               <ChevronDown className="size-4 opacity-50" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-[300px] p-2 rounded-[24px] border-slate-200 shadow-2xl">
+          <DropdownMenuContent align="end" className="w-[300px] p-2 rounded-[24px] border-slate-200 shadow-2xl bg-white/95 backdrop-blur-xl">
             <DropdownMenuLabel className="px-4 py-3 text-[10px] font-black uppercase text-slate-400 tracking-widest">Select Work Type</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild className="rounded-xl cursor-pointer p-3 focus:bg-blue-50 group">
@@ -231,8 +231,8 @@ export default function WellDrillingLedgerPage() {
                   <TableHead className="pl-8 text-[10px] font-black uppercase tracking-widest text-slate-400">Log Date</TableHead>
                   <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Site / Reference</TableHead>
                   <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Technical Reports</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Work Type</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">User</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Work Type</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">User</TableHead>
                   <TableHead className="text-right pr-8 text-[10px] font-black uppercase tracking-widest text-slate-400">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -271,10 +271,10 @@ export default function WellDrillingLedgerPage() {
                               </Button>
                            </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-center">
                           <Badge variant="secondary" className="text-[9px] font-black bg-slate-100 text-slate-500 uppercase tracking-tighter">{r.workType || 'DRILLING'}</Badge>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-center">
                           <span className="text-[10px] font-bold text-slate-500 uppercase truncate max-w-[120px] block">{ownerName}</span>
                         </TableCell>
                         <TableCell className="text-right pr-8">
@@ -308,9 +308,8 @@ export default function WellDrillingLedgerPage() {
         </CardFooter>
       </Card>
       
-      {/* Data Viewer Dialog */}
       <Dialog open={!!viewingReport} onOpenChange={(open) => !open && setViewingReport(null)}>
-        <DialogContent className="max-w-3xl rounded-[32px] overflow-hidden p-0 border-none shadow-2xl bg-white text-left">
+        <DialogContent className="max-w-3xl rounded-[32px] overflow-hidden p-0 border-none shadow-2xl bg-white text-left text-left">
           <DialogHeader className="p-8 bg-slate-50/50 border-b text-left">
             <DialogTitle className="text-xl font-black uppercase text-slate-900">Technical Record: {viewingReport?.fileNo || 'Preview'}</DialogTitle>
             <DialogDescription className="text-sm font-medium text-slate-500">Viewing all saved parameters for site: {viewingReport?.nameOfSite || viewingReport?.applicantName || viewingReport?.location}</DialogDescription>
@@ -331,7 +330,6 @@ export default function WellDrillingLedgerPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!reportToDelete} onOpenChange={(open) => !open && setReportToDelete(null)}>
         <AlertDialogContent className="rounded-3xl p-8">
             <AlertDialogHeader className="flex flex-col items-center text-center">

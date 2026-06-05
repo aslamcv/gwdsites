@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { 
   ArrowLeft, 
   Save, 
@@ -76,20 +77,19 @@ function UnifiedHPSSupervisionContent() {
 
   const id = searchParams.get('id');
 
-  // Role detection
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user?.email) return null;
-    return doc(firestore, 'users', user.email);
+    return doc(firestore, 'users', user.email.toLowerCase().trim());
   }, [firestore, user?.email]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
   
   const isAllowed = useMemo(() => {
     if (isUserLoading || isProfileLoading) return false;
-    if (user?.email === MASTER_ADMIN_EMAIL) return true;
-    return (userProfile?.role === 'admin' || userProfile?.role === 'engineer') && userProfile?.isApproved === true;
+    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
+    const role = (userProfile?.role || '').toLowerCase();
+    return (role === 'admin' || role === 'engineer') && userProfile?.isApproved === true;
   }, [user, userProfile, isUserLoading, isProfileLoading]);
 
-  // Fetch Employees for staff selection
   const employeesRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'employees');
@@ -102,6 +102,13 @@ function UnifiedHPSSupervisionContent() {
   }, [firestore, id]);
 
   const { data: cloudReport, isLoading: isReportLoading } = useDoc<GroundwaterReport>(reportRef);
+
+  const isOwner = useMemo(() => {
+    if (!cloudReport || !user) return false;
+    return cloudReport.uploadedBy === user.uid;
+  }, [cloudReport, user]);
+
+  const canModify = isAllowed && (isOwner || user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL || userProfile?.role?.toLowerCase() === 'admin');
 
   const [formData, setFormData] = useState<any>({
     reportDate: new Date().toISOString().split('T')[0],
@@ -169,12 +176,12 @@ function UnifiedHPSSupervisionContent() {
   }, [employees]);
 
   const detectedLac = useMemo(() => {
-    const mapping = lsgMappings.find(m => m.lsg === formData.panchayathName);
+    const mapping = lsgMappings?.find(m => m.lsg === formData.panchayathName);
     return mapping?.constituency || '';
   }, [formData.panchayathName, lsgMappings]);
 
   const handleSave = () => {
-    if (!user || !firestore || !isAllowed) return;
+    if (!user || !firestore || !canModify) return;
 
     startTransition(() => {
       const isUpdate = !!id;
@@ -190,6 +197,7 @@ function UnifiedHPSSupervisionContent() {
         purpose: "Supervision / HPS",
         category: "Supervision / HPS",
         updatedAt: new Date().toISOString(),
+        uploadedBy: cloudReport?.uploadedBy || user.uid,
         assembly: detectedLac,
         staffAssignment: {
             assistantExecutiveEngineer: formData.staffAssignment.assistantExecutiveEngineer.join(', '),
@@ -215,7 +223,7 @@ function UnifiedHPSSupervisionContent() {
   }
 
   return (
-    <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black text-left">
+    <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black text-left text-left">
       
       <div className="bg-white border border-slate-200 p-8 rounded-[32px] shadow-sm ring-1 ring-slate-200/50">
         <div className="flex flex-col space-y-8">
@@ -224,34 +232,32 @@ function UnifiedHPSSupervisionContent() {
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">Technical Oversight | District Office, Malappuram</p>
           </div>
           
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 text-left">
             <div className="flex items-center gap-5">
               <Button variant="ghost" size="icon" asChild className="rounded-full h-12 w-12 border border-slate-200 text-slate-600 hover:bg-slate-50">
                 <Link href="/supervision"><ArrowLeft className="size-5" /></Link>
               </Button>
             </div>
             
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full lg:w-auto">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full lg:w-auto text-left">
               <div className="space-y-1">
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
                   <CalendarIcon className="size-3 pointer-events-none" /> Completion Date
                 </Label>
-                <Input disabled={!isAllowed} type="date" value={formData.reportDate} onChange={(e) => updateField('reportDate', e.target.value)} className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl focus:bg-white" />
+                <Input disabled={!canModify} type="date" value={formData.reportDate} onChange={(e) => updateField('reportDate', e.target.value)} className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl focus:bg-white" />
               </div>
               <div className="space-y-1">
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
                   <Truck className="size-3" /> Conveyance
                 </Label>
-                <Select disabled={!isAllowed} onValueChange={(v) => updateField('conveyance', v)} value={formData.conveyance}>
+                <Select disabled={!canModify} onValueChange={(v) => updateField('conveyance', v)} value={formData.conveyance}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">{conveyanceOptions.map(o => <SelectItem key={o} value={o} className="text-xs font-bold">{o}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
-                  <Building className="size-3" /> Sector
-                </Label>
-                <Select disabled={!isAllowed} onValueChange={(v) => updateField('sector', v)} value={formData.sector}>
+                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><Building className="size-3" /> Sector</Label>
+                <Select disabled={!canModify} onValueChange={(v) => updateField('sector', v)} value={formData.sector}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">
                     {sectorOptions.map(s => <SelectItem key={s.id} value={s.id} className="text-[10px] font-black uppercase">{s.label}</SelectItem>)}
@@ -262,7 +268,7 @@ function UnifiedHPSSupervisionContent() {
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
                   <SearchCode className="size-3" /> Sub Category
                 </Label>
-                <Select disabled={!isAllowed} onValueChange={(v) => updateField('category', v)} value={formData.category}>
+                <Select disabled={!canModify} onValueChange={(v) => updateField('category', v)} value={formData.category}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">
                     {categoryMappings[formData.sector]?.map(c => <SelectItem key={c} value={c} className="text-[10px] font-black uppercase">{c}</SelectItem>)}
@@ -277,24 +283,24 @@ function UnifiedHPSSupervisionContent() {
       {/* 2. BASIC SITE & ADMIN DETAILS */}
       <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
-          <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-600 flex items-center gap-3">
+          <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-600 flex items-center gap-3 text-left">
              <MapPin className="size-4" /> BASIC SITE & ADMIN DETAILS
           </CardTitle>
         </CardHeader>
         <CardContent className="p-10 space-y-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            <div className="space-y-2 lg:col-span-1">
+            <div className="space-y-2 lg:col-span-1 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Name of Place</Label>
-              <Input disabled={!isAllowed} value={formData.nameOfPlace} onChange={(e) => updateField('nameOfPlace', e.target.value)} className="h-11 border-slate-200 uppercase font-bold text-primary" placeholder="LOCATION NAME" />
+              <Input disabled={!canModify} value={formData.nameOfPlace} onChange={(e) => updateField('nameOfPlace', e.target.value)} className="h-11 border-slate-200 uppercase font-bold text-primary" placeholder="LOCATION NAME" />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Panchayath Name</Label>
-              <Select disabled={!isAllowed} onValueChange={(v) => updateField('panchayathName', v)} value={formData.panchayathName}>
+              <Select disabled={!canModify} onValueChange={(v) => updateField('panchayathName', v)} value={formData.panchayathName}>
                 <SelectTrigger className="h-11 border-slate-200 font-bold"><SelectValue placeholder="Select" /></SelectTrigger>
                 <SelectContent className="max-h-[400px] rounded-2xl">{lsgs.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Constituency (LAC)</Label>
               <Input disabled value={detectedLac} className="h-11 border-slate-200 bg-slate-50 font-black text-blue-600 uppercase" placeholder="Auto-detected" />
             </div>
@@ -303,7 +309,7 @@ function UnifiedHPSSupervisionContent() {
       </Card>
 
       {/* 3. TECHNICAL INSTALLATION DATA */}
-      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white">
+      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
           <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-orange-600 flex items-center gap-3">
              <Wrench className="size-4" /> TECHNICAL INSTALLATION DATA
@@ -312,79 +318,79 @@ function UnifiedHPSSupervisionContent() {
         <CardContent className="p-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Well Size (mm)</Label>
-              <Input disabled={!isAllowed} value={formData.wellSize} onChange={(e) => updateField('wellSize', e.target.value)} className="h-11 border-slate-200" placeholder="e.g. 150mm" />
+              <Input disabled={!canModify} value={formData.wellSize} onChange={(e) => updateField('wellSize', e.target.value)} className="h-11 border-slate-200" placeholder="e.g. 150mm" />
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Type of Hand Pump</Label>
-              <Select disabled={!isAllowed} onValueChange={(v) => updateField('typeOfHandPump', v)} value={formData.typeOfHandPump}>
+              <Select disabled={!canModify} onValueChange={(v) => updateField('typeOfHandPump', v)} value={formData.typeOfHandPump}>
                 <SelectTrigger className="h-11 border-slate-200 font-black text-primary"><SelectValue /></SelectTrigger>
                 <SelectContent className="rounded-2xl">{handPumpOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Static Water Level (m)</Label>
-              <Input disabled={!isAllowed} type="number" value={formData.staticWaterLevel} onChange={(e) => updateField('staticWaterLevel', e.target.value)} className="h-11 border-slate-200 font-bold text-blue-600" />
+              <Input disabled={!canModify} type="number" value={formData.staticWaterLevel} onChange={(e) => updateField('staticWaterLevel', e.target.value)} className="h-11 border-slate-200 font-bold text-blue-600" />
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Depth of Pump Installed (m)</Label>
-              <Input disabled={!isAllowed} type="number" value={formData.depthOfPumpInstalled} onChange={(e) => updateField('depthOfPumpInstalled', e.target.value)} className="h-11 border-slate-200 font-black text-primary" />
+              <Input disabled={!canModify} type="number" value={formData.depthOfPumpInstalled} onChange={(e) => updateField('depthOfPumpInstalled', e.target.value)} className="h-11 border-slate-200 font-black text-primary" />
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Size of Platform Constructed</Label>
-              <Input disabled={!isAllowed} value={formData.platformSize} onChange={(e) => updateField('platformSize', e.target.value)} className="h-11 border-slate-200" placeholder="e.g. 1.2 x 1.2m" />
+              <Input disabled={!canModify} value={formData.platformSize} onChange={(e) => updateField('platformSize', e.target.value)} className="h-11 border-slate-200" placeholder="e.g. 1.2 x 1.2m" />
             </div>
              <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Measurement Taken By</Label>
-              <Input disabled={!isAllowed} value={formData.measurementTakenBy} onChange={(e) => updateField('measurementTakenBy', e.target.value)} className="h-11 border-slate-200" />
+              <Input disabled={!canModify} value={formData.measurementTakenBy} onChange={(e) => updateField('measurementTakenBy', e.target.value)} className="h-11 border-slate-200" />
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Check Measurement By</Label>
-              <Input disabled={!isAllowed} value={formData.checkMeasurementBy} onChange={(e) => updateField('checkMeasurementBy', e.target.value)} className="h-11 border-slate-200" />
+              <Input disabled={!canModify} value={formData.checkMeasurementBy} onChange={(e) => updateField('checkMeasurementBy', e.target.value)} className="h-11 border-slate-200" />
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Signature of Supervisor</Label>
-              <Input disabled={!isAllowed} value={formData.supervisorSignature} onChange={(e) => updateField('supervisorSignature', e.target.value)} className="h-11 border-slate-200 font-bold" />
+              <Input disabled={!canModify} value={formData.supervisorSignature} onChange={(e) => updateField('supervisorSignature', e.target.value)} className="h-11 border-slate-200 font-bold" />
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Remarks</Label>
-              <Textarea disabled={!isAllowed} value={formData.remarks} onChange={(e) => updateField('remarks', e.target.value)} rows={3} className="rounded-2xl border-slate-200 italic" />
+              <Textarea disabled={!canModify} value={formData.remarks} onChange={(e) => updateField('remarks', e.target.value)} rows={3} className="rounded-2xl border-slate-200 italic" />
             </div>
         </CardContent>
       </Card>
 
       {/* 4. STAFF DETAILS */}
-      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white">
+      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
           <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3">
              <Users className="size-4" /> 4. STAFF DETAILS (TEAM ASSIGNMENT)
           </CardTitle>
         </CardHeader>
         <CardContent className="p-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-           <StaffMultiSelect label="Asst. Exec. Engineer" options={filteredStaff.aee} selected={formData.staffAssignment.assistantExecutiveEngineer} onChange={(names) => updateStaff('assistantExecutiveEngineer', names)} max={1} disabled={!isAllowed} />
-           <StaffMultiSelect label="Assistant Engineer" options={filteredStaff.ae} selected={formData.staffAssignment.assistantEngineer} onChange={(names) => updateStaff('assistantEngineer', names)} max={1} disabled={!isAllowed} />
-           <StaffMultiSelect label="Site Supervisor" options={filteredStaff.sup} selected={formData.staffAssignment.supervisor} onChange={(names) => updateStaff('supervisor', names)} max={1} disabled={!isAllowed} />
-           <StaffMultiSelect label="Other Staff" options={filteredStaff.other} selected={formData.staffAssignment.otherStaff} onChange={(names) => updateStaff('otherStaff', names)} max={10} disabled={!isAllowed} />
+           <StaffMultiSelect label="Asst. Exec. Engineer" options={filteredStaff.aee} selected={formData.staffAssignment.assistantExecutiveEngineer} onChange={(names) => updateStaff('assistantExecutiveEngineer', names)} max={1} disabled={!canModify} />
+           <StaffMultiSelect label="Assistant Engineer" options={filteredStaff.ae} selected={formData.staffAssignment.assistantEngineer} onChange={(names) => updateStaff('assistantEngineer', names)} max={1} disabled={!canModify} />
+           <StaffMultiSelect label="Site Supervisor" options={filteredStaff.sup} selected={formData.staffAssignment.supervisor} onChange={(names) => updateStaff('supervisor', names)} max={1} disabled={!canModify} />
+           <StaffMultiSelect label="Other Staff" options={filteredStaff.other} selected={formData.staffAssignment.otherStaff} onChange={(names) => updateStaff('otherStaff', names)} max={10} disabled={!canModify} />
         </CardContent>
       </Card>
 
-      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] w-fit px-4">
+      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] w-fit px-4 text-left">
         <div className="bg-white/80 backdrop-blur-xl p-3 rounded-full border border-slate-200 shadow-2xl flex items-center justify-center gap-6 ring-1 ring-black/5">
           <div className="flex items-center gap-3 pl-2">
             <Logo />
-            <div className="flex flex-col">
+            <div className="flex flex-col text-left">
               <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">SUPERVISION NODE (HPS)</span>
               <span className="text-xs font-black text-slate-900 leading-none">{formData.fileNo || 'NEW RECORD'}</span>
             </div>
           </div>
           <Separator orientation="vertical" className="h-8 bg-slate-200 mx-2" />
-          <div className="pr-2">
+          <div className="pr-2 text-left">
             <Button 
               onClick={handleSave} 
-              disabled={isPending || !isAllowed} 
+              disabled={isPending || !canModify} 
               className="h-12 px-10 rounded-full bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-lg shadow-blue-900/20 gap-2 hover:bg-blue-900 transition-all hover:scale-[1.02] active:scale-95"
             >
               {isPending ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />} 
-              {isAllowed ? (id ? 'UPDATE' : 'SAVE') : <Lock className="size-4" />}
+              {canModify ? 'UPDATE' : 'SAVE'}
             </Button>
           </div>
         </div>

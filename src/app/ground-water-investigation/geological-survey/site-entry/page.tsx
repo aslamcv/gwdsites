@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -176,7 +177,7 @@ function SiteEntryContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const firestore = useFirestore();
-  const { user, isUserLoading } = useUser();
+  const { user, isUserLoading: isAuthLoading } = useUser();
   const [isPending, startTransition] = useTransition();
   
   const id = searchParams.get('id');
@@ -192,10 +193,10 @@ function SiteEntryContent() {
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
   
   const isAllowed = useMemo(() => {
-    if (isUserLoading || isProfileLoading) return false;
+    if (isAuthLoading || isProfileLoading) return false;
     if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
     return (userProfile?.role === 'admin' || userProfile?.role === 'scientist') && userProfile?.isApproved === true;
-  }, [user, userProfile, isUserLoading, isProfileLoading]);
+  }, [user, userProfile, isAuthLoading, isProfileLoading]);
 
   const employeesRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -330,16 +331,18 @@ function SiteEntryContent() {
   const handleNearbyTypeSelect = (type: string, value: string) => {
     if (!canModify) return;
     if (value === 'none') {
-        if(type === 'borewell') form.setValue('noNearbyBorewells', !form.getValues('noNearbyBorewells'));
-        if(type === 'openwell') form.setValue('noNearbyOpenwells', !form.getValues('noNearbyOpenwells'));
+        if(type === 'borewell') updateField('noNearbyBorewells', !form.getValues('noNearbyBorewells'));
+        if(type === 'openwell') updateField('noNearbyOpenwells', !form.getValues('noNearbyOpenwells'));
         setSelectedNearbyStructure(null);
     } else {
-        if(type === 'borewell') form.setValue('noNearbyBorewells', false);
-        if(type === 'openwell') form.setValue('noNearbyOpenwells', false);
+        if(type === 'borewell') updateField('noNearbyBorewells', false);
+        if(type === 'openwell') updateField('noNearbyOpenwells', false);
         setSelectedNearbyStructure(value);
         setIsNearbyDialogOpen(true);
     }
   };
+
+  const updateField = (key: any, value: any) => form.setValue(key, value);
 
   const recommendationType = form.watch('recommendationType');
   const isRecommendedToGp = form.watch('recommendedToGpSurvey');
@@ -352,7 +355,7 @@ function SiteEntryContent() {
   ];
 
   const categoryMappings: Record<string, string[]> = {
-    private: ["Domestic", "Agriculture", "Industrial", "Infrastructure", "Institutional"],
+    private: ["Domestic", "Irrigation", "Industrial", "Infrastructure", "Institutional"],
     government: ["Institutional", "Infrastructure", "Industrial", "Others"],
     local_bodies: ["Scheme", "Institutional"],
     others: ["Miscellaneous", "Emergency Work", "Special Survey"]

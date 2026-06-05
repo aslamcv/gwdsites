@@ -1,6 +1,7 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
+import React, { useMemo } from 'react';
 import { Button } from './ui/button';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -38,6 +39,18 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
 
   const { data: cloudSettings } = useDoc(settingsRef);
 
+  const userProfileRef = useMemoFirebase(() => {
+    if (!firestore || !user?.email) return null;
+    return doc(firestore, 'users', user.email.toLowerCase().trim());
+  }, [firestore, user?.email]);
+  const { data: userProfile } = useDoc(userProfileRef);
+
+  const displayRole = useMemo(() => {
+    if (user?.email?.toLowerCase() === 'gwdmpm@gmail.com') return 'System Administrator';
+    const rawRole = userProfile?.role || 'User';
+    return `District ${rawRole.charAt(0).toUpperCase() + rawRole.slice(1).toLowerCase()}`;
+  }, [user, userProfile]);
+
   const handleSignOut = async () => {
     if (auth) {
       await signOut(auth);
@@ -58,7 +71,6 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
     <AuthGuard>
       <div className="flex min-h-screen flex-col bg-slate-50/50">
         <header className="relative border-b border-slate-200 sticky top-0 z-[60] h-20 overflow-hidden bg-white">
-          {/* Header Background Image */}
           <div className="absolute inset-0 z-0">
             <Image 
               src={headerBg?.imageUrl || "https://picsum.photos/seed/water-source-banner/1600/400"} 
@@ -66,33 +78,28 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
               fill 
               className="object-cover"
               priority
-              data-ai-hint={headerBg?.imageHint || "water surface"}
+              data-ai-hint="water surface"
             />
-            {/* Subtle overlay for text readability while maintaining background visibility */}
             <div className="absolute inset-0 bg-white/40" />
           </div>
 
           <div className="relative z-10 flex items-center justify-between px-8 h-full max-w-screen-2xl mx-auto w-full">
-            
-            {/* Header Left: Official Dept Identity */}
             <div className="flex items-center gap-4 min-w-[280px]">
               <Link href="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
                 <Logo />
                 <div className="flex flex-col">
-                  <span className="text-[10px] font-black text-[#1e3a8a] uppercase tracking-[0.2em] leading-none mb-1">Government of Kerala</span>
-                  <span className="text-[14px] font-bold text-slate-900 tracking-tight leading-none">Ground Water Department</span>
+                  <span className="text-[10px] font-black text-[#1e3a8a] uppercase tracking-[0.2em] leading-none mb-1 text-left">Government of Kerala</span>
+                  <span className="text-[14px] font-bold text-slate-900 tracking-tight leading-none text-left">Ground Water Department</span>
                 </div>
               </Link>
             </div>
 
-            {/* Header Center: Prominent Website Name in OCR A style */}
-            <div className="flex-1 flex justify-center items-center px-4 overflow-hidden">
+            <div className="flex-1 flex justify-center items-center px-4 overflow-hidden text-left">
               <span className="font-ocr text-3xl md:text-4xl lg:text-6xl font-black text-[#1e3a8a] tracking-tighter whitespace-nowrap drop-shadow-sm select-none">
                 GWD SITES
               </span>
             </div>
 
-            {/* Header Right: Professional Controls */}
             <div className="flex items-center gap-4 min-w-[280px] justify-end">
               <div className="hidden lg:flex items-center gap-1 bg-white/40 backdrop-blur-md p-1 rounded-2xl border border-white/20 shadow-sm">
                 <DropdownMenu>
@@ -122,9 +129,9 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-64 mt-2 rounded-2xl border-slate-200 shadow-2xl" align="end" forceMount>
-                    <DropdownMenuLabel className="font-normal p-4">
+                    <DropdownMenuLabel className="font-normal p-4 text-left">
                       <div className="flex flex-col space-y-2">
-                        <p className="text-sm font-black leading-none text-[#1e3a8a] uppercase tracking-tight">District Administrator</p>
+                        <p className="text-sm font-black leading-none text-[#1e3a8a] uppercase tracking-tight">{displayRole}</p>
                         <p className="text-xs leading-none text-slate-700 truncate font-bold">{user.email}</p>
                       </div>
                     </DropdownMenuLabel>
@@ -154,11 +161,6 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
         <footer className="bg-white border-t border-slate-200 py-6 px-8">
           <div className="max-w-screen-2xl mx-auto w-full flex flex-col md:flex-row justify-between items-center gap-6">
             <p className="text-[10px] font-black text-slate-700 uppercase tracking-[0.2em]">© 2025 Ground Water Department Kerala | District Office, Malappuram</p>
-            <div className="flex items-center gap-8">
-              <Link href="/settings" className="text-[10px] font-black text-slate-700 hover:text-primary transition-colors uppercase tracking-widest">Policy</Link>
-              <Link href="/settings" className="text-[10px] font-black text-slate-700 hover:text-primary transition-colors uppercase tracking-widest">Privacy</Link>
-              <Link href="/settings" className="text-[10px] font-black text-slate-700 hover:text-primary transition-colors uppercase tracking-widest">Compliance</Link>
-            </div>
           </div>
         </footer>
       </div>
