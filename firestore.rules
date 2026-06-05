@@ -34,7 +34,7 @@ service cloud.firestore {
     }
 
     function isApproved() {
-      return isAuthenticated() && getUserDoc().isApproved == true;
+      return isMasterAdmin() || (isAuthenticated() && getUserDoc().isApproved == true);
     }
 
     function isOwner() {
@@ -46,42 +46,36 @@ service cloud.firestore {
     // 1. Technical Reports Hub: Enforcing Role-Based Scopes and Ownership
     match /groundwaterReports/{reportId} {
       
-      // Helper to identify modules based on category string
-      function isInvestigation() {
-        return (resource.data.category.lower().contains('investigation') || resource.data.category.lower().contains('geological') || resource.data.category.lower().contains('geophysical')) ||
-               (request.resource.data.category.lower().contains('investigation') || request.resource.data.category.lower().contains('geological') || request.resource.data.category.lower().contains('geophysical'));
-      }
-      function isDrilling() {
-        return (resource.data.category.lower().contains('drilling') || resource.data.workType == 'DRILLING' || resource.data.workType == 'FLUSHING') ||
-               (request.resource.data.category.lower().contains('drilling') || request.resource.data.workType == 'DRILLING' || request.resource.data.workType == 'FLUSHING');
-      }
-      function isPumping() {
-        return (resource.data.category.lower().contains('pumping')) ||
-               (request.resource.data.category.lower().contains('pumping'));
-      }
-      function isSupervision() {
-        return (resource.data.category.lower().contains('supervision') || resource.data.arsSubType != null) ||
-               (request.resource.data.category.lower().contains('supervision') || request.resource.data.arsSubType != null);
-      }
-      function isEstimateMeasurement() {
-        return (resource.data.category == 'ESTIMATE_MEASUREMENT' || resource.data.reportType != null) ||
-               (request.resource.data.category == 'ESTIMATE_MEASUREMENT' || request.resource.data.reportType != null);
-      }
-
-      allow read: if isAdmin() || 
-                    (isScientist() && (isInvestigation() || isPumping())) ||
-                    (isEngineer() && (isDrilling() || isPumping() || isSupervision() || isEstimateMeasurement()));
+      // READ: Allowed if user is approved and has a technical role.
+      // This allows the list operations to succeed while keeping data modification strictly controlled.
+      allow read: if isAdmin() || (isApproved() && (isScientist() || isEngineer()));
       
+      // CREATE: Restricted by role module definitions
       allow create: if isApproved() && (
-                      isAdmin() || 
-                      (isScientist() && (isInvestigation() || isPumping())) ||
-                      (isEngineer() && (isDrilling() || isPumping() || isSupervision() || isEstimateMeasurement()))
-                    );
+        isAdmin() || 
+        (isScientist() && (
+          request.resource.data.category.lower().contains('investigation') || 
+          request.resource.data.purpose.lower().contains('investigation') ||
+          request.resource.data.category.lower().contains('pumping') ||
+          request.resource.data.purpose.lower().contains('pumping')
+        )) ||
+        (isEngineer() && (
+          request.resource.data.category.lower().contains('drilling') ||
+          request.resource.data.workType == 'DRILLING' ||
+          request.resource.data.workType == 'FLUSHING' ||
+          request.resource.data.category.lower().contains('supervision') ||
+          request.resource.data.purpose.lower().contains('supervision') ||
+          request.resource.data.category.lower().contains('estimate') ||
+          request.resource.data.purpose.lower().contains('estimate') ||
+          request.resource.data.category.lower().contains('pumping') ||
+          request.resource.data.purpose.lower().contains('pumping') ||
+          request.resource.data.category.lower().contains('measurement') ||
+          request.resource.data.purpose.lower().contains('measurement')
+        ))
+      );
       
-      allow update, delete: if isAdmin() || (isOwner() && (
-                              (isScientist() && (isInvestigation() || isPumping())) ||
-                              (isEngineer() && (isDrilling() || isPumping() || isSupervision() || isEstimateMeasurement()))
-                            ));
+      // UPDATE/DELETE: Only Admin or the Original Creator can modify records
+      allow update, delete: if isAdmin() || isOwner();
     }
 
     // 2. Global Application Settings: Shared read, Admin modify.
@@ -99,15 +93,14 @@ service cloud.firestore {
     // 4. Attendance Logs: Staff can log their deployments
     match /attendance_logs/{recordId} {
       allow read: if isAuthenticated();
-      allow write: if isApproved() || isAdmin();
+      allow write: if isAdmin() || isApproved();
     }
 
     // 5. User Profiles: Centralized profiles indexed by email.
     match /users/{userEmail} {
       allow get: if true; 
       allow list: if isAuthenticated();
-      allow create: if isAdmin() || (isAuthenticated() && getUserEmail() == userEmail.lower());
-      allow update: if isAdmin() || (isAuthenticated() && getUserEmail() == userEmail.lower());
+      allow create, update: if isAdmin() || (isAuthenticated() && getUserEmail() == userEmail.lower());
       allow delete: if isAdmin();
     }
   }

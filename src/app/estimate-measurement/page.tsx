@@ -186,7 +186,7 @@ export default function EstimateMeasurementLedgerPage() {
               <ChevronDown className="size-4 opacity-50" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-[300px] p-2 rounded-[24px] border-slate-200 shadow-2xl">
+          <DropdownMenuContent align="end" className="w-[300px] p-2 rounded-[24px] border-slate-200 shadow-2xl bg-white/95 backdrop-blur-xl">
             <DropdownMenuLabel className="px-4 py-3 text-[10px] font-black uppercase text-slate-400 tracking-widest">Select Process</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild className="rounded-xl cursor-pointer p-3 focus:bg-blue-50 group">
