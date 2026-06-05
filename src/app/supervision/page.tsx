@@ -96,11 +96,15 @@ export default function SupervisionLedgerPage() {
     return userProfile?.role === 'admin';
   }, [user, userProfile, isUserLoading, isProfileLoading]);
 
-  const isAllowed = useMemo(() => {
+  const isEngineer = useMemo(() => {
+    return userProfile?.role === 'engineer';
+  }, [userProfile]);
+
+  const isAllowedToAdd = useMemo(() => {
     if (isUserLoading || isProfileLoading) return false;
     if (isAdmin) return true;
-    return (userProfile?.role === 'scientist' || userProfile?.role === 'engineer') && userProfile?.isApproved === true;
-  }, [isAdmin, userProfile, isUserLoading, isProfileLoading]);
+    return isEngineer && userProfile?.isApproved === true;
+  }, [isAdmin, isEngineer, userProfile, isUserLoading, isProfileLoading]);
 
   const reportsQuery = useMemoFirebase(() => {
     if (!firestore || isUserLoading || !user) return null;
@@ -215,13 +219,13 @@ export default function SupervisionLedgerPage() {
     <div className="p-4 sm:p-6 lg:p-8 space-y-8 animate-in fade-in duration-700 text-left">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-black tracking-tight text-[#1e3a8a] uppercase">Supervision Ledger</h1>
+          <h1 className="text-3xl font-black tracking-tight text-slate-900 uppercase">Supervision Ledger</h1>
           <p className="text-slate-500 font-bold text-[10px] uppercase tracking-widest mt-2">Technical Oversight & Completion Records</p>
         </div>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button disabled={!isAllowed} size="lg" className="h-14 px-8 rounded-2xl bg-[#1e3a8a] hover:bg-blue-900 shadow-xl shadow-blue-900/20 font-black uppercase tracking-widest text-[11px] gap-3">
+            <Button disabled={!isAllowedToAdd} size="lg" className="h-14 px-8 rounded-2xl bg-[#1e3a8a] hover:bg-blue-900 shadow-xl shadow-blue-900/20 font-black uppercase tracking-widest text-[11px] gap-3">
               <PlusCircle className="size-5" />
               NEW SUPERVISION ENTRY
               <ChevronDown className="size-4 opacity-50" />
@@ -317,7 +321,7 @@ export default function SupervisionLedgerPage() {
                   paginatedRecords.map((r) => {
                     const category = getSupervisionCategory(r);
                     const isOwner = user?.uid === r.uploadedBy;
-                    const canModifyRecord = isAdmin || isOwner;
+                    const canModifyRecord = isAdmin || (isEngineer && isOwner);
                     const ownerName = userMap.get(r.uploadedBy) || userMap.get(r.uploadedBy?.toLowerCase()) || '---';
 
                     return (

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Menubar,
   MenubarContent,
@@ -30,58 +30,68 @@ import {
   Waves,
   Wrench,
   Users,
-  CalendarCheck
+  CalendarCheck,
+  BarChart3
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+
+const MASTER_ADMIN_EMAIL = 'gwdmpm@gmail.com';
 
 type NavItem = {
   href: string;
   label: string;
   icon?: any;
   subItems?: NavItem[];
+  roles?: string[]; // Which roles can see this item
 };
 
 const navItems: NavItem[] = [
-  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/ground-water-investigation', label: 'Investigation', icon: SearchCode },
-  { href: '/well-drilling', label: 'Well Drilling', icon: Activity },
-  { href: '/pumping-test', label: 'Pumping Test', icon: Activity },
-  { href: '/supervision', label: 'Supervision', icon: ShieldCheck },
-  { href: '/estimate-measurement', label: 'Estimate / Measurement', icon: Ruler },
-  { href: '/site-staff-attendance', label: 'Site Staff Attendance', icon: CalendarCheck },
+  { href: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'engineer', 'scientist'] },
+  { href: '/ground-water-investigation', label: 'Investigation', icon: SearchCode, roles: ['admin', 'scientist'] },
+  { href: '/well-drilling', label: 'Well Drilling', icon: Activity, roles: ['admin', 'engineer'] },
+  { href: '/pumping-test', label: 'Pumping Test', icon: Activity, roles: ['admin', 'engineer', 'scientist'] },
+  { href: '/supervision', label: 'Supervision', icon: ShieldCheck, roles: ['admin', 'engineer'] },
+  { href: '/estimate-measurement', label: 'Estimate / Measurement', icon: Ruler, roles: ['admin', 'engineer'] },
+  { href: '/site-staff-attendance', label: 'Site Staff Attendance', icon: CalendarCheck, roles: ['admin', 'engineer', 'scientist'] },
   {
-    href: '/services',
+    href: '/administration',
     label: 'Administration',
     icon: Settings2,
+    roles: ['admin', 'engineer', 'scientist'],
     subItems: [
-      { href: '/establishment', label: 'District Establishment' },
-      { href: '/settings', label: 'System Configuration' },
-      { href: '/admin/users', label: 'User Management' },
-      { href: '/services', label: 'Rates & Catalogs' },
+      { href: '/establishment', label: 'District Establishment', roles: ['admin', 'engineer', 'scientist'] },
+      { href: '/settings', label: 'System Configuration', roles: ['admin'] },
+      { href: '/admin/users', label: 'User Management', roles: ['admin'] },
+      { href: '/services', label: 'Rates & Catalogs', roles: ['admin'] },
       { 
         href: '/census', 
         label: 'Statistical Census',
+        roles: ['admin', 'engineer', 'scientist'],
         subItems: [
-          { href: '/census/well-census', label: 'Well Census' },
-          { href: '/census/spring-census', label: 'Spring Census' },
-          { href: '/census/others', label: 'Others' },
+          { href: '/census/well-census', label: 'Well Census', roles: ['admin', 'engineer', 'scientist'] },
+          { href: '/census/spring-census', label: 'Spring Census', roles: ['admin', 'engineer', 'scientist'] },
+          { href: '/census/others', label: 'Others', roles: ['admin', 'engineer', 'scientist'] },
         ]
       },
     ]
   }
 ];
 
-function NavMenuSub({ items }: { items: NavItem[] }) {
+function NavMenuSub({ items, currentRole }: { items: NavItem[], currentRole: string }) {
+  const filteredItems = items.filter(item => !item.roles || item.roles.includes(currentRole));
+
   return (
     <>
-      {items.map((item) => (
+      {filteredItems.map((item) => (
         item.subItems ? (
           <MenubarSub key={item.href}>
             <MenubarSubTrigger className="flex justify-between items-center group py-2 px-3 focus:bg-slate-50">
               <span className="text-slate-700 font-medium text-[11px] uppercase tracking-tighter">{item.label}</span>
             </MenubarSubTrigger>
             <MenubarSubContent className="bg-white border-slate-200 min-w-[220px] rounded-xl shadow-xl p-1 mt-[-4px]">
-              <NavMenuSub items={item.subItems} />
+              <NavMenuSub items={item.subItems} currentRole={currentRole} />
             </MenubarSubContent>
           </MenubarSub>
         ) : (
@@ -99,11 +109,28 @@ function NavMenuSub({ items }: { items: NavItem[] }) {
 
 export function MainNav() {
   const pathname = usePathname();
+  const firestore = useFirestore();
+  const { user, isUserLoading } = useUser();
+
+  const userProfileRef = useMemoFirebase(() => {
+    if (!firestore || !user?.email) return null;
+    return doc(firestore, 'users', user.email.toLowerCase().trim());
+  }, [firestore, user?.email]);
+  const { data: userProfile } = useDoc(userProfileRef);
+
+  const currentRole = useMemo(() => {
+    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return 'admin';
+    return userProfile?.role || 'viewer';
+  }, [user, userProfile]);
+
+  const filteredNavItems = useMemo(() => {
+    return navItems.filter(item => !item.roles || item.roles.includes(currentRole));
+  }, [currentRole]);
 
   return (
     <div className="max-w-screen-2xl mx-auto w-full px-4 overflow-x-auto scrollbar-hide">
       <Menubar className="bg-transparent border-none h-12 gap-1 flex items-center justify-start">
-        {navItems.map((item) => {
+        {filteredNavItems.map((item) => {
           const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
           
           return (
@@ -126,7 +153,7 @@ export function MainNav() {
               </MenubarTrigger>
               {item.subItems && (
                 <MenubarContent className="bg-white border-slate-200 min-w-[240px] p-1.5 shadow-2xl rounded-2xl animate-in zoom-in-95 duration-200">
-                  <NavMenuSub items={item.subItems} />
+                  <NavMenuSub items={item.subItems} currentRole={currentRole} />
                 </MenubarContent>
               )}
             </MenubarMenu>

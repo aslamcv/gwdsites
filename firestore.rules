@@ -1,4 +1,3 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -17,56 +16,90 @@ service cloud.firestore {
       return isAuthenticated() && getUserEmail() == 'gwdmpm@gmail.com';
     }
 
-    // Check if the user document exists and is approved by the Master Admin
-    function isApproved() {
+    function getUserDoc() {
       let email = getUserEmail();
-      let userPath = /databases/$(database)/documents/users/$(email);
-      return isAuthenticated() && 
-             exists(userPath) && 
-             get(userPath).data.isApproved == true;
+      return get(/databases/$(database)/documents/users/$(email)).data;
     }
 
     function isAdmin() {
-      let email = getUserEmail();
-      let userPath = /databases/$(database)/documents/users/$(email);
-      return isMasterAdmin() || (exists(userPath) && get(userPath).data.role == 'admin');
+      return isMasterAdmin() || (isAuthenticated() && getUserDoc().role == 'admin');
     }
 
-    // Helper to check ownership of technical records
+    function isEngineer() {
+      return isAuthenticated() && getUserDoc().role == 'engineer';
+    }
+
+    function isScientist() {
+      return isAuthenticated() && getUserDoc().role == 'scientist';
+    }
+
+    function isApproved() {
+      return isAuthenticated() && getUserDoc().isApproved == true;
+    }
+
     function isOwner() {
       return isAuthenticated() && request.auth.uid == resource.data.uploadedBy;
     }
 
     // --- COLLECTION RULES ---
 
-    // 1. Global Application Settings: Shared read, Admin modify.
+    // 1. Technical Reports Hub: Enforcing Role-Based Scopes and Ownership
+    match /groundwaterReports/{reportId} {
+      
+      // Helper to identify modules based on category string
+      function isInvestigation() {
+        return (resource.data.category.lower().contains('investigation') || resource.data.category.lower().contains('geological') || resource.data.category.lower().contains('geophysical')) ||
+               (request.resource.data.category.lower().contains('investigation') || request.resource.data.category.lower().contains('geological') || request.resource.data.category.lower().contains('geophysical'));
+      }
+      function isDrilling() {
+        return (resource.data.category.lower().contains('drilling') || resource.data.workType == 'DRILLING' || resource.data.workType == 'FLUSHING') ||
+               (request.resource.data.category.lower().contains('drilling') || request.resource.data.workType == 'DRILLING' || request.resource.data.workType == 'FLUSHING');
+      }
+      function isPumping() {
+        return (resource.data.category.lower().contains('pumping')) ||
+               (request.resource.data.category.lower().contains('pumping'));
+      }
+      function isSupervision() {
+        return (resource.data.category.lower().contains('supervision') || resource.data.arsSubType != null) ||
+               (request.resource.data.category.lower().contains('supervision') || request.resource.data.arsSubType != null);
+      }
+      function isEstimateMeasurement() {
+        return (resource.data.category == 'ESTIMATE_MEASUREMENT' || resource.data.reportType != null) ||
+               (request.resource.data.category == 'ESTIMATE_MEASUREMENT' || request.resource.data.reportType != null);
+      }
+
+      allow read: if isAdmin() || 
+                    (isScientist() && (isInvestigation() || isPumping())) ||
+                    (isEngineer() && (isDrilling() || isPumping() || isSupervision() || isEstimateMeasurement()));
+      
+      allow create: if isApproved() && (
+                      isAdmin() || 
+                      (isScientist() && (isInvestigation() || isPumping())) ||
+                      (isEngineer() && (isDrilling() || isPumping() || isSupervision() || isEstimateMeasurement()))
+                    );
+      
+      allow update, delete: if isAdmin() || (isOwner() && (
+                              (isScientist() && (isInvestigation() || isPumping())) ||
+                              (isEngineer() && (isDrilling() || isPumping() || isSupervision() || isEstimateMeasurement()))
+                            ));
+    }
+
+    // 2. Global Application Settings: Shared read, Admin modify.
     match /appSettings/{document=**} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
 
-    // 2. District Employees: Centralized roster. Everyone can view, Admin modifies.
+    // 3. District Employees: Centralized roster. Everyone can view, Admin modifies.
     match /employees/{employeeId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
 
-    // 3. Attendance Logs: Centralized logs. Admin/Technical staff can modify.
+    // 4. Attendance Logs: Staff can log their deployments
     match /attendance_logs/{recordId} {
       allow read: if isAuthenticated();
       allow write: if isApproved() || isAdmin();
-    }
-
-    // 4. Technical Reports Hub: Enforcing Ownership or Administrative Override
-    match /groundwaterReports/{reportId} {
-      allow read: if isAuthenticated();
-      
-      // Allow any approved staff member to create records
-      allow create: if isApproved() || isAdmin();
-      
-      // Strict Ownership: Only the creator or an Admin can modify/delete
-      allow update: if isAdmin() || isOwner();
-      allow delete: if isAdmin() || isOwner();
     }
 
     // 5. User Profiles: Centralized profiles indexed by email.

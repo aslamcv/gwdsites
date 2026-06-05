@@ -91,11 +91,14 @@ export default function PumpingTestLedgerPage() {
     return userProfile?.role === 'admin';
   }, [user, userProfile, isUserLoading, isProfileLoading]);
 
-  const isAllowed = useMemo(() => {
+  const isEngineer = useMemo(() => userProfile?.role === 'engineer', [userProfile]);
+  const isScientist = useMemo(() => userProfile?.role === 'scientist', [userProfile]);
+
+  const isAllowedToAdd = useMemo(() => {
     if (isUserLoading || isProfileLoading) return false;
     if (isAdmin) return true;
-    return (userProfile?.role === 'scientist' || userProfile?.role === 'engineer') && userProfile?.isApproved === true;
-  }, [isAdmin, userProfile, isUserLoading, isProfileLoading]);
+    return (isEngineer || isScientist) && userProfile?.isApproved === true;
+  }, [isAdmin, isEngineer, isScientist, userProfile, isUserLoading, isProfileLoading]);
 
   const reportsQuery = useMemoFirebase(() => {
     if (!firestore || isUserLoading || !user) return null;
@@ -176,7 +179,7 @@ export default function PumpingTestLedgerPage() {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button disabled={!isAllowed} size="lg" className="h-14 px-8 rounded-2xl bg-[#1e3a8a] hover:bg-blue-900 shadow-xl shadow-blue-900/20 font-black uppercase tracking-widest text-[11px] gap-3">
+            <Button disabled={!isAllowedToAdd} size="lg" className="h-14 px-8 rounded-2xl bg-[#1e3a8a] hover:bg-blue-900 shadow-xl shadow-blue-900/20 font-black uppercase tracking-widest text-[11px] gap-3">
               <PlusCircle className="size-5" />
               NEW PUMPING TEST
               <ChevronDown className="size-4 opacity-50" />

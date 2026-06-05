@@ -91,11 +91,15 @@ export default function WellDrillingLedgerPage() {
     return userProfile?.role === 'admin';
   }, [user, userProfile, isUserLoading, isProfileLoading]);
 
-  const isAllowed = useMemo(() => {
+  const isEngineer = useMemo(() => {
+    return userProfile?.role === 'engineer';
+  }, [userProfile]);
+
+  const isAllowedToAdd = useMemo(() => {
     if (isUserLoading || isProfileLoading) return false;
     if (isAdmin) return true;
-    return (userProfile?.role === 'engineer' || userProfile?.role === 'scientist') && userProfile?.isApproved === true;
-  }, [isAdmin, userProfile, isUserLoading, isProfileLoading]);
+    return isEngineer && userProfile?.isApproved === true;
+  }, [isAdmin, isEngineer, userProfile, isUserLoading, isProfileLoading]);
 
   const reportsQuery = useMemoFirebase(() => {
     if (!firestore || isUserLoading || !user) return null;
@@ -179,7 +183,7 @@ export default function WellDrillingLedgerPage() {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button disabled={!isAllowed} size="lg" className="h-14 px-8 rounded-2xl bg-[#1e3a8a] hover:bg-blue-900 shadow-xl shadow-blue-900/20 font-black uppercase tracking-widest text-[11px] gap-3">
+            <Button disabled={!isAllowedToAdd} size="lg" className="h-14 px-8 rounded-2xl bg-[#1e3a8a] hover:bg-blue-900 shadow-xl shadow-blue-900/20 font-black uppercase tracking-widest text-[11px] gap-3">
               <PlusCircle className="size-5" />
               NEW DRILLING ENTRY
               <ChevronDown className="size-4 opacity-50" />
@@ -245,7 +249,7 @@ export default function WellDrillingLedgerPage() {
                     const viewUrl = r.workType === 'FLUSHING' ? `/well-drilling/private/drinking/flushing-report?id=${r.id}` : `/well-drilling/private/drinking/completion-report?id=${r.id}`;
                     
                     const isOwner = user?.uid === r.uploadedBy;
-                    const canModifyRecord = isAdmin || isOwner;
+                    const canModifyRecord = isAdmin || (isEngineer && isOwner);
                     const ownerName = userMap.get(r.uploadedBy) || userMap.get(r.uploadedBy?.toLowerCase()) || '---';
 
                     return (

@@ -99,11 +99,15 @@ export default function GroundWaterInvestigationPage() {
     return userProfile?.role === 'admin';
   }, [user, userProfile, isUserLoading, isProfileLoading]);
 
-  const isAllowed = useMemo(() => {
+  const isScientist = useMemo(() => {
+    return userProfile?.role === 'scientist';
+  }, [userProfile]);
+
+  const isAllowedToAdd = useMemo(() => {
     if (isUserLoading || isProfileLoading) return false;
     if (isAdmin) return true;
-    return (userProfile?.role === 'scientist' || userProfile?.role === 'engineer') && userProfile?.isApproved === true;
-  }, [isAdmin, userProfile, isUserLoading, isProfileLoading]);
+    return isScientist && userProfile?.isApproved === true;
+  }, [isAdmin, isScientist, userProfile, isUserLoading, isProfileLoading]);
 
   const reportsQuery = useMemoFirebase(() => {
     if (!firestore || isUserLoading || !user) return null;
@@ -215,7 +219,7 @@ export default function GroundWaterInvestigationPage() {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button disabled={!isAllowed} size="lg" className="h-14 px-8 rounded-2xl bg-[#1e3a8a] hover:bg-blue-900 shadow-xl shadow-blue-900/20 font-black uppercase tracking-widest text-[11px] gap-3">
+              <Button disabled={!isAllowedToAdd} size="lg" className="h-14 px-8 rounded-2xl bg-[#1e3a8a] hover:bg-blue-900 shadow-xl shadow-blue-900/20 font-black uppercase tracking-widest text-[11px] gap-3">
                 <PlusCircle className="size-5" />
                 NEW TECHNICAL ENTRY
                 <ChevronDown className="size-4 opacity-50" />
@@ -299,7 +303,8 @@ export default function GroundWaterInvestigationPage() {
                     const hasOpenwellFeasibility = recType === 'openwell';
                     const hasFeasibility = hasBorewellFeasibility || hasOpenwellFeasibility;
                     
-                    const canModifyRecord = isAdmin || (user?.uid === r.uploadedBy);
+                    const isOwner = user?.uid === r.uploadedBy;
+                    const canModifyRecord = isAdmin || (isScientist && isOwner);
                     const ownerName = userMap.get(r.uploadedBy) || userMap.get(r.uploadedBy?.toLowerCase()) || '---';
 
                     return (
