@@ -215,7 +215,6 @@ function SiteEntryContent() {
     return cloudReport.uploadedBy === user.uid;
   }, [cloudReport, user]);
 
-  // FIX: Allow creation if id is null, or allow modification if user is owner or admin
   const canModify = isAllowed && (!id || isOwner || user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL || userProfile?.role?.toLowerCase() === 'admin');
 
   const { lsgs, lsgMappings } = useLsgdData();
@@ -355,14 +354,14 @@ function SiteEntryContent() {
   ];
 
   const categoryMappings: Record<string, string[]> = {
-    private: ["Domestic", "Agriculture", "Industrial", "Infrastructure", "Institutional"],
+    private: ["Domestic", "Irrigation", "Industrial", "Infrastructure", "Institutional"],
     government: ["Institutional", "Infrastructure", "Industrial", "Others"],
     local_bodies: ["Scheme", "Institutional"],
     others: ["Miscellaneous", "Emergency Work", "Special Survey"]
   };
 
   if (isReportLoading && id) {
-    return <div className="p-12 text-center animate-pulse uppercase tracking-widest font-black opacity-30 text-slate-400">Initializing Technical Node...</div>;
+    return <div className="p-12 text-center animate-pulse uppercase tracking-widest font-black opacity-30 text-slate-400">Initializing Workspace...</div>;
   }
 
   return (
@@ -666,7 +665,7 @@ function SiteEntryContent() {
                       <Label className="text-[10px] font-black uppercase text-slate-400">Proposed diameter</Label>
                       <Select disabled={!canModify} onValueChange={v=>form.setValue('recBorewellDiameter', v)} value={form.watch('recBorewellDiameter')}>
                         <SelectTrigger className="h-11 border-slate-200 font-bold bg-white"><SelectValue placeholder="SELECT" /></SelectTrigger>
-                        <SelectContent className="rounded-xl">{borewellDiameterOptions.map(o=><SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+                        <SelectContent className="rounded-xl border-slate-200">{borewellDiameterOptions.map(o=><SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-2">
@@ -690,7 +689,7 @@ function SiteEntryContent() {
                       <Label className="text-[10px] font-black uppercase text-slate-400">Proposed diameter (m)</Label>
                       <Select disabled={!canModify} onValueChange={v=>form.setValue('recOpenwellDiameter', v)} value={form.watch('recOpenwellDiameter')}>
                         <SelectTrigger className="h-11 border-slate-200 font-bold bg-white"><SelectValue placeholder="SELECT" /></SelectTrigger>
-                        <SelectContent className="rounded-xl">{openwellDiameterOptions.map(o=><SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+                        <SelectContent className="rounded-xl border-slate-200">{openwellDiameterOptions.map(o=><SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-2 md:col-span-2">
@@ -712,7 +711,7 @@ function SiteEntryContent() {
             </Card>
 
             <div className="flex justify-end pt-8 pb-32">
-                <Button type="submit" disabled={isPending || !canModify} className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/20 transition-all hover:scale-[1.02]">
+                <Button type="submit" disabled={isPending || !canModify} className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/20 transition-all hover:scale-[1.02] active:scale-95">
                     {isPending ? <Loader2 className="size-5 animate-spin mr-2" /> : <Save className="size-5 mr-2" />}
                     {canModify ? (id ? 'UPDATE' : 'SAVE') + ' INVESTIGATION RECORD' : 'ACCESS RESTRICTED'}
                 </Button>

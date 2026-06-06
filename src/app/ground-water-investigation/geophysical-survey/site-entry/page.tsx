@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect, useMemo, Suspense } from 'react';
@@ -276,8 +275,7 @@ function UnifiedGeophysicalSurveyContent() {
   }, [employees]);
 
   const detectedLac = useMemo(() => {
-    if (!formData.lsgd || !lsgMappings || lsgMappings.length === 0) return '';
-    const mapping = lsgMappings.find(m => m.lsg === formData.lsgd);
+    const mapping = lsgMappings?.find(m => m.lsg === formData.lsgd);
     return mapping?.constituency || '';
   }, [formData.lsgd, lsgMappings]);
 
@@ -341,28 +339,24 @@ function UnifiedGeophysicalSurveyContent() {
     }
   };
 
-  if (isReportLoading && id) {
-    return <div className="p-12 text-center animate-pulse uppercase tracking-widest font-black opacity-30 text-slate-400">Initializing Workspace...</div>;
-  }
-
   return (
     <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black text-left">
       
-      <div className="bg-white border border-slate-200 p-8 rounded-[32px] shadow-sm ring-1 ring-slate-200/50">
+      <div className="bg-white border border-slate-200 p-8 rounded-[32px] shadow-sm ring-1 ring-slate-200/50 text-left">
         <div className="flex flex-col space-y-8">
           <div className="text-center">
             <h1 className="text-[26px] font-black text-slate-900 uppercase tracking-tighter leading-none">Vertical Electrical Sounding (VES)</h1>
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">Technical Operations | District Office, Malappuram</p>
           </div>
           
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 text-left">
             <div className="flex items-center gap-5">
               <Button variant="ghost" size="icon" asChild className="rounded-full h-12 w-12 border border-slate-200 text-slate-600 hover:bg-slate-50">
                 <Link href="/ground-water-investigation"><ArrowLeft className="size-5" /></Link>
               </Button>
             </div>
             
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 w-full lg:w-auto">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 w-full lg:w-auto text-left">
               <div className="space-y-1">
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
                   <CalendarIcon className="size-3 pointer-events-none" /> Start Date
@@ -403,7 +397,7 @@ function UnifiedGeophysicalSurveyContent() {
         </div>
       </div>
 
-      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white">
+      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
           <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-600 flex items-center gap-3">
              <MapPin className="size-4" /> BASIC SITE DETAILS
@@ -452,16 +446,16 @@ function UnifiedGeophysicalSurveyContent() {
         </CardContent>
       </Card>
 
-      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white">
+      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
-          <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center justify-between">
+          <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center justify-between text-left">
              <div className="flex items-center gap-3"><Calculator className="size-4" /> VES MEASUREMENT DATA (Auto-Calculating)</div>
              <Badge className="bg-slate-900 text-[8px] font-black h-5 uppercase tracking-tighter">Schlumberger Configuration</Badge>
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-0 overflow-x-auto">
-          <ScrollArea className="h-[600px] w-full">
-            <Table className="border-collapse min-w-[1000px]">
+        <CardContent className="p-0 overflow-x-auto text-left">
+          <ScrollArea className="h-[600px] w-full text-left">
+            <Table>
                 <TableHeader className="bg-slate-100/50 sticky top-0 z-20">
                   <TableRow className="h-10">
                     <TableHead className="w-24 text-center border-r" rowSpan={2}>Sl No</TableHead>
@@ -507,7 +501,7 @@ function UnifiedGeophysicalSurveyContent() {
         </CardContent>
       </Card>
 
-      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white">
+      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
           <CardTitle className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">4. REPORT & RECOMMENDATION</CardTitle>
         </CardHeader>
@@ -523,7 +517,7 @@ function UnifiedGeophysicalSurveyContent() {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start text-left">
             <div className="space-y-4">
               <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block ml-1">Structure Recommendation Type</Label>
               <Select disabled={!isAllowed} onValueChange={(val) => {updateField('recommendationType', val); setIsRecommendationDialogOpen(true);}} value={formData.recommendationType}>
@@ -602,7 +596,7 @@ function UnifiedGeophysicalSurveyContent() {
         </CardContent>
       </Card>
       
-      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white">
+      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
           <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3">
              <Users className="size-4" /> 5. STAFF DETAILS (TEAM ASSIGNMENT)
@@ -616,28 +610,16 @@ function UnifiedGeophysicalSurveyContent() {
         </CardContent>
       </Card>
 
-      <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] px-4 w-fit">
-        <div className="bg-white/80 backdrop-blur-xl p-4 rounded-3xl border border-slate-200 shadow-2xl flex items-center justify-between gap-12 ring-1 ring-black/5">
-          <div className="flex items-center gap-6 pl-4">
-            <Logo />
-            <div className="flex flex-col">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">GEOPHYSICAL WORKSPACE</span>
-              <span className="text-xs font-black text-slate-900 leading-none">{formData.fileNo || 'NEW RECORD'}</span>
-            </div>
-          </div>
-
-          <div className="pr-2">
-            <Button 
-              type="button"
-              onClick={handleSave} 
-              disabled={isPending || !isAllowed} 
-              className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/30 gap-3 hover:bg-blue-900 transition-all hover:scale-[1.02] active:scale-95"
-            >
-              {isPending ? <Loader2 className="size-5 animate-spin" /> : <Save className="size-5" />} 
-              {isAllowed ? (id ? 'UPDATE SURVEY RECORD' : 'SAVE SURVEY RECORD') : 'ACCESS RESTRICTED'}
-            </Button>
-          </div>
-        </div>
+      <div className="flex justify-end pt-12 pb-24">
+        <Button 
+          type="button"
+          onClick={handleSave} 
+          disabled={isPending || !isAllowed} 
+          className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/30 gap-3 hover:bg-blue-900 transition-all hover:scale-[1.02] active:scale-95"
+        >
+          {isPending ? <Loader2 className="size-5 animate-spin" /> : <Save className="size-5" />} 
+          {isAllowed ? (id ? 'UPDATE SURVEY RECORD' : 'SAVE SURVEY RECORD') : 'ACCESS RESTRICTED'}
+        </Button>
       </div>
 
       <RecommendationDialog
@@ -721,13 +703,13 @@ const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, formData, u
     <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl text-left">
       <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight">DETAILS FOR {structureType?.toUpperCase()}</DialogTitle></DialogHeader>
       {isBorewell ? (
-        <div className="space-y-6 py-4">
+        <div className="space-y-6 py-4 text-left">
           <FormFieldItem label="Total Depth (m)" id={`nbd${index}`}><Input value={formData[`nearbyBorewell${index}Depth`]} onChange={e=>updateField(`nearbyBorewell${index}Depth`, e.target.value)} /></FormFieldItem>
           <FormFieldItem label="Diameter" id={`nbd_dia${index}`}><Input value={formData[`nearbyBorewell${index}Diameter`]} onChange={e=>updateField(`nearbyBorewell${index}Diameter`, e.target.value)} /></FormFieldItem>
           <FormFieldItem label="Fracture Zones" id={`nbd_zones${index}`}><Input value={formData[`nearbyBorewell${index}Zones`]} onChange={e=>updateField(`nearbyBorewell${index}Zones`, e.target.value)} /></FormFieldItem>
         </div>
       ) : (
-         <div className="space-y-6 py-4">
+         <div className="space-y-6 py-4 text-left">
           <FormFieldItem label="Total Depth (m)" id={`nod${index}`}><Input value={formData[`nearbyOpenwell${index}Depth`]} onChange={e=>updateField(`nearbyOpenwell${index}Depth`, e.target.value)} /></FormFieldItem>
           <FormFieldItem label="Water Level (m)" id={`nod_wl${index}`}><Input value={formData[`nearbyOpenwell${index}WaterLevel`]} onChange={e=>updateField(`nearbyOpenwell${index}WaterLevel`, e.target.value)} /></FormFieldItem>
           <FormFieldItem label="Parapet (m)" id={`nod_ph${index}`}><Input value={formData[`nearbyOpenwell${index}ParapetHeight`]} onChange={e=>updateField(`nearbyOpenwell${index}ParapetHeight`, e.target.value)} /></FormFieldItem>

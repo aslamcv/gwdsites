@@ -259,18 +259,14 @@ function UnifiedARSDugwellContent() {
                 <Input disabled={!canModify} type="date" value={formData.reportDate || ''} onChange={(e) => updateField('reportDate', e.target.value)} className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl focus:bg-white" />
               </div>
               <div className="space-y-1">
-                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
-                  <Truck className="size-3" /> Conveyance
-                </Label>
+                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><Truck className="size-3" /> Conveyance</Label>
                 <Select disabled={!canModify} onValueChange={(v) => updateField('conveyance', v)} value={formData.conveyance || ''}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">{conveyanceOptions.map(o => <SelectItem key={o} value={o} className="text-xs font-bold">{o}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
-                  <Building className="size-3" /> Sector
-                </Label>
+                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><Building className="size-3" /> Sector</Label>
                 <Select disabled={!canModify} onValueChange={(v) => updateField('sector', v)} value={formData.sector || ''}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">
@@ -279,9 +275,7 @@ function UnifiedARSDugwellContent() {
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
-                  <SearchCode className="size-3" /> Sub Category
-                </Label>
+                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><SearchCode className="size-3" /> Sub Category</Label>
                 <Select disabled={!canModify} onValueChange={(v) => updateField('category', v)} value={formData.category || ''}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">
@@ -427,29 +421,19 @@ function UnifiedARSDugwellContent() {
         </CardContent>
       </Card>
 
-      <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] px-4 w-fit text-left">
-        <div className="bg-white/80 backdrop-blur-xl p-3 rounded-full border border-slate-200 shadow-2xl flex items-center justify-center gap-6 ring-1 ring-black/5">
-          <div className="flex items-center gap-3 pl-2">
-            <Logo />
-            <div className="flex flex-col text-left">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">ARS DUGWELL SUPERVISION</span>
-              <span className="text-xs font-black text-slate-900 leading-none">{formData.fileNo || 'NEW RECORD'}</span>
-            </div>
-          </div>
-          <Separator orientation="vertical" className="h-8 bg-slate-200 mx-2" />
-          <div className="pr-2 flex items-center gap-4 text-left">
+      <div className="flex justify-end pt-12 pb-24">
+        <div className="flex items-center gap-4">
             <Button onClick={() => handleSave(false)} disabled={isPending || !canModify} variant="ghost" className="font-black uppercase text-[10px] tracking-[0.2em] text-slate-400 hover:text-slate-600 transition-colors">
               SAVE DRAFT
             </Button>
             <Button 
               onClick={() => handleSave(true)} 
               disabled={isPending || !canModify} 
-              className="h-12 px-10 rounded-full bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[10px] shadow-lg shadow-blue-900/20 gap-2 hover:bg-blue-900 transition-all hover:scale-[1.02] active:scale-95"
+              className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/20 transition-all hover:scale-[1.02] active:scale-95 gap-3"
             >
-              {isPending ? <Loader2 className="size-4 animate-spin" /> : <ArrowRight className="size-4" />}
-              {canModify ? 'FINALIZE & CONTINUE' : <Lock className="size-4" />}
+              {isPending ? <Loader2 className="size-5 animate-spin" /> : <ArrowRight className="size-5" />} 
+              {canModify ? 'FINALIZE & CONTINUE' : 'ACCESS RESTRICTED'}
             </Button>
-          </div>
         </div>
       </div>
     </div>

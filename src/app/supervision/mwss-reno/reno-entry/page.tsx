@@ -35,6 +35,7 @@ import { collection, doc, setDoc, updateDoc } from 'firebase/firestore';
 import type { GroundwaterReport, Employee } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { StaffMultiSelect } from '@/components/investigation/staff-multi-select';
+import { Logo } from '@/components/logo';
 
 
 const MASTER_ADMIN_EMAIL = 'gwdmpm@gmail.com';
@@ -72,7 +73,7 @@ function UnifiedMWSSRenoSupervisionContent() {
 
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user?.email) return null;
-    return doc(firestore, 'users', user.email);
+    return doc(firestore, 'users', user.email.toLowerCase().trim());
   }, [firestore, user?.email]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
   
@@ -95,53 +96,56 @@ function UnifiedMWSSRenoSupervisionContent() {
 
   const { data: cloudReport, isLoading: isReportLoading } = useDoc<GroundwaterReport>(reportRef);
 
-  const [formData, setFormData] = useState<any>({
-    reportDate: new Date().toISOString().split('T')[0],
-    conveyance: '',
-    sector: 'government',
-    category: 'Local Bodies',
-    fileNo: '',
-    nameOfSite: '',
-    lsgd: '',
-    nameOfContractor: '',
-    natureOfRenovation: 'Repair',
-    pumpRepair: '',
-    cableReplacement: '',
-    panelBoardRepair: '',
-    starterRepair: '',
-    elecRepair: '',
-    erectionCharges: '',
-    upvcReplacement: '',
-    ropeReplacement: '',
-    pipeReplacementTrench: '',
-    unionReplacement: '',
-    nrvReplacement: '',
-    bendReplacement: '',
-    socketReplacement: '',
-    hexNippleReplacement: '',
-    ssAdaptorReplacement: '',
-    tankRepairCleaning: '',
-    structureRepair: '',
-    tankConnectorReplacement: '',
-    ballValveReplacement: '',
-    distLineTrenchRepair: '',
-    distLineNoTrenchRepair: '',
-    giPvcCoverReplacement: '',
-    pipelineRenovation: '',
-    wellProtectionRepair: '',
-    concreteRepair: '',
-    pccRestoration: '',
-    hydrantRepair: '',
-    tapReplacement: '',
-    endCapReplacement: '',
-    reasonForRenovation: '',
-    observations: '',
-    staffAssignment: {
-        assistantExecutiveEngineer: [],
-        assistantEngineer: [],
-        supervisor: [],
-        otherStaff: []
-    }
+  const [formData, setFormData] = useState<any>(() => {
+    const initial: any = {
+      reportDate: new Date().toISOString().split('T')[0],
+      conveyance: '',
+      sector: 'government',
+      category: 'Local Bodies',
+      fileNo: '',
+      nameOfSite: '',
+      lsgd: '',
+      nameOfContractor: '',
+      natureOfRenovation: 'Repair',
+      pumpRepair: '',
+      cableReplacement: '',
+      panelBoardRepair: '',
+      starterRepair: '',
+      elecRepair: '',
+      erectionCharges: '',
+      upvcReplacement: '',
+      ropeReplacement: '',
+      pipeReplacementTrench: '',
+      unionReplacement: '',
+      nrvReplacement: '',
+      bendReplacement: '',
+      socketReplacement: '',
+      hexNippleReplacement: '',
+      ssAdaptorReplacement: '',
+      tankRepairCleaning: '',
+      structureRepair: '',
+      tankConnectorReplacement: '',
+      ballValveReplacement: '',
+      distLineTrenchRepair: '',
+      distLineNoTrenchRepair: '',
+      giPvcCoverReplacement: '',
+      pipelineRenovation: '',
+      wellProtectionRepair: '',
+      concreteRepair: '',
+      pccRestoration: '',
+      hydrantRepair: '',
+      tapReplacement: '',
+      endCapReplacement: '',
+      reasonForRenovation: '',
+      observations: '',
+      staffAssignment: {
+          assistantExecutiveEngineer: [],
+          assistantEngineer: [],
+          supervisor: [],
+          otherStaff: []
+      }
+    };
+    return initial;
   });
 
   useEffect(() => {
@@ -186,7 +190,7 @@ function UnifiedMWSSRenoSupervisionContent() {
 
 
   const detectedLac = useMemo(() => {
-    const mapping = lsgMappings.find(m => m.lsg === formData.lsgd);
+    const mapping = lsgMappings?.find(m => m.lsg === formData.lsgd);
     return mapping?.constituency || '';
   }, [formData.lsgd, lsgMappings]);
 
@@ -271,7 +275,7 @@ function UnifiedMWSSRenoSupervisionContent() {
   }
 
   return (
-    <div className="p-4 sm:p-6 space-y-6">
+    <div className="p-4 sm:p-8 space-y-6 text-left">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" asChild>
           <Link href="/supervision">
@@ -283,7 +287,7 @@ function UnifiedMWSSRenoSupervisionContent() {
 
        <Card className="rounded-[32px] border-none shadow-sm ring-1 ring-slate-200 bg-white overflow-hidden">
         <CardContent className="p-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full text-left">
               <div className="space-y-1">
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
                   <CalendarIcon className="size-3 pointer-events-none" /> Completion Date
@@ -325,7 +329,7 @@ function UnifiedMWSSRenoSupervisionContent() {
         </CardContent>
        </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start text-left">
         <div className="lg:col-span-1 space-y-6">
           <Card>
             <CardHeader>
@@ -410,7 +414,7 @@ function UnifiedMWSSRenoSupervisionContent() {
         </CardContent>
       </Card>
 
-      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white">
+      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
           <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3">
              <Users className="size-4" /> 4. STAFF DETAILS (TEAM ASSIGNMENT)
@@ -424,10 +428,10 @@ function UnifiedMWSSRenoSupervisionContent() {
         </CardContent>
       </Card>
 
-      <div className="flex justify-end">
-        <Button onClick={handleSave} disabled={isPending || !isAllowed} className="h-12 px-8">
+      <div className="flex justify-end pt-12 pb-24 text-left">
+        <Button onClick={handleSave} disabled={isPending || !isAllowed} className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/20 transition-all hover:scale-[1.02] active:scale-95">
           {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-          Save Record
+          {isAllowed ? (id ? 'UPDATE REPAIR RECORD' : 'SAVE REPAIR RECORD') : 'ACCESS RESTRICTED'}
         </Button>
       </div>
     </div>

@@ -40,7 +40,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
-import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, useCollection } from '@/firebase';
+import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
 import { collection, doc, setDoc, updateDoc } from 'firebase/firestore';
 import type { GroundwaterReport, Employee } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
@@ -53,13 +53,14 @@ const MASTER_ADMIN_EMAIL = 'gwdmpm@gmail.com';
 const sectorOptions = [
   { id: 'private', label: 'Private' },
   { id: 'government', label: 'Government' },
-  { id: 'other_district', label: 'Other District' },
+  { id: 'institutional', label: 'Institutional' },
+  { id: 'others', label: 'Others' },
 ];
 
 const categoryMappings: Record<string, string[]> = {
   private: ["Domestic", "Agriculture", "Others"],
   government: ["Local Bodies", "Institutional", "GWBDWS", "Others"],
-  other_district: ["Inter-District Project", "Emergency Support"]
+  institutional: ["Project Support", "Grant-in-Aid"]
 };
 
 const conveyanceOptions = [
@@ -84,14 +85,15 @@ function UnifiedMWSSSupervisionContent() {
   // Role detection
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user?.email) return null;
-    return doc(firestore, 'users', user.email);
+    return doc(firestore, 'users', user.email.toLowerCase().trim());
   }, [firestore, user?.email]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
   
   const isAllowed = useMemo(() => {
     if (isUserLoading || isProfileLoading) return false;
-    if (user?.email === MASTER_ADMIN_EMAIL) return true;
-    return (userProfile?.role === 'admin' || userProfile?.role === 'engineer') && userProfile?.isApproved === true;
+    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
+    const role = (userProfile?.role || '').toLowerCase();
+    return (role === 'admin' || role === 'engineer') && userProfile?.isApproved === true;
   }, [user, userProfile, isUserLoading, isProfileLoading]);
 
   // Fetch Employees for staff selection
@@ -209,7 +211,7 @@ function UnifiedMWSSSupervisionContent() {
   }, [employees]);
 
   const detectedLac = useMemo(() => {
-    const mapping = lsgMappings.find(m => m.lsg === formData.lsgd);
+    const mapping = lsgMappings?.find(m => m.lsg === formData.lsgd);
     return mapping?.constituency || '';
   }, [formData.lsgd, lsgMappings]);
 
@@ -237,7 +239,7 @@ function UnifiedMWSSSupervisionContent() {
         }
       };
 
-      const operation = isUpdate ? updateDoc(reportDocRef, reportData) : setDoc(reportDocRef, reportData);
+      const operation = isUpdate ? updateDocumentNonBlocking(reportDocRef, reportData) : setDocumentNonBlocking(reportDocRef, reportData, { merge: true });
 
       operation.then(() => {
         toast({ title: isUpdate ? 'Record Updated' : 'Record Saved', description: 'MWSS technical record synchronized.' });
@@ -253,7 +255,7 @@ function UnifiedMWSSSupervisionContent() {
   }
 
   return (
-    <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black">
+    <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black text-left">
       
       {/* 1. HEADER SECTION */}
       <div className="bg-white border border-slate-200 p-8 rounded-[32px] shadow-sm ring-1 ring-slate-200/50">
@@ -279,18 +281,16 @@ function UnifiedMWSSSupervisionContent() {
                 <Input disabled={!isAllowed} type="date" value={formData.reportDate} onChange={(e) => updateField('reportDate', e.target.value)} className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl focus:bg-white" />
               </div>
               <div className="space-y-1">
-                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
-                  <Truck className="size-3" /> Conveyance
-                </Label>
+                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><Truck className="size-3" /> Conveyance</Label>
                 <Select disabled={!isAllowed} onValueChange={(v) => updateField('conveyance', v)} value={formData.conveyance}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl"><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent className="rounded-xl border-slate-200">{conveyanceOptions.map(o => <SelectItem key={o} value={o} className="text-xs font-bold">{o}</SelectItem>)}</SelectContent>
+                  <SelectContent className="rounded-xl border-slate-200">
+                    {conveyanceOptions.map(o => <SelectItem key={o} value={o} className="text-xs font-bold">{o}</SelectItem>)}
+                  </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
-                  <Building className="size-3" /> Sector
-                </Label>
+                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><Building className="size-3" /> Sector</Label>
                 <Select disabled={!isAllowed} onValueChange={(v) => updateField('sector', v)} value={formData.sector}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">
@@ -299,9 +299,7 @@ function UnifiedMWSSSupervisionContent() {
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
-                  <SearchCode className="size-3" /> Sub Category
-                </Label>
+                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><SearchCode className="size-3" /> Sub Category</Label>
                 <Select disabled={!isAllowed} onValueChange={(v) => updateField('category', v)} value={formData.category}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">
@@ -315,7 +313,7 @@ function UnifiedMWSSSupervisionContent() {
       </div>
 
       {/* 2. BASIC SITE & ADMIN DETAILS */}
-      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white">
+      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
           <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-600 flex items-center gap-3">
              <MapPin className="size-4" /> BASIC SITE & ADMIN DETAILS
@@ -357,8 +355,8 @@ function UnifiedMWSSSupervisionContent() {
         </CardContent>
       </Card>
 
-      {/* 3. TECHNICAL PARAMETERS (39 Items) */}
-      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white">
+      {/* 3. TECHNICAL PARAMETERS */}
+      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
           <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-emerald-600 flex items-center gap-3">
              <Settings className="size-4" /> TECHNICAL PARAMETERS (MWSS COMPLIANCE)
@@ -431,7 +429,7 @@ function UnifiedMWSSSupervisionContent() {
       </Card>
 
       {/* 4. STAFF DETAILS */}
-      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white">
+      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
           <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3">
              <Users className="size-4" /> 4. STAFF DETAILS (TEAM ASSIGNMENT)
@@ -445,27 +443,12 @@ function UnifiedMWSSSupervisionContent() {
         </CardContent>
       </Card>
 
-      {/* 5. ACTION BUTTONS (STICKY FOOTER) */}
-      <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] px-4 w-fit">
-        <div className="bg-white/80 backdrop-blur-xl p-4 rounded-full border border-slate-200 shadow-2xl flex items-center justify-between gap-10 ring-1 ring-black/5">
-          <div className="flex items-center gap-4 pl-4">
-            <div className="flex items-center gap-3">
-              <Logo />
-              <div className="flex flex-col">
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">SUPERVISION NODE (MWSS)</span>
-                <span className="text-xs font-black text-slate-900 leading-none">{formData.fileNo || 'NEW RECORD'}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4 pr-2">
-            <Button onClick={handleSave} disabled={isPending || !isAllowed} className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/30 gap-3 hover:bg-blue-900 transition-all hover:scale-[1.02] active:scale-95"
-            >
-              {isPending ? <Loader2 className="size-5 animate-spin" /> : <Save className="size-5" />} 
-              {isAllowed ? (id ? 'UPDATE SUPERVISION RECORD' : 'SAVE SUPERVISION RECORD') : 'ACCESS RESTRICTED'}
-            </Button>
-          </div>
-        </div>
+      <div className="flex justify-end pt-12 pb-24">
+        <Button onClick={handleSave} disabled={isPending || !isAllowed} className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/30 gap-3 hover:bg-blue-900 transition-all hover:scale-[1.02] active:scale-95"
+        >
+          {isPending ? <Loader2 className="size-5 animate-spin" /> : <Save className="size-5" />} 
+          {isAllowed ? (id ? 'UPDATE SUPERVISION RECORD' : 'SAVE SUPERVISION RECORD') : 'ACCESS RESTRICTED'}
+        </Button>
       </div>
     </div>
   );

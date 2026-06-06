@@ -253,11 +253,11 @@ function UnifiedFlushingEntryContent() {
   }
 
   return (
-    <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black">
+    <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black text-left">
       
       {/* 1. HEADER SECTION */}
       <div className="bg-white border border-slate-200 p-8 rounded-[32px] shadow-sm ring-1 ring-slate-200/50">
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 text-left">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
           <div className="flex items-center gap-5">
             <Button variant="ghost" size="icon" asChild className="rounded-full h-12 w-12 border border-slate-200 text-slate-600 hover:bg-slate-50">
               <Link href="/well-drilling"><ArrowLeft className="size-5" /></Link>
@@ -268,7 +268,7 @@ function UnifiedFlushingEntryContent() {
             </div>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 w-full lg:w-auto">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 w-full lg:w-auto text-left">
             <div className="space-y-1">
               <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
                 <CalendarIcon className="size-3 pointer-events-none" /> Start Date
@@ -309,19 +309,19 @@ function UnifiedFlushingEntryContent() {
       </div>
 
       {/* 2. BASIC SITE & ADMIN DETAILS */}
-      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white">
+      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
-          <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-600 flex items-center gap-3 text-left">
+          <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-600 flex items-center gap-3">
              <MapPin className="size-4" /> BASIC SITE & ADMIN DETAILS
           </CardTitle>
         </CardHeader>
         <CardContent className="p-10 space-y-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="space-y-2 text-left">
+            <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">File No</Label>
               <Input disabled={!canModify} value={formData.fileNo || ''} onChange={(e) => updateField('fileNo', e.target.value)} className="h-11 border-slate-200 font-black text-primary focus:bg-white" placeholder="MPM/GWD/..." />
             </div>
-            <div className="space-y-2 lg:col-span-1 text-left">
+            <div className="space-y-2 lg:col-span-1">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Well Number</Label>
               <Input 
                 disabled={!canModify} 
@@ -331,17 +331,17 @@ function UnifiedFlushingEntryContent() {
                 placeholder="ENTER WELL NUMBER" 
               />
             </div>
-            <div className="space-y-2 lg:col-span-1 text-left">
+            <div className="space-y-2 lg:col-span-1">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Name of Site</Label>
               <Input disabled={!canModify} value={formData.nameOfSite || ''} onChange={(e) => updateField('nameOfSite', e.target.value)} className="h-11 border-slate-200 uppercase font-bold text-primary" placeholder="LOCATION NAME" />
             </div>
-            <div className="space-y-2 lg:col-span-1 text-left">
+            <div className="space-y-2 lg:col-span-1">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Address</Label>
               <Input disabled={!canModify} value={formData.address || ''} onChange={(e) => updateField('address', e.target.value)} className="h-11 border-slate-200" placeholder="Street/Area" />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Grama Panchayath / LSGD</Label>
               <Select disabled={!canModify} onValueChange={(v) => updateField('lsgd', v)} value={formData.lsgd || ''}>
@@ -422,7 +422,7 @@ function UnifiedFlushingEntryContent() {
       {/* 4. STAFF DETAILS */}
       <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
-          <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3 text-left">
+          <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3">
              <Users className="size-4" /> 4. STAFF DETAILS (TEAM ASSIGNMENT)
           </CardTitle>
         </CardHeader>
@@ -434,25 +434,11 @@ function UnifiedFlushingEntryContent() {
         </CardContent>
       </Card>
 
-      <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] w-fit px-4 text-left">
-        <div className="bg-white/80 backdrop-blur-xl p-4 rounded-full border border-slate-200 shadow-2xl flex items-center justify-between gap-10 ring-1 ring-black/5">
-          <div className="flex items-center gap-4 pl-4 text-left">
-            <div className="flex items-center gap-3">
-              <Logo />
-              <div className="flex flex-col text-left">
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">TECHNICAL SUPERVISION</span>
-                <span className="text-xs font-black text-slate-900 leading-none">{formData.fileNo || 'NEW RECORD'}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4 pr-2 text-left">
-            <Button onClick={handleSave} disabled={isPending || !canModify} className="h-14 px-12 rounded-2xl bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] gap-2">
-              {isPending ? <Loader2 className="size-5 animate-spin" /> : <Save className="size-5" />} 
-              {canModify ? (id ? 'UPDATE' : 'SAVE') + ' TECHNICAL RECORD' : <Lock className="size-4" />}
-            </Button>
-          </div>
-        </div>
+      <div className="flex justify-end pt-12 pb-24">
+        <Button onClick={handleSave} disabled={isPending || !isAllowed} className="h-14 px-12 rounded-2xl bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] gap-2">
+          {isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />} 
+          {isAllowed ? (id ? 'UPDATE' : 'SAVE') + ' TECHNICAL RECORD' : 'Access Restricted'}
+        </Button>
       </div>
 
     </div>

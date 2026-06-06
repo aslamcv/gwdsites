@@ -76,14 +76,15 @@ function UnifiedARSPitContent() {
   // Role detection
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user?.email) return null;
-    return doc(firestore, 'users', user.email);
+    return doc(firestore, 'users', user.email.toLowerCase().trim());
   }, [firestore, user?.email]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
   
   const isAllowed = useMemo(() => {
     if (isUserLoading || isProfileLoading) return false;
-    if (user?.email === MASTER_ADMIN_EMAIL) return true;
-    return (userProfile?.role === 'admin' || userProfile?.role === 'engineer') && userProfile?.isApproved === true;
+    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
+    const role = (userProfile?.role || '').toLowerCase();
+    return (role === 'admin' || role === 'engineer') && userProfile?.isApproved === true;
   }, [user, userProfile, isUserLoading, isProfileLoading]);
 
   // Fetch Employees for staff selection
@@ -166,7 +167,7 @@ function UnifiedARSPitContent() {
   }, [employees]);
 
   const detectedLac = useMemo(() => {
-    const mapping = lsgMappings.find(m => m.lsg === formData.lsgd);
+    const mapping = lsgMappings?.find(m => m.lsg === formData.lsgd);
     return mapping?.constituency || '';
   }, [formData.lsgd, lsgMappings]);
 
@@ -215,7 +216,7 @@ function UnifiedARSPitContent() {
     <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black">
       
       {/* 1. HEADER SECTION */}
-      <div className="bg-white border border-slate-200 p-8 rounded-[32px] shadow-sm ring-1 ring-slate-200/50">
+      <div className="bg-white border border-slate-200 p-8 rounded-[32px] shadow-sm ring-1 ring-slate-200/50 text-left">
         <div className="flex flex-col space-y-8">
           {/* Top Center Heading */}
           <div className="text-center">
@@ -247,9 +248,7 @@ function UnifiedARSPitContent() {
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
-                  <Building className="size-3" /> Sector
-                </Label>
+                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><Building className="size-3" /> Sector</Label>
                 <Select disabled={!isAllowed} onValueChange={(v) => updateField('sector', v)} value={formData.sector}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">
@@ -274,7 +273,7 @@ function UnifiedARSPitContent() {
       </div>
 
       {/* 2. BASIC SITE & ADMIN DETAILS */}
-      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white">
+      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
           <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-600 flex items-center gap-3">
              <MapPin className="size-4" /> BASIC SITE & ADMIN DETAILS
@@ -324,7 +323,7 @@ function UnifiedARSPitContent() {
       </Card>
 
       {/* 3. TECHNICAL SPECIFICATIONS */}
-      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white">
+      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
           <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-emerald-600 flex items-center gap-3">
              <Wrench className="size-4" /> TECHNICAL SPECIFICATIONS
@@ -332,24 +331,24 @@ function UnifiedARSPitContent() {
         </CardHeader>
         <CardContent className="p-10 space-y-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="space-y-2">
+            <div className="space-y-2 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Size of Pit (L x B x H)</Label>
               <Input disabled={!isAllowed} value={formData.pitSize} onChange={(e) => updateField('pitSize', e.target.value)} className="h-11 border-slate-200 font-bold" />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Depth of Pit (m)</Label>
               <Input disabled={!isAllowed} type="number" value={formData.depthOfPit} onChange={(e) => updateField('depthOfPit', e.target.value)} className="h-11 border-slate-200 font-bold" />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">WL Before (mbgl)</Label>
               <Input disabled={!isAllowed} type="number" value={formData.swlBefore} onChange={(e) => updateField('swlBefore', e.target.value)} className="h-11 bg-rose-50/50 border-rose-100 font-black text-rose-700 rounded-xl" />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">WL After (mbgl)</Label>
               <Input disabled={!isAllowed} type="number" value={formData.swlAfter} onChange={(e) => updateField('swlAfter', e.target.value)} className="h-11 bg-blue-50/50 border-blue-100 font-black text-blue-700 rounded-xl" />
             </div>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2 text-left">
             <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Technical Remarks</Label>
             <Textarea disabled={!isAllowed} value={formData.remarks} onChange={(e) => updateField('remarks', e.target.value)} rows={3} className="rounded-2xl border-slate-200 italic text-[11px] uppercase font-bold" />
           </div>
@@ -357,7 +356,7 @@ function UnifiedARSPitContent() {
       </Card>
 
       {/* 4. STAFF DETAILS */}
-      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white">
+      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
           <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3">
              <Users className="size-4" /> 4. STAFF DETAILS (TEAM ASSIGNMENT)
@@ -371,26 +370,12 @@ function UnifiedARSPitContent() {
         </CardContent>
       </Card>
 
-      {/* 5. ACTION BUTTONS (STICKY FOOTER) */}
-      <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] w-fit px-4">
-        <div className="bg-white/80 backdrop-blur-xl p-4 rounded-full border border-slate-200 shadow-2xl flex items-center justify-between gap-10 ring-1 ring-black/5">
-          <div className="flex items-center gap-4 pl-4">
-            <div className="flex items-center gap-3">
-              <Logo />
-              <div className="flex flex-col">
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">SUPERVISION NODE (PIT)</span>
-                <span className="text-xs font-black text-slate-900 leading-none">{formData.fileNo || 'NEW RECORD'}</span>
-              </div>
-            </div>
-          </div>
-          <div className="pr-2">
-            <Button onClick={handleSave} disabled={isPending || !isAllowed} className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/30 gap-3 hover:bg-blue-900 transition-all hover:scale-[1.02] active:scale-95"
-            >
-              {isPending ? <Loader2 className="size-5 animate-spin" /> : <Save className="size-5" />} 
-              {isAllowed ? (id ? 'UPDATE PIT RECORD' : 'SAVE PIT RECORD') : 'ACCESS RESTRICTED'}
-            </Button>
-          </div>
-        </div>
+      <div className="flex justify-end pt-12 pb-24">
+        <Button onClick={handleSave} disabled={isPending || !isAllowed} className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/30 gap-3 hover:bg-blue-900 transition-all hover:scale-[1.02] active:scale-95"
+        >
+          {isPending ? <Loader2 className="size-5 animate-spin" /> : <Save className="size-5" />} 
+          {isAllowed ? (id ? 'UPDATE PIT RECORD' : 'SAVE PIT RECORD') : 'ACCESS RESTRICTED'}
+        </Button>
       </div>
     </div>
   );
