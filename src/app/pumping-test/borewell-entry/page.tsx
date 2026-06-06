@@ -93,9 +93,9 @@ function UnifiedBorewellPumpingEntryContent() {
   
   const isAllowed = useMemo(() => {
     if (isUserLoading || isProfileLoading) return false;
-    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
     const role = (userProfile?.role || '').toLowerCase();
-    return (role === 'admin' || role === 'engineer' || role === 'scientist') && userProfile?.isApproved === true;
+    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
+    return (role === 'admin' || role === 'engineer' || role === 'scientist') && userProfile?.isApproved !== false;
   }, [user, userProfile, isUserLoading, isProfileLoading]);
 
   const employeesRef = useMemoFirebase(() => {
@@ -174,7 +174,7 @@ function UnifiedBorewellPumpingEntryContent() {
     setFormData((prev: any) => {
       const newTable = [...prev[tableKey]];
       newTable[index] = { ...newTable[index], [field]: value };
-      return { ...prev, tableKey: newTable };
+      return { ...prev, [tableKey]: newTable };
     });
   };
 

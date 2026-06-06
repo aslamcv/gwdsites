@@ -67,8 +67,7 @@ const conveyanceOptions = [
   "RENTED VEHICLE",
   "PERSONAL VEHICLE",
   "GENERAL TRANSPORT",
-  "SKE DTH RIG VEHICLE",
-  "PT UNIT VEHICLE"
+  "DEPARTMENT VEHICLE"
 ];
 
 const timeIntervals = ['0*', '0.25', '0.5', '0.75', '1.00', '2.00', '3.00', '4', '5', '6', '7', '8', '9', '10*', '12', '14', '16', '18', '20*', '25', '30*', '35', '40*', '50*', '60*', '70*', '80*', '90*', '100*', '110', '120', '130', '140', '150*', '160', '170', '180', '190', '200*', '220', '240', '250*', '260', '280', '300*'];
@@ -115,7 +114,7 @@ function UnifiedOpenWellPumpingEntryContent() {
     return cloudReport.uploadedBy === user.uid;
   }, [cloudReport, user]);
 
-  const canModify = isAllowed && (isOwner || user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL || userProfile?.role?.toLowerCase() === 'admin');
+  const canModify = isAllowed && (!id || isOwner || user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL || userProfile?.role?.toLowerCase() === 'admin');
 
   const [formData, setFormData] = useState<any>({
     reportDate: new Date().toISOString().split('T')[0],
