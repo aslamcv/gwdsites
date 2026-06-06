@@ -87,7 +87,7 @@ function UnifiedHPSSupervisionContent() {
     if (isUserLoading || isProfileLoading) return false;
     if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
     const role = (userProfile?.role || '').toLowerCase();
-    return (role === 'admin' || role === 'engineer') && userProfile?.isApproved === true;
+    return (role === 'admin' || role === 'engineer') && userProfile?.isApproved !== false;
   }, [user, userProfile, isUserLoading, isProfileLoading]);
 
   const employeesRef = useMemoFirebase(() => {
@@ -108,7 +108,12 @@ function UnifiedHPSSupervisionContent() {
     return cloudReport.uploadedBy === user.uid;
   }, [cloudReport, user]);
 
-  const canModify = isAllowed && (isOwner || user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL || userProfile?.role?.toLowerCase() === 'admin');
+  const canModify = isAllowed && (
+    !id || 
+    isOwner || 
+    user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL || 
+    userProfile?.role?.toLowerCase() === 'admin'
+  );
 
   const [formData, setFormData] = useState<any>({
     reportDate: new Date().toISOString().split('T')[0],
@@ -223,7 +228,7 @@ function UnifiedHPSSupervisionContent() {
   }
 
   return (
-    <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black text-left text-left">
+    <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black text-left">
       
       <div className="bg-white border border-slate-200 p-8 rounded-[32px] shadow-sm ring-1 ring-slate-200/50">
         <div className="flex flex-col space-y-8">
@@ -244,20 +249,18 @@ function UnifiedHPSSupervisionContent() {
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
                   <CalendarIcon className="size-3 pointer-events-none" /> Completion Date
                 </Label>
-                <Input disabled={!canModify} type="date" value={formData.reportDate} onChange={(e) => updateField('reportDate', e.target.value)} className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl focus:bg-white" />
+                <Input disabled={!isAllowed} type="date" value={formData.reportDate} onChange={(e) => updateField('reportDate', e.target.value)} className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl focus:bg-white" />
               </div>
               <div className="space-y-1">
-                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
-                  <Truck className="size-3" /> Conveyance
-                </Label>
-                <Select disabled={!canModify} onValueChange={(v) => updateField('conveyance', v)} value={formData.conveyance}>
+                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><Truck className="size-3" /> Conveyance</Label>
+                <Select disabled={!isAllowed} onValueChange={(v) => updateField('conveyance', v)} value={formData.conveyance}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">{conveyanceOptions.map(o => <SelectItem key={o} value={o} className="text-xs font-bold">{o}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><Building className="size-3" /> Sector</Label>
-                <Select disabled={!canModify} onValueChange={(v) => updateField('sector', v)} value={formData.sector}>
+                <Select disabled={!isAllowed} onValueChange={(v) => updateField('sector', v)} value={formData.sector}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">
                     {sectorOptions.map(s => <SelectItem key={s.id} value={s.id} className="text-[10px] font-black uppercase">{s.label}</SelectItem>)}
@@ -268,7 +271,7 @@ function UnifiedHPSSupervisionContent() {
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
                   <SearchCode className="size-3" /> Sub Category
                 </Label>
-                <Select disabled={!canModify} onValueChange={(v) => updateField('category', v)} value={formData.category}>
+                <Select disabled={!isAllowed} onValueChange={(v) => updateField('category', v)} value={formData.category}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">
                     {categoryMappings[formData.sector]?.map(c => <SelectItem key={c} value={c} className="text-[10px] font-black uppercase">{c}</SelectItem>)}
@@ -373,27 +376,15 @@ function UnifiedHPSSupervisionContent() {
         </CardContent>
       </Card>
 
-      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] w-fit px-4 text-left">
-        <div className="bg-white/80 backdrop-blur-xl p-3 rounded-full border border-slate-200 shadow-2xl flex items-center justify-center gap-6 ring-1 ring-black/5">
-          <div className="flex items-center gap-3 pl-2">
-            <Logo />
-            <div className="flex flex-col text-left">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">SUPERVISION NODE (HPS)</span>
-              <span className="text-xs font-black text-slate-900 leading-none">{formData.fileNo || 'NEW RECORD'}</span>
-            </div>
-          </div>
-          <Separator orientation="vertical" className="h-8 bg-slate-200 mx-2" />
-          <div className="pr-2 text-left">
-            <Button 
-              onClick={handleSave} 
-              disabled={isPending || !canModify} 
-              className="h-12 px-10 rounded-full bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-lg shadow-blue-900/20 gap-2 hover:bg-blue-900 transition-all hover:scale-[1.02] active:scale-95"
-            >
-              {isPending ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />} 
-              {canModify ? 'UPDATE' : 'SAVE'}
-            </Button>
-          </div>
-        </div>
+      <div className="flex justify-end pt-12 pb-24 text-left">
+        <Button 
+          onClick={handleSave} 
+          disabled={isPending || !canModify} 
+          className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/20 transition-all hover:scale-[1.02] active:scale-95 gap-3"
+        >
+          {isPending ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />} 
+          {canModify ? (id ? 'UPDATE' : 'SAVE') + ' INSTALLATION RECORD' : 'ACCESS RESTRICTED'}
+        </Button>
       </div>
     </div>
   );

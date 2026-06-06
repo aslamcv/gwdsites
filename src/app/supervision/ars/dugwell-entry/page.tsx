@@ -106,7 +106,12 @@ function UnifiedARSDugwellContent() {
     return cloudReport.uploadedBy === user.uid;
   }, [cloudReport, user]);
 
-  const canModify = isAllowed && (isOwner || user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL || userProfile?.role?.toLowerCase() === 'admin');
+  const canModify = isAllowed && (
+    !id || 
+    isOwner || 
+    user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL || 
+    userProfile?.role?.toLowerCase() === 'admin'
+  );
 
   const [formData, setFormData] = useState<any>({
     reportDate: new Date().toISOString().split('T')[0],
@@ -407,7 +412,7 @@ function UnifiedARSDugwellContent() {
         </CardContent>
       </Card>
 
-      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white">
+      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
           <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3">
              <Users className="size-4" /> 4. STAFF DETAILS (TEAM ASSIGNMENT)
@@ -421,7 +426,7 @@ function UnifiedARSDugwellContent() {
         </CardContent>
       </Card>
 
-      <div className="flex justify-end pt-12 pb-24">
+      <div className="flex justify-end pt-12 pb-24 text-left">
         <div className="flex items-center gap-4">
             <Button onClick={() => handleSave(false)} disabled={isPending || !canModify} variant="ghost" className="font-black uppercase text-[10px] tracking-[0.2em] text-slate-400 hover:text-slate-600 transition-colors">
               SAVE DRAFT
@@ -432,7 +437,7 @@ function UnifiedARSDugwellContent() {
               className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/20 transition-all hover:scale-[1.02] active:scale-95 gap-3"
             >
               {isPending ? <Loader2 className="size-5 animate-spin" /> : <ArrowRight className="size-5" />} 
-              {canModify ? 'FINALIZE & CONTINUE' : 'ACCESS RESTRICTED'}
+              {canModify ? (id ? 'UPDATE & CONTINUE' : 'FINALIZE & CONTINUE') : 'ACCESS RESTRICTED'}
             </Button>
         </div>
       </div>
