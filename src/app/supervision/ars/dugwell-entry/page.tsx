@@ -85,7 +85,7 @@ function UnifiedARSDugwellContent() {
     if (isUserLoading || isProfileLoading) return false;
     if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
     const role = (userProfile?.role || '').toLowerCase();
-    return (role === 'admin' || role === 'engineer') && userProfile?.isApproved === true;
+    return (role === 'admin' || role === 'engineer') && userProfile?.isApproved !== false;
   }, [user, userProfile, isUserLoading, isProfileLoading]);
 
   const employeesRef = useMemoFirebase(() => {
@@ -203,6 +203,8 @@ function UnifiedARSDugwellContent() {
       const reportDocRef = isUpdate ? doc(firestore, 'groundwaterReports', id) : doc(collection(firestore, 'groundwaterReports'));
       const reportId = reportDocRef.id;
 
+      const dateOfInvestigation = `${formData.startDate}${formData.endDate ? ' - ' + formData.endDate : ''}`;
+
       const reportData = {
         ...formData,
         id: reportId,
@@ -222,16 +224,20 @@ function UnifiedARSDugwellContent() {
         }
       };
 
-      const operation = isUpdate ? updateDocumentNonBlocking(reportDocRef, reportData) : setDocumentNonBlocking(reportDocRef, reportData, { merge: true });
+      const operation = isUpdate ? updateDoc(reportDocRef, reportData) : setDoc(reportDocRef, reportData);
       
-      toast({ title: 'Technical Draft Saved', description: 'Site information and staff assignments synchronized.' });
+      operation.then(() => {
+        toast({ title: 'Technical Draft Saved', description: 'Site information and staff assignments synchronized.' });
 
-      if (goToPage2) {
-        const nextPath = `/supervision/ars/dugwell-recharge/page-2?id=${reportId}`;
-        router.push(nextPath);
-      } else {
-        router.push('/supervision');
-      }
+        if (goToPage2) {
+          const nextPath = `/supervision/ars/dugwell-recharge/page-2?id=${reportId}`;
+          router.push(nextPath);
+        } else {
+          router.push('/supervision');
+        }
+      }).catch(async (error) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: reportDocRef.path, operation: isUpdate ? 'update' : 'create', requestResourceData: reportData }));
+      });
     });
   };
 
@@ -261,18 +267,18 @@ function UnifiedARSDugwellContent() {
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
                   <CalendarIcon className="size-3 pointer-events-none" /> Completion Date
                 </Label>
-                <Input disabled={!canModify} type="date" value={formData.reportDate || ''} onChange={(e) => updateField('reportDate', e.target.value)} className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl focus:bg-white" />
+                <Input disabled={!canModify} type="date" value={formData.reportDate} onChange={(e) => updateField('reportDate', e.target.value)} className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl focus:bg-white" />
               </div>
               <div className="space-y-1">
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><Truck className="size-3" /> Conveyance</Label>
-                <Select disabled={!canModify} onValueChange={(v) => updateField('conveyance', v)} value={formData.conveyance || ''}>
+                <Select disabled={!canModify} onValueChange={(v) => updateField('conveyance', v)} value={formData.conveyance}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">{conveyanceOptions.map(o => <SelectItem key={o} value={o} className="text-xs font-bold">{o}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><Building className="size-3" /> Sector</Label>
-                <Select disabled={!canModify} onValueChange={(v) => updateField('sector', v)} value={formData.sector || ''}>
+                <Select disabled={!canModify} onValueChange={(v) => updateField('sector', v)} value={formData.sector}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">
                     {sectorOptions.map(s => <SelectItem key={s.id} value={s.id} className="text-[10px] font-black uppercase">{s.label}</SelectItem>)}
@@ -281,7 +287,7 @@ function UnifiedARSDugwellContent() {
               </div>
               <div className="space-y-1">
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><SearchCode className="size-3" /> Sub Category</Label>
-                <Select disabled={!canModify} onValueChange={(v) => updateField('category', v)} value={formData.category || ''}>
+                <Select disabled={!canModify} onValueChange={(v) => updateField('category', v)} value={formData.category}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">
                     {categoryMappings[formData.sector]?.map(c => <SelectItem key={c} value={c} className="text-[10px] font-black uppercase">{c}</SelectItem>)}

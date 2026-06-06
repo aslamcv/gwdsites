@@ -126,7 +126,10 @@ export default function SupervisionLedgerPage() {
         const name = u.displayName || u.email || 'Unknown';
         if (u.uid) map.set(u.uid, name);
         if (u.id) map.set(u.id, name);
-        if (u.email) map.set(u.email.toLowerCase().trim(), name);
+        if (u.email) {
+          const normalizedEmail = u.email.toLowerCase().trim();
+          map.set(normalizedEmail, name);
+        }
       });
     }
     return map;
@@ -217,7 +220,7 @@ export default function SupervisionLedgerPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-8 animate-in fade-in duration-700 text-left">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 text-left">
         <div>
           <h1 className="text-3xl font-black tracking-tight text-slate-900 uppercase">Supervision Ledger</h1>
           <p className="text-slate-500 font-bold text-[10px] uppercase tracking-widest mt-2">Technical Oversight & Completion Records</p>
@@ -231,7 +234,7 @@ export default function SupervisionLedgerPage() {
               <ChevronDown className="size-4 opacity-50" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-[320px] p-2 rounded-[24px] border-slate-200 shadow-2xl bg-white/95 backdrop-blur-xl">
+          <DropdownMenuContent align="end" className="w-[320px] p-2 rounded-[24px] border-slate-200 shadow-2xl bg-white/95 backdrop-blur-xl max-h-[85vh] overflow-y-auto">
             <DropdownMenuLabel className="px-4 py-3 text-[10px] font-black uppercase text-slate-400 tracking-widest">Select Category</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild className="rounded-xl cursor-pointer p-3 focus:bg-blue-50 group">

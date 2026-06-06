@@ -125,7 +125,7 @@ function UnifiedHPSSupervisionContent() {
     wellSize: '',
     typeOfHandPump: 'India Mark II',
     staticWaterLevel: '',
-    depthOfPumpInstalled: '',
+    depthOfPump installed: '',
     platformSize: '',
     contractorName: '',
     measurementTakenBy: '',
@@ -249,18 +249,18 @@ function UnifiedHPSSupervisionContent() {
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
                   <CalendarIcon className="size-3 pointer-events-none" /> Completion Date
                 </Label>
-                <Input disabled={!isAllowed} type="date" value={formData.reportDate} onChange={(e) => updateField('reportDate', e.target.value)} className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl focus:bg-white" />
+                <Input disabled={!canModify} type="date" value={formData.reportDate} onChange={(e) => updateField('reportDate', e.target.value)} className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl focus:bg-white" />
               </div>
               <div className="space-y-1">
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><Truck className="size-3" /> Conveyance</Label>
-                <Select disabled={!isAllowed} onValueChange={(v) => updateField('conveyance', v)} value={formData.conveyance}>
+                <Select disabled={!canModify} onValueChange={(v) => updateField('conveyance', v)} value={formData.conveyance}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">{conveyanceOptions.map(o => <SelectItem key={o} value={o} className="text-xs font-bold">{o}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><Building className="size-3" /> Sector</Label>
-                <Select disabled={!isAllowed} onValueChange={(v) => updateField('sector', v)} value={formData.sector}>
+                <Select disabled={!canModify} onValueChange={(v) => updateField('sector', v)} value={formData.sector}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">
                     {sectorOptions.map(s => <SelectItem key={s.id} value={s.id} className="text-[10px] font-black uppercase">{s.label}</SelectItem>)}
@@ -271,7 +271,7 @@ function UnifiedHPSSupervisionContent() {
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
                   <SearchCode className="size-3" /> Sub Category
                 </Label>
-                <Select disabled={!isAllowed} onValueChange={(v) => updateField('category', v)} value={formData.category}>
+                <Select disabled={!canModify} onValueChange={(v) => updateField('category', v)} value={formData.category}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">
                     {categoryMappings[formData.sector]?.map(c => <SelectItem key={c} value={c} className="text-[10px] font-black uppercase">{c}</SelectItem>)}
@@ -284,7 +284,7 @@ function UnifiedHPSSupervisionContent() {
       </div>
 
       {/* 2. BASIC SITE & ADMIN DETAILS */}
-      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white">
+      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
           <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-600 flex items-center gap-3 text-left">
              <MapPin className="size-4" /> BASIC SITE & ADMIN DETAILS
