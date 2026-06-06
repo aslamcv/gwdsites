@@ -92,10 +92,9 @@ function UnifiedBorewellPumpingEntryContent() {
   
   const isAllowed = useMemo(() => {
     if (isAuthLoading || isProfileLoading) return false;
+    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
     const role = (userProfile?.role || '').toLowerCase();
-    const isApproved = userProfile?.isApproved !== false;
-    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL || role === 'admin') return true;
-    return (role === 'engineer' || role === 'scientist') && isApproved;
+    return (role === 'admin' || role === 'engineer' || role === 'scientist') && userProfile?.isApproved !== false;
   }, [user, userProfile, isAuthLoading, isProfileLoading]);
 
   const employeesRef = useMemoFirebase(() => {
@@ -305,11 +304,11 @@ function UnifiedBorewellPumpingEntryContent() {
 
       <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
-          <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-600 flex items-center gap-3">
+          <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-600 flex items-center gap-3 text-left">
              <MapPin className="size-4" /> SITE & WELL SPECIFICATIONS
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-10 space-y-10">
+        <CardContent className="p-10 space-y-10 text-left">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="space-y-2 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Name of Site</Label>
@@ -334,7 +333,7 @@ function UnifiedBorewellPumpingEntryContent() {
 
           <Separator className="bg-slate-100" />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 text-left">
             <div className="space-y-2 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Depth (m)</Label>
               <Input disabled={!canModify} type="text" value={formData.depthOfWell || ''} onChange={(e) => updateField('depthOfWell', e.target.value)} className="h-11 border-slate-200 font-bold" />
@@ -358,7 +357,7 @@ function UnifiedBorewellPumpingEntryContent() {
       <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
           <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center justify-between text-left">
-             <div className="flex items-center gap-3"><Calculator className="size-4" /> STEP DRAWDOWN PUMPING DATA</div>
+             <div className="flex items-center gap-3 text-left"><Calculator className="size-4" /> STEP DRAWDOWN PUMPING DATA</div>
              <Badge className="bg-slate-900 text-[8px] font-black h-5 uppercase tracking-tighter">SDT TECHNICAL LOG</Badge>
           </CardTitle>
         </CardHeader>
@@ -401,11 +400,11 @@ function UnifiedBorewellPumpingEntryContent() {
       
       <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
-          <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3">
+          <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3 text-left">
              <Users className="size-4" /> 4. STAFF DETAILS (TEAM ASSIGNMENT)
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <CardContent className="p-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 text-left">
            <StaffMultiSelect label="Asst. Exec. Engineer" options={filteredStaff.aee} selected={formData.staffAssignment.assistantExecutiveEngineer} onChange={(names) => updateStaff('assistantExecutiveEngineer', names)} max={1} disabled={!isAllowed} />
            <StaffMultiSelect label="Assistant Engineer" options={filteredStaff.ae} selected={formData.staffAssignment.assistantEngineer} onChange={(names) => updateStaff('assistantEngineer', names)} max={1} disabled={!isAllowed} />
            <StaffMultiSelect label="Site Supervisor" options={filteredStaff.sup} selected={formData.staffAssignment.supervisor} onChange={(names) => updateStaff('supervisor', names)} max={1} disabled={!isAllowed} />
@@ -417,7 +416,7 @@ function UnifiedBorewellPumpingEntryContent() {
         <Button onClick={handleSave} disabled={isPending || !canModify} className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/30 gap-3 hover:bg-blue-900 transition-all hover:scale-[1.02] active:scale-95"
         >
           {isPending ? <Loader2 className="size-5 animate-spin" /> : <Save className="size-5" />} 
-          {canModify ? (id ? 'UPDATE TEST RECORD' : 'SAVE TEST RECORD') : <Lock className="size-4" />}
+          {canModify ? (id ? 'UPDATE TEST RECORD' : 'SAVE TEST RECORD') : 'ACCESS RESTRICTED'}
         </Button>
       </div>
 

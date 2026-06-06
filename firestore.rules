@@ -9,32 +9,36 @@ service cloud.firestore {
     }
 
     function getUserEmail() {
-      return request.auth.token.email.lower();
-    }
-
-    function isMasterAdmin() {
-      return isAuthenticated() && getUserEmail() == 'gwdmpm@gmail.com';
+      return isAuthenticated() && request.auth.token.email != null 
+        ? request.auth.token.email.lower() 
+        : "";
     }
 
     function getUserDoc() {
       let email = getUserEmail();
-      return get(/databases/$(database)/documents/users/$(email)).data;
-    }
-
-    function isAdmin() {
-      return isMasterAdmin() || (isAuthenticated() && getUserDoc().get('role', '').lower() == 'admin');
-    }
-
-    function isEngineer() {
-      return isAuthenticated() && getUserDoc().get('role', '').lower() == 'engineer';
-    }
-
-    function isScientist() {
-      return isAuthenticated() && getUserDoc().get('role', '').lower() == 'scientist';
+      return exists(/databases/$(database)/documents/users/$(email))
+        ? get(/databases/$(database)/documents/users/$(email)).data
+        : {};
     }
 
     function isApproved() {
-      return isMasterAdmin() || (isAuthenticated() && getUserDoc().get('isApproved', false) != false);
+      let user = getUserDoc();
+      return user.get('isApproved', false) == true || getUserEmail() == 'gwdmpm@gmail.com';
+    }
+
+    function isAdmin() {
+      let user = getUserDoc();
+      return user.get('role', '').lower() == 'admin' || getUserEmail() == 'gwdmpm@gmail.com';
+    }
+
+    function isEngineer() {
+      let user = getUserDoc();
+      return user.get('role', '').lower() == 'engineer';
+    }
+
+    function isScientist() {
+      let user = getUserDoc();
+      return user.get('role', '').lower() == 'scientist';
     }
 
     function isOwner() {
@@ -47,41 +51,13 @@ service cloud.firestore {
     // --- COLLECTION RULES ---
 
     match /groundwaterReports/{reportId} {
-      
+      // Admins and approved technical staff can read
       allow read: if isAdmin() || (isApproved() && (isScientist() || isEngineer()));
       
-      allow create: if isApproved() && (
-        isAdmin() || 
-        (isScientist() && (
-          'investigation' in request.resource.data.category.lower() || 
-          'investigation' in request.resource.data.purpose.lower() ||
-          'geological' in request.resource.data.category.lower() || 
-          'geological' in request.resource.data.purpose.lower() ||
-          'geophysical' in request.resource.data.category.lower() || 
-          'geophysical' in request.resource.data.purpose.lower() ||
-          'pumping' in request.resource.data.category.lower() ||
-          'pumping' in request.resource.data.purpose.lower() ||
-          'complaint' in request.resource.data.category.lower() || 
-          'complaint' in request.resource.data.purpose.lower() ||
-          'nhp' in request.resource.data.category.lower() || 
-          'nhp' in request.resource.data.purpose.lower()
-        )) ||
-        (isEngineer() && (
-          'drilling' in request.resource.data.category.lower() ||
-          'drilling' in request.resource.data.purpose.lower() ||
-          'pumping' in request.resource.data.category.lower() ||
-          'pumping' in request.resource.data.purpose.lower() ||
-          request.resource.data.get('workType', '') == 'DRILLING' ||
-          request.resource.data.get('workType', '') == 'FLUSHING' ||
-          'supervision' in request.resource.data.category.lower() ||
-          'supervision' in request.resource.data.purpose.lower() ||
-          'estimate' in request.resource.data.category.lower() ||
-          'estimate' in request.resource.data.purpose.lower() ||
-          'measurement' in request.resource.data.category.lower() ||
-          'measurement' in request.resource.data.purpose.lower()
-        ))
-      );
+      // Approved Scientists and Engineers can create technical records
+      allow create: if isApproved() && (isAdmin() || isScientist() || isEngineer());
       
+      // Only Admins or the original creator can modify/delete
       allow update, delete: if isAdmin() || isOwner();
     }
 
