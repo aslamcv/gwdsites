@@ -48,13 +48,14 @@ const MASTER_ADMIN_EMAIL = 'gwdmpm@gmail.com';
 const sectorOptions = [
   { id: 'private', label: 'Private' },
   { id: 'government', label: 'Government' },
-  { id: 'other_district', label: 'Other District' },
+  { id: 'institutional', label: 'Institutional' },
+  { id: 'others', label: 'Others' },
 ];
 
 const categoryMappings: Record<string, string[]> = {
   private: ["Domestic", "Agriculture", "Others"],
   government: ["Local Bodies", "Institutional", "GWBDWS", "Others"],
-  other_district: ["Project Support", "Emergency"]
+  institutional: ["Project Support", "Grant-in-Aid"]
 };
 
 const conveyanceOptions = [

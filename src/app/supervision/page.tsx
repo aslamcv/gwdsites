@@ -235,7 +235,7 @@ export default function SupervisionLedgerPage() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-[320px] p-0 rounded-[24px] border-slate-200 shadow-2xl bg-white/95 backdrop-blur-xl">
-            <ScrollArea className="h-[500px] w-full p-2">
+            <ScrollArea className="max-h-[500px] w-full p-2">
                 <DropdownMenuLabel className="px-4 py-3 text-[10px] font-black uppercase text-slate-400 tracking-widest">Select Category</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild className="rounded-xl cursor-pointer p-3 focus:bg-blue-50 group">
