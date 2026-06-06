@@ -92,8 +92,8 @@ function UnifiedOpenWellPumpingEntryContent() {
   
   const isAllowed = useMemo(() => {
     if (isUserLoading || isProfileLoading) return false;
-    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
     const role = (userProfile?.role || '').toLowerCase();
+    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
     return (role === 'admin' || role === 'engineer' || role === 'scientist') && userProfile?.isApproved === true;
   }, [user, userProfile, isUserLoading, isProfileLoading]);
 
@@ -225,7 +225,7 @@ function UnifiedOpenWellPumpingEntryContent() {
         }
       };
 
-      const operation = isUpdate ? updateDocumentNonBlocking(reportDocRef, reportData) : setDocumentNonBlocking(reportDocRef, reportData, { merge: true });
+      const operation = isUpdate ? updateDoc(reportDocRef, reportData) : setDocumentNonBlocking(reportDocRef, reportData, { merge: true });
 
       operation.then(() => {
         toast({ title: isUpdate ? 'Record Updated' : 'Record Saved', description: 'Open well pumping test record synchronized.' });
@@ -351,7 +351,7 @@ function UnifiedOpenWellPumpingEntryContent() {
              <Badge className="bg-slate-900 text-[8px] font-black h-5 uppercase tracking-tighter">PYT/WPT TECHNICAL LOG</Badge>
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-0 overflow-x-auto">
+        <CardContent className="p-0 overflow-x-auto text-left">
           <div className="h-[500px] w-full text-left">
             <Table>
                 <TableHeader className="bg-slate-100/50 sticky top-0 z-20">

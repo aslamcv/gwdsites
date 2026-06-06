@@ -78,7 +78,7 @@ function UnifiedDrillingSupervisionContent() {
   const searchParams = useSearchParams();
   const { lsgs, lsgMappings } = useLsgdData();
   const firestore = useFirestore();
-  const { user, isUserLoading } = useUser();
+  const { user, isUserLoading: isAuthLoading } = useUser();
   const [isPending, startTransition] = useTransition();
 
   const id = searchParams.get('id');
@@ -91,10 +91,11 @@ function UnifiedDrillingSupervisionContent() {
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
   
   const isAllowed = useMemo(() => {
-    if (isUserLoading || isProfileLoading) return false;
+    if (isAuthLoading || isProfileLoading) return false;
+    const role = (userProfile?.role || '').toLowerCase();
     if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
-    return (userProfile?.role === 'admin' || userProfile?.role === 'engineer' || userProfile?.isApproved === true);
-  }, [user, userProfile, isUserLoading, isProfileLoading]);
+    return (role === 'admin' || role === 'engineer') && userProfile?.isApproved === true;
+  }, [user, userProfile, isAuthLoading, isProfileLoading]);
 
   // Fetch Employees for staff selection
   const employeesRef = useMemoFirebase(() => {
@@ -115,7 +116,7 @@ function UnifiedDrillingSupervisionContent() {
     return cloudReport.uploadedBy === user.uid;
   }, [cloudReport, user]);
 
-  const canModify = isAllowed && (isOwner || user?.email === MASTER_ADMIN_EMAIL || userProfile?.role === 'admin');
+  const canModify = isAllowed && (isOwner || user?.email === MASTER_ADMIN_EMAIL || userProfile?.role?.toLowerCase() === 'admin');
 
   const [formData, setFormData] = useState<any>({
     startDate: new Date().toISOString().split('T')[0],

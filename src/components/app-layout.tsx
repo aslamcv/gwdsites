@@ -24,6 +24,8 @@ import { cn } from '@/lib/utils';
 import { doc } from 'firebase/firestore';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
+const MASTER_ADMIN_EMAIL = 'gwdmpm@gmail.com';
+
 function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const auth = useAuth();
@@ -46,7 +48,7 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const { data: userProfile } = useDoc(userProfileRef);
 
   const displayRole = useMemo(() => {
-    if (user?.email?.toLowerCase() === 'gwdmpm@gmail.com') return 'System Administrator';
+    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return 'System Administrator';
     const rawRole = userProfile?.role || 'User';
     return `District ${rawRole.charAt(0).toUpperCase() + rawRole.slice(1).toLowerCase()}`;
   }, [user, userProfile]);

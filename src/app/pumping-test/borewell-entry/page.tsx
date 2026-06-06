@@ -93,8 +93,8 @@ function UnifiedBorewellPumpingEntryContent() {
   
   const isAllowed = useMemo(() => {
     if (isUserLoading || isProfileLoading) return false;
-    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
     const role = (userProfile?.role || '').toLowerCase();
+    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
     return (role === 'admin' || role === 'engineer' || role === 'scientist') && userProfile?.isApproved === true;
   }, [user, userProfile, isUserLoading, isProfileLoading]);
 
@@ -228,7 +228,7 @@ function UnifiedBorewellPumpingEntryContent() {
         }
       };
 
-      const operation = isUpdate ? updateDocumentNonBlocking(reportDocRef, reportData) : setDocumentNonBlocking(reportDocRef, reportData, { merge: true });
+      const operation = isUpdate ? updateDoc(reportDocRef, reportData) : setDocumentNonBlocking(reportDocRef, reportData, { merge: true });
 
       operation.then(() => {
         toast({ title: isUpdate ? 'Record Updated' : 'Record Saved', description: 'Borewell pumping test record synchronized.' });
