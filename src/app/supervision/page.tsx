@@ -234,57 +234,59 @@ export default function SupervisionLedgerPage() {
               <ChevronDown className="size-4 opacity-50" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-[320px] p-2 rounded-[24px] border-slate-200 shadow-2xl bg-white/95 backdrop-blur-xl max-h-[85vh] overflow-y-auto">
-            <DropdownMenuLabel className="px-4 py-3 text-[10px] font-black uppercase text-slate-400 tracking-widest">Select Category</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild className="rounded-xl cursor-pointer p-3 focus:bg-blue-50 group">
-              <Link href="/supervision/bw-construction/drilling-entry" className="flex items-center gap-4">
-                <div className="p-2 bg-blue-100 rounded-lg group-hover:scale-110 transition-transform"><Pickaxe className="size-4 text-blue-600" /></div>
-                <span className="font-bold text-xs uppercase text-slate-700 tracking-tight">Drilling Supervision</span>
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild className="rounded-xl cursor-pointer p-3 focus:bg-cyan-50 group">
-              <Link href="/supervision/bw-construction/flushing-entry" className="flex items-center gap-4">
-                <div className="p-2 bg-cyan-50 rounded-lg group-hover:scale-110 transition-transform"><Wind className="size-4 text-cyan-600" /></div>
-                <span className="font-bold text-xs uppercase text-slate-700 tracking-tight">Flushing Supervision</span>
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild className="rounded-xl cursor-pointer p-3 focus:bg-amber-50 group">
-              <Link href="/supervision/hps/site-entry" className="flex items-center gap-4">
-                <div className="p-2 bg-amber-50 rounded-lg group-hover:scale-110 transition-transform"><Wrench className="size-4 text-amber-600" /></div>
-                <span className="font-bold text-xs uppercase text-slate-700 tracking-tight">HPS Installation</span>
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild className="rounded-xl cursor-pointer p-3 focus:bg-rose-50 group">
-              <Link href="/supervision/hpr/site-entry" className="flex items-center gap-4">
-                <div className="p-2 bg-rose-50 rounded-lg group-hover:scale-110 transition-transform"><Hammer className="size-4 text-rose-600" /></div>
-                <span className="font-bold text-xs uppercase text-slate-700 tracking-tight">HPR Repair</span>
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild className="rounded-xl cursor-pointer p-3 focus:bg-emerald-50 group">
-              <Link href="/supervision/mwss-reno/mwss-entry" className="flex items-center gap-4">
-                <div className="p-2 bg-emerald-50 rounded-lg group-focus:bg-emerald-200"><Waves className="size-4 text-emerald-600" /></div>
-                <span className="font-bold text-xs uppercase text-slate-700 tracking-tight">MWSS Supervision</span>
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild className="rounded-xl cursor-pointer p-3 focus:bg-teal-50 group">
-              <Link href="/supervision/mwss-reno/reno-entry" className="flex items-center gap-4">
-                <div className="p-2 bg-teal-50 rounded-lg group-focus:bg-teal-200"><Settings className="size-4 text-teal-600" /></div>
-                <span className="font-bold text-xs uppercase text-slate-700 tracking-tight">MWSS Reno Supervision</span>
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild className="rounded-xl cursor-pointer p-3 focus:bg-purple-50 group">
-              <Link href="/supervision/ars/pit/inspection" className="flex items-center gap-4">
-                <div className="p-2 bg-purple-50 rounded-lg group-hover:scale-110 transition-transform"><Activity className="size-4 text-purple-600" /></div>
-                <span className="font-bold text-xs uppercase text-slate-700 tracking-tight">ARS Pit Recharge</span>
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild className="rounded-xl cursor-pointer p-3 focus:bg-indigo-50 group">
-              <Link href="/supervision/ars/dugwell-entry" className="flex items-center gap-4">
-                <div className="p-2 bg-indigo-50 rounded-lg group-hover:scale-110 transition-transform"><Activity className="size-4 text-indigo-600" /></div>
-                <span className="font-bold text-xs uppercase text-slate-700 tracking-tight">ARS Dugwell Recharge</span>
-              </Link>
-            </DropdownMenuItem>
+          <DropdownMenuContent align="end" className="w-[320px] p-0 rounded-[24px] border-slate-200 shadow-2xl bg-white/95 backdrop-blur-xl">
+            <ScrollArea className="h-[500px] w-full p-2">
+                <DropdownMenuLabel className="px-4 py-3 text-[10px] font-black uppercase text-slate-400 tracking-widest">Select Category</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild className="rounded-xl cursor-pointer p-3 focus:bg-blue-50 group">
+                  <Link href="/supervision/bw-construction/drilling-entry" className="flex items-center gap-4">
+                    <div className="p-2 bg-blue-100 rounded-lg group-hover:scale-110 transition-transform"><Pickaxe className="size-4 text-blue-600" /></div>
+                    <span className="font-bold text-xs uppercase text-slate-700 tracking-tight">Drilling Supervision</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild className="rounded-xl cursor-pointer p-3 focus:bg-cyan-50 group">
+                  <Link href="/supervision/bw-construction/flushing-entry" className="flex items-center gap-4">
+                    <div className="p-2 bg-cyan-50 rounded-lg group-hover:scale-110 transition-transform"><Wind className="size-4 text-cyan-600" /></div>
+                    <span className="font-bold text-xs uppercase text-slate-700 tracking-tight">Flushing Supervision</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild className="rounded-xl cursor-pointer p-3 focus:bg-amber-50 group">
+                  <Link href="/supervision/hps/site-entry" className="flex items-center gap-4">
+                    <div className="p-2 bg-amber-50 rounded-lg group-hover:scale-110 transition-transform"><Wrench className="size-4 text-amber-600" /></div>
+                    <span className="font-bold text-xs uppercase text-slate-700 tracking-tight">HPS Installation</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild className="rounded-xl cursor-pointer p-3 focus:bg-rose-50 group">
+                  <Link href="/supervision/hpr/site-entry" className="flex items-center gap-4">
+                    <div className="p-2 bg-rose-50 rounded-lg group-hover:scale-110 transition-transform"><Hammer className="size-4 text-rose-600" /></div>
+                    <span className="font-bold text-xs uppercase text-slate-700 tracking-tight">HPR Repair</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild className="rounded-xl cursor-pointer p-3 focus:bg-emerald-50 group">
+                  <Link href="/supervision/mwss-reno/mwss-entry" className="flex items-center gap-4">
+                    <div className="p-2 bg-emerald-50 rounded-lg group-focus:bg-emerald-200"><Waves className="size-4 text-emerald-600" /></div>
+                    <span className="font-bold text-xs uppercase text-slate-700 tracking-tight">MWSS Supervision</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild className="rounded-xl cursor-pointer p-3 focus:bg-teal-50 group">
+                  <Link href="/supervision/mwss-reno/reno-entry" className="flex items-center gap-4">
+                    <div className="p-2 bg-teal-50 rounded-lg group-focus:bg-teal-200"><Settings className="size-4 text-teal-600" /></div>
+                    <span className="font-bold text-xs uppercase text-slate-700 tracking-tight">MWSS Reno Supervision</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild className="rounded-xl cursor-pointer p-3 focus:bg-purple-50 group">
+                  <Link href="/supervision/ars/pit/inspection" className="flex items-center gap-4">
+                    <div className="p-2 bg-purple-50 rounded-lg group-hover:scale-110 transition-transform"><Activity className="size-4 text-purple-600" /></div>
+                    <span className="font-bold text-xs uppercase text-slate-700 tracking-tight">ARS Pit Recharge</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild className="rounded-xl cursor-pointer p-3 focus:bg-indigo-50 group">
+                  <Link href="/supervision/ars/dugwell-entry" className="flex items-center gap-4">
+                    <div className="p-2 bg-indigo-50 rounded-lg group-hover:scale-110 transition-transform"><Activity className="size-4 text-indigo-600" /></div>
+                    <span className="font-bold text-xs uppercase text-slate-700 tracking-tight">ARS Dugwell Recharge</span>
+                  </Link>
+                </DropdownMenuItem>
+            </ScrollArea>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -374,7 +376,7 @@ export default function SupervisionLedgerPage() {
       </Card>
       
       <Dialog open={!!viewingReport} onOpenChange={(open) => !open && setViewingReport(null)}>
-        <DialogContent className="max-w-3xl rounded-[32px] overflow-hidden p-0 border-none shadow-2xl bg-white text-left text-left">
+        <DialogContent className="max-w-3xl rounded-[32px] overflow-hidden p-0 border-none shadow-2xl bg-white text-left">
           <DialogHeader className="p-8 bg-slate-50/50 border-b text-left">
             <DialogTitle className="text-xl font-black uppercase text-slate-900">Technical Record: {viewingReport?.fileNo || 'Preview'}</DialogTitle>
             <DialogDescription className="text-sm font-medium text-slate-500">Viewing all saved parameters for site: {viewingReport?.nameOfSite || viewingReport?.applicantName || viewingReport?.location}</DialogDescription>
