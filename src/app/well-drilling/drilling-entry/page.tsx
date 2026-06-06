@@ -37,6 +37,7 @@ import { collection, doc, setDoc, updateDoc } from 'firebase/firestore';
 import type { GroundwaterReport, Employee } from '@/lib/types';
 import { StaffMultiSelect } from '@/components/investigation/staff-multi-select';
 import { cn } from '@/lib/utils';
+import { Logo } from '@/components/logo';
 
 const MASTER_ADMIN_EMAIL = 'gwdmpm@gmail.com';
 
@@ -74,7 +75,6 @@ function UnifiedDrillingSupervisionContent() {
 
   const id = searchParams.get('id');
 
-  // Role detection
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user?.email) return null;
     return doc(firestore, 'users', user.email.toLowerCase().trim());
@@ -83,13 +83,12 @@ function UnifiedDrillingSupervisionContent() {
   
   const isAllowed = useMemo(() => {
     if (isAuthLoading || isProfileLoading) return false;
-    if (user?.email === MASTER_ADMIN_EMAIL) return true;
+    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
     const role = (userProfile?.role || '').toLowerCase();
     const isApproved = userProfile?.isApproved !== false;
     return (role === 'admin' || role === 'engineer') && isApproved;
   }, [user, userProfile, isAuthLoading, isProfileLoading]);
 
-  // Fetch Employees for staff selection
   const employeesRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'employees');
@@ -146,20 +145,11 @@ function UnifiedDrillingSupervisionContent() {
     if (cloudReport) {
       const dateParts = cloudReport.dateOfInvestigation?.split(' - ') || [];
       const sa = cloudReport.staffAssignment || {};
-      
-      let subCat = cloudReport.subCategory;
-      if (!subCat && cloudReport.purpose) {
-          const parts = cloudReport.purpose.split(' / ');
-          if (parts.length === 3) subCat = parts[2];
-      }
-
       setFormData((prev: any) => ({
         ...prev,
         ...cloudReport,
-        subCategory: subCat || prev.subCategory,
         startDate: dateParts[0] || prev.startDate,
         endDate: dateParts[1] || prev.endDate,
-        hasEndCap: cloudReport.hasEndCap !== undefined ? cloudReport.hasEndCap : true,
         staffAssignment: {
           unitInCharge: Array.isArray(sa.unitInCharge) ? sa.unitInCharge : (sa.unitInCharge ? (sa.unitInCharge as string).split(', ') : []),
           drillers: Array.isArray(sa.drillers) ? sa.drillers : (sa.drillers ? (sa.drillers as string).split(', ') : []),
@@ -219,7 +209,6 @@ function UnifiedDrillingSupervisionContent() {
         status: 'Published' as const,
         purpose: `Well Drilling / ${formData.sector} / ${formData.subCategory || formData.category}`,
         category: "Well Drilling",
-        subCategory: formData.subCategory || formData.category,
         workType: "DRILLING",
         dateOfInvestigation,
         updatedAt: new Date().toISOString(),
@@ -240,7 +229,11 @@ function UnifiedDrillingSupervisionContent() {
         toast({ title: isUpdate ? 'Record Updated' : 'Record Saved', description: 'Technical drilling record synchronized.' });
         router.push('/well-drilling');
       }).catch(async (error) => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: reportDocRef.path, operation: isUpdate ? 'update' : 'create', requestResourceData: reportData }));
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ 
+          path: reportDocRef.path, 
+          operation: isUpdate ? 'update' : 'create', 
+          requestResourceData: reportData 
+        }));
       });
     });
   };
@@ -253,7 +246,7 @@ function UnifiedDrillingSupervisionContent() {
     <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black text-left">
       
       <div className="bg-white border border-slate-200 p-8 rounded-[32px] shadow-sm ring-1 ring-slate-200/50">
-        <div className="flex flex-col space-y-8 text-left">
+        <div className="flex flex-col space-y-8">
           <div className="text-center">
             <h1 className="text-[26px] font-black text-slate-900 uppercase tracking-tighter leading-none">Borewell Drilling Entry</h1>
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">Technical Operations | District Office, Malappuram</p>
@@ -311,8 +304,8 @@ function UnifiedDrillingSupervisionContent() {
              <MapPin className="size-4" /> BASIC SITE & ADMIN DETAILS
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-10 space-y-8 text-left">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        <CardContent className="p-10 space-y-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 text-left">
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">File No</Label>
               <Input disabled={!canModify} value={formData.fileNo || ''} onChange={(e) => updateField('fileNo', e.target.value)} className="h-11 border-slate-200 font-black text-primary focus:bg-white" placeholder="MPM/GWD/..." />
@@ -444,10 +437,14 @@ function UnifiedDrillingSupervisionContent() {
         </CardContent>
       </Card>
 
-      <div className="flex justify-end pt-12 pb-24">
-        <Button onClick={handleSave} disabled={isPending || !canModify} className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/30 gap-3 hover:bg-blue-900 transition-all hover:scale-[1.02] active:scale-95">
-            {isPending ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-5" />} 
-            {canModify ? (id ? 'UPDATE TECHNICAL RECORD' : 'SAVE TECHNICAL RECORD') : <Lock className="size-4" />}
+      <div className="flex justify-end pt-12 pb-24 text-left">
+        <Button 
+          onClick={handleSave} 
+          disabled={isPending || !canModify} 
+          className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/30 gap-3 hover:bg-blue-900 transition-all hover:scale-[1.02] active:scale-95"
+        >
+          {isPending ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-5" />} 
+          {canModify ? (id ? 'UPDATE TECHNICAL RECORD' : 'SAVE TECHNICAL RECORD') : <Lock className="size-4" />}
         </Button>
       </div>
 

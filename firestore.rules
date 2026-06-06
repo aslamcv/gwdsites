@@ -68,14 +68,15 @@ service cloud.firestore {
         )) ||
         (isEngineer() && (
           'drilling' in request.resource.data.category.lower() ||
+          'drilling' in request.resource.data.purpose.lower() ||
+          'pumping' in request.resource.data.category.lower() ||
+          'pumping' in request.resource.data.purpose.lower() ||
           request.resource.data.get('workType', '') == 'DRILLING' ||
           request.resource.data.get('workType', '') == 'FLUSHING' ||
           'supervision' in request.resource.data.category.lower() ||
           'supervision' in request.resource.data.purpose.lower() ||
           'estimate' in request.resource.data.category.lower() ||
           'estimate' in request.resource.data.purpose.lower() ||
-          'pumping' in request.resource.data.category.lower() ||
-          'pumping' in request.resource.data.purpose.lower() ||
           'measurement' in request.resource.data.category.lower() ||
           'measurement' in request.resource.data.purpose.lower()
         ))

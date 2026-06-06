@@ -19,7 +19,8 @@ import {
   SearchCode,
   Lock,
   Droplets,
-  Calculator
+  Calculator,
+  Settings
 } from 'lucide-react';
 import { 
   Table, 
