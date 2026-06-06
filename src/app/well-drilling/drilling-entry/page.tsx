@@ -92,9 +92,9 @@ function UnifiedDrillingSupervisionContent() {
   
   const isAllowed = useMemo(() => {
     if (isAuthLoading || isProfileLoading) return false;
-    const role = (userProfile?.role || '').toLowerCase();
     if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
-    return (role === 'admin' || role === 'engineer') && userProfile?.isApproved === true;
+    const role = (userProfile?.role || '').toLowerCase();
+    return (role === 'admin' || role === 'engineer') && userProfile?.isApproved !== false;
   }, [user, userProfile, isAuthLoading, isProfileLoading]);
 
   // Fetch Employees for staff selection
@@ -116,7 +116,7 @@ function UnifiedDrillingSupervisionContent() {
     return cloudReport.uploadedBy === user.uid;
   }, [cloudReport, user]);
 
-  const canModify = isAllowed && (isOwner || user?.email === MASTER_ADMIN_EMAIL || userProfile?.role?.toLowerCase() === 'admin');
+  const canModify = isAllowed && (isOwner || user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL || userProfile?.role?.toLowerCase() === 'admin');
 
   const [formData, setFormData] = useState<any>({
     startDate: new Date().toISOString().split('T')[0],
@@ -276,9 +276,7 @@ function UnifiedDrillingSupervisionContent() {
             
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4 w-full lg:w-auto">
               <div className="space-y-1">
-                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
-                  <CalendarIcon className="size-3 pointer-events-none" /> Start Date
-                </Label>
+                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><CalendarIcon className="size-3 pointer-events-none" /> Start Date</Label>
                 <Input disabled={!canModify} type="date" value={formData.startDate || ''} onChange={(e) => updateField('startDate', e.target.value)} className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl focus:bg-white" />
               </div>
               <div className="space-y-1">
@@ -366,7 +364,6 @@ function UnifiedDrillingSupervisionContent() {
         </CardContent>
       </Card>
 
-      {/* 3. TECHNICAL DRILLING PARAMETERS */}
       <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
           <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-orange-600 flex items-center gap-3">
@@ -469,7 +466,7 @@ function UnifiedDrillingSupervisionContent() {
 
           <div className="flex items-center gap-4 pr-2">
             <Button onClick={handleSave} disabled={isPending || !canModify} className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/30 gap-3 hover:bg-blue-900 transition-all hover:scale-[1.02] active:scale-95">
-              {isPending ? <Loader2 className="size-5 animate-spin" /> : <Save className="size-5" />} 
+              {isPending ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-5" />} 
               {canModify ? (id ? 'UPDATE TECHNICAL RECORD' : 'SAVE TECHNICAL RECORD') : <Lock className="size-4" />}
             </Button>
           </div>

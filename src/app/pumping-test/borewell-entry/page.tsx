@@ -93,9 +93,9 @@ function UnifiedBorewellPumpingEntryContent() {
   
   const isAllowed = useMemo(() => {
     if (isUserLoading || isProfileLoading) return false;
-    const role = (userProfile?.role || '').toLowerCase();
     if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
-    return (role === 'admin' || role === 'engineer' || role === 'scientist') && userProfile?.isApproved === true;
+    const role = (userProfile?.role || '').toLowerCase();
+    return (role === 'admin' || role === 'engineer' || role === 'scientist') && userProfile?.isApproved !== false;
   }, [user, userProfile, isUserLoading, isProfileLoading]);
 
   const employeesRef = useMemoFirebase(() => {
@@ -242,7 +242,7 @@ function UnifiedBorewellPumpingEntryContent() {
   return (
     <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black text-left">
       
-      <div className="bg-white border border-slate-200 p-8 rounded-[32px] shadow-sm ring-1 ring-slate-200/50">
+      <div className="bg-white border border-slate-200 p-8 rounded-[32px] shadow-sm ring-1 ring-slate-200/50 text-left">
         <div className="flex flex-col space-y-8">
           <div className="text-center">
             <h1 className="text-[26px] font-black text-slate-900 uppercase tracking-tighter leading-none">Borewell Pumping Test (SDT)</h1>
@@ -256,7 +256,7 @@ function UnifiedBorewellPumpingEntryContent() {
               </Button>
             </div>
             
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full lg:w-auto">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full lg:w-auto text-left">
               <div className="space-y-1">
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
                   <CalendarIcon className="size-3 pointer-events-none" /> Test Date
@@ -295,7 +295,7 @@ function UnifiedBorewellPumpingEntryContent() {
         </div>
       </div>
 
-      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white">
+      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
           <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-600 flex items-center gap-3">
              <MapPin className="size-4" /> SITE & WELL SPECIFICATIONS
@@ -303,22 +303,22 @@ function UnifiedBorewellPumpingEntryContent() {
         </CardHeader>
         <CardContent className="p-10 space-y-10">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="space-y-2 text-left">
+            <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Name of Site</Label>
               <Input disabled={!canModify} value={formData.nameOfSite || ''} onChange={(e) => updateField('nameOfSite', e.target.value)} className="h-11 border-slate-200 uppercase font-bold text-primary focus:bg-white" />
             </div>
-            <div className="space-y-2 lg:col-span-1 text-left">
+            <div className="space-y-2 lg:col-span-1">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Address</Label>
               <Input disabled={!canModify} value={formData.address || ''} onChange={(e) => updateField('address', e.target.value)} className="h-11 border-slate-200" />
             </div>
-            <div className="space-y-2 text-left">
+            <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">LSGD</Label>
               <Select disabled={!canModify} onValueChange={(v) => updateField('lsgd', v)} value={formData.lsgd || ''}>
                 <SelectTrigger className="h-11 border-slate-200 font-bold"><SelectValue placeholder="Select" /></SelectTrigger>
                 <SelectContent className="max-h-[400px] rounded-2xl">{lsgs.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="space-y-2 text-left">
+            <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Constituency (LAC)</Label>
               <Input disabled value={detectedLac} className="h-11 border-slate-200 bg-slate-50 font-black text-blue-600 uppercase" placeholder="Auto-detected" />
             </div>
@@ -327,19 +327,19 @@ function UnifiedBorewellPumpingEntryContent() {
           <Separator className="bg-slate-100" />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="space-y-2 text-left">
+            <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Depth (m)</Label>
               <Input disabled={!canModify} type="text" value={formData.depthOfWell || ''} onChange={(e) => updateField('depthOfWell', e.target.value)} className="h-11 border-slate-200 font-bold" />
             </div>
-            <div className="space-y-2 text-left">
+            <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Diameter (m)</Label>
               <Input disabled={!canModify} value={formData.diameterOfWell || ''} onChange={(e) => updateField('diameterOfWell', e.target.value)} className="h-11 border-slate-200" />
             </div>
-            <div className="space-y-2 text-left">
+            <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Static WL (mbmp)</Label>
               <Input disabled={!canModify} type="text" value={formData.staticWaterLevel || ''} onChange={(e) => updateField('staticWaterLevel', e.target.value)} className="h-11 border-slate-200 font-bold text-blue-600" />
             </div>
-            <div className="space-y-2 text-left">
+            <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Avg Discharge (lpm)</Label>
               <Input disabled={!canModify} type="text" value={formData.averageDischarge || ''} onChange={(e) => updateField('averageDischarge', e.target.value)} className="h-11 border-slate-200 font-black text-primary" />
             </div>
@@ -347,7 +347,7 @@ function UnifiedBorewellPumpingEntryContent() {
         </CardContent>
       </Card>
       
-      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white">
+      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
           <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center justify-between text-left">
              <div className="flex items-center gap-3"><Calculator className="size-4" /> STEP DRAWDOWN PUMPING DATA</div>
@@ -355,7 +355,7 @@ function UnifiedBorewellPumpingEntryContent() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto text-left">
-          <div className="h-[500px] w-full">
+          <div className="h-[500px] w-full text-left">
             <Table>
                 <TableHeader className="bg-slate-100/50 sticky top-0 z-20">
                   <TableRow className="h-10 text-left">
@@ -391,7 +391,7 @@ function UnifiedBorewellPumpingEntryContent() {
         </CardContent>
       </Card>
       
-      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white">
+      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
           <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3">
              <Users className="size-4" /> 4. STAFF DETAILS (TEAM ASSIGNMENT)

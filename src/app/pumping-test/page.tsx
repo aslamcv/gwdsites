@@ -88,16 +88,16 @@ export default function PumpingTestLedgerPage() {
   const isAdmin = useMemo(() => {
     if (isUserLoading || isProfileLoading) return false;
     if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
-    return userProfile?.role === 'admin';
+    return userProfile?.role?.toLowerCase() === 'admin';
   }, [user, userProfile, isUserLoading, isProfileLoading]);
 
-  const isEngineer = useMemo(() => userProfile?.role === 'engineer', [userProfile]);
-  const isScientist = useMemo(() => userProfile?.role === 'scientist', [userProfile]);
+  const isEngineer = useMemo(() => userProfile?.role?.toLowerCase() === 'engineer', [userProfile]);
+  const isScientist = useMemo(() => userProfile?.role?.toLowerCase() === 'scientist', [userProfile]);
 
   const isAllowedToAdd = useMemo(() => {
     if (isUserLoading || isProfileLoading) return false;
     if (isAdmin) return true;
-    return (isEngineer || isScientist) && userProfile?.isApproved === true;
+    return (isEngineer || isScientist) && userProfile?.isApproved !== false;
   }, [isAdmin, isEngineer, isScientist, userProfile, isUserLoading, isProfileLoading]);
 
   const reportsQuery = useMemoFirebase(() => {
@@ -111,10 +111,12 @@ export default function PumpingTestLedgerPage() {
     if (!firestore || isUserLoading || !user) return null;
     return query(collection(firestore, 'users'));
   }, [firestore, user, isUserLoading]);
-  const { data: systemUsers } = useCollection(usersQuery);
+  const { data: systemUsers, isLoading: isUsersLoading } = useCollection(usersQuery);
 
   const userMap = useMemo(() => {
     const map = new Map();
+    map.set(MASTER_ADMIN_EMAIL, 'District Officer');
+    
     if (systemUsers) {
       systemUsers.forEach(u => {
         const name = u.displayName || u.email || 'Unknown';
@@ -170,7 +172,7 @@ export default function PumpingTestLedgerPage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-8 animate-in fade-in duration-700">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-8 animate-in fade-in duration-700 text-left">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 text-left">
         <div>
           <h1 className="text-3xl font-black tracking-tight text-slate-900 uppercase">Yield Testing Ledger</h1>
@@ -229,7 +231,7 @@ export default function PumpingTestLedgerPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading ? (
+                {isLoading || isUsersLoading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i} className="h-20 border-slate-50">
                       <TableCell colSpan={7} className="px-8"><Skeleton className="h-10 w-full rounded-xl" /></TableCell>
@@ -242,7 +244,7 @@ export default function PumpingTestLedgerPage() {
                     const editUrl = isBore ? `/pumping-test/borewell-entry?id=${r.id}` : `/pumping-test/open-well-entry?id=${r.id}`;
                     
                     const isOwner = user?.uid === r.uploadedBy;
-                    const canModifyRecord = isAdmin || isOwner;
+                    const canModifyRecord = isAdmin || ((isEngineer || isScientist) && isOwner);
                     const ownerName = userMap.get(r.uploadedBy) || userMap.get(r.uploadedBy?.toLowerCase()) || '---';
 
                     return (
@@ -282,8 +284,8 @@ export default function PumpingTestLedgerPage() {
             </Table>
           </div>
         </CardContent>
-        <CardFooter className="bg-slate-50/50 border-t py-4 px-8 flex justify-between items-center">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Showing {paginatedRecords.length} of {allRecords.length} District Supervision Logs</p>
+        <CardFooter className="bg-slate-50/50 border-t py-4 px-8 flex justify-between items-center text-left">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Showing {paginatedRecords.length} of {allRecords.length} District Technical Logs</p>
             {totalPages > 1 && (
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} className="h-8 rounded-lg font-bold text-[10px] uppercase border-slate-200 bg-white">Previous</Button>

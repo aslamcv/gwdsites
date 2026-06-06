@@ -96,7 +96,7 @@ export default function WellDrillingLedgerPage() {
   const isAllowedToAdd = useMemo(() => {
     if (isUserLoading || isProfileLoading) return false;
     if (isAdmin) return true;
-    return isEngineer && userProfile?.isApproved === true;
+    return isEngineer && userProfile?.isApproved !== false;
   }, [isAdmin, isEngineer, userProfile, isUserLoading, isProfileLoading]);
 
   const reportsQuery = useMemoFirebase(() => {
@@ -110,7 +110,7 @@ export default function WellDrillingLedgerPage() {
     if (!firestore || isUserLoading || !user) return null;
     return query(collection(firestore, 'users'));
   }, [firestore, user, isUserLoading]);
-  const { data: systemUsers } = useCollection(usersQuery);
+  const { data: systemUsers, isLoading: isUsersLoading } = useCollection(usersQuery);
 
   const userMap = useMemo(() => {
     const map = new Map();
@@ -175,7 +175,7 @@ export default function WellDrillingLedgerPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-8 animate-in fade-in duration-700 text-left">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 text-left">
         <div>
           <h1 className="text-3xl font-black tracking-tight text-slate-900 uppercase">Drilling & Development Ledger</h1>
           <p className="text-slate-500 font-bold text-[10px] uppercase tracking-widest mt-2">Technical Records of District Standalone Rig Operations</p>
@@ -237,7 +237,7 @@ export default function WellDrillingLedgerPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading ? (
+                {isLoading || isUsersLoading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i} className="h-20 border-slate-50">
                       <TableCell colSpan={6} className="px-8"><Skeleton className="h-10 w-full rounded-xl" /></TableCell>
@@ -296,7 +296,7 @@ export default function WellDrillingLedgerPage() {
             </Table>
           </div>
         </CardContent>
-        <CardFooter className="bg-slate-50/50 border-t py-4 px-8 flex justify-between items-center">
+        <CardFooter className="bg-slate-50/50 border-t py-4 px-8 flex justify-between items-center text-left">
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Showing {paginatedRecords.length} of {allRecords.length} Standalone Technical Logs</p>
             {totalPages > 1 && (
               <div className="flex items-center gap-2">
@@ -309,7 +309,7 @@ export default function WellDrillingLedgerPage() {
       </Card>
       
       <Dialog open={!!viewingReport} onOpenChange={(open) => !open && setViewingReport(null)}>
-        <DialogContent className="max-w-3xl rounded-[32px] overflow-hidden p-0 border-none shadow-2xl bg-white text-left text-left">
+        <DialogContent className="max-w-3xl rounded-[32px] overflow-hidden p-0 border-none shadow-2xl bg-white text-left">
           <DialogHeader className="p-8 bg-slate-50/50 border-b text-left">
             <DialogTitle className="text-xl font-black uppercase text-slate-900">Technical Record: {viewingReport?.fileNo || 'Preview'}</DialogTitle>
             <DialogDescription className="text-sm font-medium text-slate-500">Viewing all saved parameters for site: {viewingReport?.nameOfSite || viewingReport?.applicantName || viewingReport?.location}</DialogDescription>

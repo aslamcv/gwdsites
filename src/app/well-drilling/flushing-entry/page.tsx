@@ -93,7 +93,7 @@ function UnifiedFlushingEntryContent() {
     if (isAuthLoading || isProfileLoading) return false;
     const role = (userProfile?.role || '').toLowerCase();
     if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
-    return (role === 'admin' || role === 'engineer') && userProfile?.isApproved === true;
+    return (role === 'admin' || role === 'engineer') && userProfile?.isApproved !== false;
   }, [user, userProfile, isAuthLoading, isProfileLoading]);
 
   // Fetch Employees for staff selection
@@ -257,7 +257,7 @@ function UnifiedFlushingEntryContent() {
       
       {/* 1. HEADER SECTION */}
       <div className="bg-white border border-slate-200 p-8 rounded-[32px] shadow-sm ring-1 ring-slate-200/50">
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 text-left">
           <div className="flex items-center gap-5">
             <Button variant="ghost" size="icon" asChild className="rounded-full h-12 w-12 border border-slate-200 text-slate-600 hover:bg-slate-50">
               <Link href="/well-drilling"><ArrowLeft className="size-5" /></Link>
@@ -311,7 +311,7 @@ function UnifiedFlushingEntryContent() {
       {/* 2. BASIC SITE & ADMIN DETAILS */}
       <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
-          <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-600 flex items-center gap-3">
+          <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-600 flex items-center gap-3 text-left">
              <MapPin className="size-4" /> BASIC SITE & ADMIN DETAILS
           </CardTitle>
         </CardHeader>
@@ -446,10 +446,10 @@ function UnifiedFlushingEntryContent() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4 pr-2">
-            <Button onClick={handleSave} disabled={isPending || !canModify} className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/30 gap-3 hover:bg-blue-900 transition-all hover:scale-[1.02] active:scale-95">
+          <div className="flex items-center gap-4 pr-2 text-left">
+            <Button onClick={handleSave} disabled={isPending || !canModify} className="h-14 px-12 rounded-2xl bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] gap-2">
               {isPending ? <Loader2 className="size-5 animate-spin" /> : <Save className="size-5" />} 
-              {canModify ? (id ? 'UPDATE' : 'SAVE') + ' TECHNICAL RECORD' : 'ACCESS RESTRICTED'}
+              {canModify ? (id ? 'UPDATE' : 'SAVE') + ' TECHNICAL RECORD' : <Lock className="size-4" />}
             </Button>
           </div>
         </div>

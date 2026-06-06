@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -65,7 +64,6 @@ import { cn } from '@/lib/utils';
 import { Logo } from '@/components/logo';
 import { StaffMultiSelect } from '@/components/investigation/staff-multi-select';
 import { Separator } from '@/components/ui/separator';
-import { formatToTechnicalDate } from '@/lib/malayalam-utils';
 
 const MASTER_ADMIN_EMAIL = 'gwdmpm@gmail.com';
 
@@ -195,7 +193,8 @@ function SiteEntryContent() {
   const isAllowed = useMemo(() => {
     if (isAuthLoading || isProfileLoading) return false;
     if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
-    return (userProfile?.role === 'admin' || userProfile?.role === 'scientist') && userProfile?.isApproved === true;
+    const role = (userProfile?.role || '').toLowerCase();
+    return (role === 'admin' || role === 'scientist') && userProfile?.isApproved !== false;
   }, [user, userProfile, isAuthLoading, isProfileLoading]);
 
   const employeesRef = useMemoFirebase(() => {
@@ -216,7 +215,7 @@ function SiteEntryContent() {
     return cloudReport.uploadedBy === user.uid;
   }, [cloudReport, user]);
 
-  const canModify = isAllowed && (isOwner || user?.email === MASTER_ADMIN_EMAIL || userProfile?.role === 'admin');
+  const canModify = isAllowed && (isOwner || user?.email === MASTER_ADMIN_EMAIL || userProfile?.role?.toLowerCase() === 'admin');
 
   const { lsgs, lsgMappings } = useLsgdData();
 
@@ -355,7 +354,7 @@ function SiteEntryContent() {
   ];
 
   const categoryMappings: Record<string, string[]> = {
-    private: ["Domestic", "Irrigation", "Industrial", "Infrastructure", "Institutional"],
+    private: ["Domestic", "Agriculture", "Industrial", "Infrastructure", "Institutional"],
     government: ["Institutional", "Infrastructure", "Industrial", "Others"],
     local_bodies: ["Scheme", "Institutional"],
     others: ["Miscellaneous", "Emergency Work", "Special Survey"]

@@ -91,17 +91,15 @@ export default function EstimateMeasurementLedgerPage() {
   const isAdmin = useMemo(() => {
     if (isUserLoading || isProfileLoading) return false;
     if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
-    return userProfile?.role === 'admin';
+    return userProfile?.role?.toLowerCase() === 'admin';
   }, [user, userProfile, isUserLoading, isProfileLoading]);
 
-  const isEngineer = useMemo(() => {
-    return userProfile?.role === 'engineer';
-  }, [userProfile]);
+  const isEngineer = useMemo(() => userProfile?.role?.toLowerCase() === 'engineer', [userProfile]);
 
   const isAllowedToAdd = useMemo(() => {
     if (isUserLoading || isProfileLoading) return false;
     if (isAdmin) return true;
-    return isEngineer && userProfile?.isApproved === true;
+    return isEngineer && userProfile?.isApproved !== false;
   }, [isAdmin, isEngineer, userProfile, isUserLoading, isProfileLoading]);
 
   const reportsQuery = useMemoFirebase(() => {
@@ -115,10 +113,12 @@ export default function EstimateMeasurementLedgerPage() {
     if (!firestore || isUserLoading || !user) return null;
     return query(collection(firestore, 'users'));
   }, [firestore, user, isUserLoading]);
-  const { data: systemUsers } = useCollection(usersQuery);
+  const { data: systemUsers, isLoading: isUsersLoading } = useCollection(usersQuery);
 
   const userMap = useMemo(() => {
     const map = new Map();
+    map.set(MASTER_ADMIN_EMAIL, 'District Officer');
+    
     if (systemUsers) {
       systemUsers.forEach(u => {
         const name = u.displayName || u.email || 'Unknown';
@@ -230,7 +230,7 @@ export default function EstimateMeasurementLedgerPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading ? (
+                {isLoading || isUsersLoading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i} className="h-20 border-slate-50">
                       <TableCell colSpan={7} className="px-8"><Skeleton className="h-10 w-full rounded-xl" /></TableCell>
@@ -282,7 +282,7 @@ export default function EstimateMeasurementLedgerPage() {
             </Table>
           </div>
         </CardContent>
-        <CardFooter className="bg-slate-50/50 border-t py-4 px-8 flex justify-between items-center">
+        <CardFooter className="bg-slate-50/50 border-t py-4 px-8 flex justify-between items-center text-left">
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Showing {paginatedRecords.length} of {allRecords.length} District Technical Logs</p>
             {totalPages > 1 && (
               <div className="flex items-center gap-2">

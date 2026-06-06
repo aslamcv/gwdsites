@@ -94,7 +94,7 @@ function UnifiedOpenWellPumpingEntryContent() {
     if (isUserLoading || isProfileLoading) return false;
     const role = (userProfile?.role || '').toLowerCase();
     if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
-    return (role === 'admin' || role === 'engineer' || role === 'scientist') && userProfile?.isApproved === true;
+    return (role === 'admin' || role === 'engineer' || role === 'scientist') && userProfile?.isApproved !== false;
   }, [user, userProfile, isUserLoading, isProfileLoading]);
 
   const employeesRef = useMemoFirebase(() => {
@@ -253,7 +253,7 @@ function UnifiedOpenWellPumpingEntryContent() {
               </Button>
             </div>
             
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full lg:w-auto">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full lg:w-auto text-left">
               <div className="space-y-1">
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
                   <CalendarIcon className="size-3 pointer-events-none" /> Test Date
