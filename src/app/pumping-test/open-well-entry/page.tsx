@@ -40,13 +40,12 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useUser, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import type { GroundwaterReport, Employee } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
 import { StaffMultiSelect } from '@/components/investigation/staff-multi-select';
 import { cn } from '@/lib/utils';
-import { Logo } from '@/components/logo';
 
 const MASTER_ADMIN_EMAIL = 'gwdmpm@gmail.com';
 
@@ -92,8 +91,9 @@ function UnifiedOpenWellPumpingEntryContent() {
   const isAllowed = useMemo(() => {
     if (isUserLoading || isProfileLoading) return false;
     const role = (userProfile?.role || '').toLowerCase();
-    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
-    return (role === 'admin' || role === 'engineer' || role === 'scientist') && userProfile?.isApproved !== false;
+    const isApproved = userProfile?.isApproved !== false;
+    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL || role === 'admin') return true;
+    return (role === 'admin' || role === 'engineer' || role === 'scientist') && isApproved;
   }, [user, userProfile, isUserLoading, isProfileLoading]);
 
   const employeesRef = useMemoFirebase(() => {
@@ -224,14 +224,14 @@ function UnifiedOpenWellPumpingEntryContent() {
         }
       };
 
-      const operation = isUpdate ? updateDoc(reportDocRef, reportData) : setDocumentNonBlocking(reportDocRef, reportData, { merge: true });
+      if (isUpdate) {
+        updateDocumentNonBlocking(reportDocRef, reportData);
+      } else {
+        setDocumentNonBlocking(reportDocRef, reportData, { merge: true });
+      }
 
-      operation.then(() => {
-        toast({ title: isUpdate ? 'Record Updated' : 'Record Saved', description: 'Open well pumping test record synchronized.' });
-        router.push('/pumping-test');
-      }).catch(async (error) => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: reportDocRef.path, operation: isUpdate ? 'update' : 'create', requestResourceData: reportData }));
-      });
+      toast({ title: isUpdate ? 'Record Updated' : 'Record Saved', description: 'Open well pumping test record synchronized.' });
+      router.push('/pumping-test');
     });
   };
 
@@ -396,7 +396,7 @@ function UnifiedOpenWellPumpingEntryContent() {
         </CardContent>
       </Card>
 
-      <div className="flex justify-end pt-12 pb-24">
+      <div className="flex justify-end pt-12 pb-24 text-left">
         <Button onClick={handleSave} disabled={isPending || !canModify} className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/30 gap-3 hover:bg-blue-900 transition-all hover:scale-[1.02] active:scale-95"
         >
           {isPending ? <Loader2 className="size-5 animate-spin" /> : <Save className="size-5" />} 

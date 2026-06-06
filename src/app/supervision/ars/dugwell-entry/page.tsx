@@ -34,8 +34,8 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { useFirestore, useUser, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
+import { collection, doc, setDoc, updateDoc } from 'firebase/firestore';
 import type { GroundwaterReport, Employee } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
 import { StaffMultiSelect } from '@/components/investigation/staff-multi-select';
@@ -83,9 +83,10 @@ function UnifiedARSDugwellContent() {
   
   const isAllowed = useMemo(() => {
     if (isUserLoading || isProfileLoading) return false;
-    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
     const role = (userProfile?.role || '').toLowerCase();
-    return (role === 'admin' || role === 'engineer') && userProfile?.isApproved !== false;
+    const isApproved = userProfile?.isApproved !== false;
+    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL || role === 'admin') return true;
+    return (role === 'admin' || role === 'engineer') && isApproved;
   }, [user, userProfile, isUserLoading, isProfileLoading]);
 
   const employeesRef = useMemoFirebase(() => {
@@ -203,8 +204,6 @@ function UnifiedARSDugwellContent() {
       const reportDocRef = isUpdate ? doc(firestore, 'groundwaterReports', id) : doc(collection(firestore, 'groundwaterReports'));
       const reportId = reportDocRef.id;
 
-      const dateOfInvestigation = `${formData.startDate}${formData.endDate ? ' - ' + formData.endDate : ''}`;
-
       const reportData = {
         ...formData,
         id: reportId,
@@ -224,20 +223,20 @@ function UnifiedARSDugwellContent() {
         }
       };
 
-      const operation = isUpdate ? updateDoc(reportDocRef, reportData) : setDoc(reportDocRef, reportData);
-      
-      operation.then(() => {
-        toast({ title: 'Technical Draft Saved', description: 'Site information and staff assignments synchronized.' });
+      if (isUpdate) {
+        updateDocumentNonBlocking(reportDocRef, reportData);
+      } else {
+        setDocumentNonBlocking(reportDocRef, reportData, { merge: true });
+      }
 
-        if (goToPage2) {
-          const nextPath = `/supervision/ars/dugwell-recharge/page-2?id=${reportId}`;
-          router.push(nextPath);
-        } else {
-          router.push('/supervision');
-        }
-      }).catch(async (error) => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: reportDocRef.path, operation: isUpdate ? 'update' : 'create', requestResourceData: reportData }));
-      });
+      toast({ title: 'Technical Draft Saved', description: 'Site information and staff assignments synchronized.' });
+
+      if (goToPage2) {
+        const nextPath = `/supervision/ars/dugwell-recharge/page-2?id=${reportId}`;
+        router.push(nextPath);
+      } else {
+        router.push('/supervision');
+      }
     });
   };
 
