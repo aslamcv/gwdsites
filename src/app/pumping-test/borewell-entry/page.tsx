@@ -95,7 +95,7 @@ function UnifiedBorewellPumpingEntryContent() {
     if (isUserLoading || isProfileLoading) return false;
     if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
     const role = (userProfile?.role || '').toLowerCase();
-    return (role === 'admin' || role === 'engineer' || role === 'scientist') && userProfile?.isApproved !== false;
+    return (role === 'admin' || role === 'engineer' || role === 'scientist') && userProfile?.isApproved === true;
   }, [user, userProfile, isUserLoading, isProfileLoading]);
 
   const employeesRef = useMemoFirebase(() => {
@@ -116,7 +116,7 @@ function UnifiedBorewellPumpingEntryContent() {
     return cloudReport.uploadedBy === user.uid;
   }, [cloudReport, user]);
 
-  const canModify = isAllowed && (isOwner || user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL || userProfile?.role?.toLowerCase() === 'admin');
+  const canModify = isAllowed && (!id || isOwner || user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL || userProfile?.role?.toLowerCase() === 'admin');
 
   const [formData, setFormData] = useState<any>({
     reportDate: new Date().toISOString().split('T')[0],
@@ -303,22 +303,22 @@ function UnifiedBorewellPumpingEntryContent() {
         </CardHeader>
         <CardContent className="p-10 space-y-10">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="space-y-2">
+            <div className="space-y-2 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Name of Site</Label>
               <Input disabled={!canModify} value={formData.nameOfSite || ''} onChange={(e) => updateField('nameOfSite', e.target.value)} className="h-11 border-slate-200 uppercase font-bold text-primary focus:bg-white" />
             </div>
-            <div className="space-y-2 lg:col-span-1">
+            <div className="space-y-2 lg:col-span-1 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Address</Label>
               <Input disabled={!canModify} value={formData.address || ''} onChange={(e) => updateField('address', e.target.value)} className="h-11 border-slate-200" />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">LSGD</Label>
               <Select disabled={!canModify} onValueChange={(v) => updateField('lsgd', v)} value={formData.lsgd || ''}>
                 <SelectTrigger className="h-11 border-slate-200 font-bold"><SelectValue placeholder="Select" /></SelectTrigger>
                 <SelectContent className="max-h-[400px] rounded-2xl">{lsgs.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Constituency (LAC)</Label>
               <Input disabled value={detectedLac} className="h-11 border-slate-200 bg-slate-50 font-black text-blue-600 uppercase" placeholder="Auto-detected" />
             </div>
@@ -327,19 +327,19 @@ function UnifiedBorewellPumpingEntryContent() {
           <Separator className="bg-slate-100" />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="space-y-2">
+            <div className="space-y-2 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Depth (m)</Label>
               <Input disabled={!canModify} type="text" value={formData.depthOfWell || ''} onChange={(e) => updateField('depthOfWell', e.target.value)} className="h-11 border-slate-200 font-bold" />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Diameter (m)</Label>
               <Input disabled={!canModify} value={formData.diameterOfWell || ''} onChange={(e) => updateField('diameterOfWell', e.target.value)} className="h-11 border-slate-200" />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Static WL (mbmp)</Label>
               <Input disabled={!canModify} type="text" value={formData.staticWaterLevel || ''} onChange={(e) => updateField('staticWaterLevel', e.target.value)} className="h-11 border-slate-200 font-bold text-blue-600" />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Avg Discharge (lpm)</Label>
               <Input disabled={!canModify} type="text" value={formData.averageDischarge || ''} onChange={(e) => updateField('averageDischarge', e.target.value)} className="h-11 border-slate-200 font-black text-primary" />
             </div>
@@ -359,7 +359,7 @@ function UnifiedBorewellPumpingEntryContent() {
             <Table>
                 <TableHeader className="bg-slate-100/50 sticky top-0 z-20">
                   <TableRow className="h-10 text-left">
-                    <TableHead className="w-24 text-center border-r" rowSpan={2}>Time (min)</TableHead>
+                    <TableHead className="w-24 text-center border-r">Time (min)</TableHead>
                     <TableHead colSpan={2} className="text-center border-r bg-blue-50/20">STEP-1</TableHead>
                     <TableHead colSpan={2} className="text-center border-r bg-emerald-50/20">STEP-2</TableHead>
                     <TableHead colSpan={2} className="text-center bg-amber-50/20">STEP-3</TableHead>
