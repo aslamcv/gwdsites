@@ -39,74 +39,66 @@ service cloud.firestore {
 
     function isOwner() {
       return isAuthenticated() && (
-        request.auth.uid == resource.data.uploadedBy || 
+        request.auth.uid == resource.data.get('uploadedBy', '') || 
         getUserEmail() == resource.data.get('uploadedBy', '')
       );
     }
 
     // --- COLLECTION RULES ---
 
-    // 1. Technical Reports Hub: Enforcing Role-Based Scopes and Ownership
     match /groundwaterReports/{reportId} {
       
-      // READ: Allowed if user is approved and has a technical role.
       allow read: if isAdmin() || (isApproved() && (isScientist() || isEngineer()));
       
-      // CREATE: Restricted by role module definitions
       allow create: if isApproved() && (
         isAdmin() || 
         (isScientist() && (
-          request.resource.data.category.lower().contains('investigation') || 
-          request.resource.data.purpose.lower().contains('investigation') ||
-          request.resource.data.category.lower().contains('geological') || 
-          request.resource.data.purpose.lower().contains('geological') ||
-          request.resource.data.category.lower().contains('geophysical') || 
-          request.resource.data.purpose.lower().contains('geophysical') ||
-          request.resource.data.category.lower().contains('pumping') ||
-          request.resource.data.purpose.lower().contains('pumping') ||
-          request.resource.data.category.lower().contains('complaint') || 
-          request.resource.data.purpose.lower().contains('complaint') ||
-          request.resource.data.category.lower().contains('nhp') || 
-          request.resource.data.purpose.lower().contains('nhp')
+          'investigation' in request.resource.data.category.lower() || 
+          'investigation' in request.resource.data.purpose.lower() ||
+          'geological' in request.resource.data.category.lower() || 
+          'geological' in request.resource.data.purpose.lower() ||
+          'geophysical' in request.resource.data.category.lower() || 
+          'geophysical' in request.resource.data.purpose.lower() ||
+          'pumping' in request.resource.data.category.lower() ||
+          'pumping' in request.resource.data.purpose.lower() ||
+          'complaint' in request.resource.data.category.lower() || 
+          'complaint' in request.resource.data.purpose.lower() ||
+          'nhp' in request.resource.data.category.lower() || 
+          'nhp' in request.resource.data.purpose.lower()
         )) ||
         (isEngineer() && (
-          request.resource.data.category.lower().contains('drilling') ||
-          request.resource.data.workType == 'DRILLING' ||
-          request.resource.data.workType == 'FLUSHING' ||
-          request.resource.data.category.lower().contains('supervision') ||
-          request.resource.data.purpose.lower().contains('supervision') ||
-          request.resource.data.category.lower().contains('estimate') ||
-          request.resource.data.purpose.lower().contains('estimate') ||
-          request.resource.data.category.lower().contains('pumping') ||
-          request.resource.data.purpose.lower().contains('pumping') ||
-          request.resource.data.category.lower().contains('measurement') ||
-          request.resource.data.purpose.lower().contains('measurement')
+          'drilling' in request.resource.data.category.lower() ||
+          request.resource.data.get('workType', '') == 'DRILLING' ||
+          request.resource.data.get('workType', '') == 'FLUSHING' ||
+          'supervision' in request.resource.data.category.lower() ||
+          'supervision' in request.resource.data.purpose.lower() ||
+          'estimate' in request.resource.data.category.lower() ||
+          'estimate' in request.resource.data.purpose.lower() ||
+          'pumping' in request.resource.data.category.lower() ||
+          'pumping' in request.resource.data.purpose.lower() ||
+          'measurement' in request.resource.data.category.lower() ||
+          'measurement' in request.resource.data.purpose.lower()
         ))
       );
       
-      // UPDATE/DELETE: Only Admin or the Original Creator can modify records
       allow update, delete: if isAdmin() || isOwner();
     }
 
-    // 2. Global Application Settings: Shared read, Admin modify.
     match /appSettings/{document=**} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
 
-    // 3. District Employees: Centralized roster. Everyone can view, Admin modifies.
     match /employees/{employeeId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
 
-    // 4. Attendance Logs: Staff can log their deployments
     match /attendance_logs/{recordId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin() || isApproved();
     }
 
-    // 5. User Profiles: Centralized profiles indexed by email.
     match /users/{userEmail} {
       allow get: if true; 
       allow list: if isAuthenticated();

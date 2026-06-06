@@ -173,7 +173,7 @@ function UnifiedBorewellPumpingEntryContent() {
     setFormData((prev: any) => {
       const newTable = [...prev[tableKey]];
       newTable[index] = { ...newTable[index], [field]: value };
-      return { ...prev, tableKey: newTable };
+      return { ...prev, [tableKey]: newTable };
     });
   };
 
@@ -233,7 +233,11 @@ function UnifiedBorewellPumpingEntryContent() {
         toast({ title: isUpdate ? 'Record Updated' : 'Record Saved', description: 'Borewell pumping test record synchronized.' });
         router.push('/pumping-test');
       }).catch(async (error) => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: reportDocRef.path, operation: isUpdate ? 'update' : 'create', requestResourceData: reportData }));
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ 
+          path: reportDocRef.path, 
+          operation: isUpdate ? 'update' : 'create', 
+          requestResourceData: reportData 
+        }));
       });
     });
   };
@@ -401,10 +405,10 @@ function UnifiedBorewellPumpingEntryContent() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-           <StaffMultiSelect label="Asst. Exec. Engineer" options={filteredStaff.aee} selected={formData.staffAssignment.assistantExecutiveEngineer} onChange={(names) => updateStaff('assistantExecutiveEngineer', names)} max={1} disabled={!canModify} />
-           <StaffMultiSelect label="Assistant Engineer" options={filteredStaff.ae} selected={formData.staffAssignment.assistantEngineer} onChange={(names) => updateStaff('assistantEngineer', names)} max={1} disabled={!canModify} />
-           <StaffMultiSelect label="Site Supervisor" options={filteredStaff.sup} selected={formData.staffAssignment.supervisor} onChange={(names) => updateStaff('supervisor', names)} max={1} disabled={!canModify} />
-           <StaffMultiSelect label="Other Staff" options={filteredStaff.other} selected={formData.staffAssignment.otherStaff} onChange={(names) => updateStaff('otherStaff', names)} max={10} disabled={!canModify} />
+           <StaffMultiSelect label="Asst. Exec. Engineer" options={filteredStaff.aee} selected={formData.staffAssignment.assistantExecutiveEngineer} onChange={(names) => updateStaff('assistantExecutiveEngineer', names)} max={1} disabled={!isAllowed} />
+           <StaffMultiSelect label="Assistant Engineer" options={filteredStaff.ae} selected={formData.staffAssignment.assistantEngineer} onChange={(names) => updateStaff('assistantEngineer', names)} max={1} disabled={!isAllowed} />
+           <StaffMultiSelect label="Site Supervisor" options={filteredStaff.sup} selected={formData.staffAssignment.supervisor} onChange={(names) => updateStaff('supervisor', names)} max={1} disabled={!isAllowed} />
+           <StaffMultiSelect label="Other Staff" options={filteredStaff.other} selected={formData.staffAssignment.otherStaff} onChange={(names) => updateStaff('otherStaff', names)} max={10} disabled={!isAllowed} />
         </CardContent>
       </Card>
 
