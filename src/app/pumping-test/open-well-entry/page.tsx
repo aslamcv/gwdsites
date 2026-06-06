@@ -30,7 +30,7 @@ import {
   TableRow 
 } from '@/components/ui/table';
 import Link from 'next/link';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useLsgdData } from '@/hooks/use-lsgd-data';
 import { 
   Select, 
@@ -40,8 +40,8 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useUser, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { useFirestore, useUser, useDoc, useMemoFirebase, useCollection, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { collection, doc, setDoc, updateDoc, query, orderBy } from 'firebase/firestore';
 import type { GroundwaterReport, Employee } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
 import { StaffMultiSelect } from '@/components/investigation/staff-multi-select';
@@ -77,7 +77,7 @@ function UnifiedOpenWellPumpingEntryContent() {
   const searchParams = useSearchParams();
   const { lsgs, lsgMappings } = useLsgdData();
   const firestore = useFirestore();
-  const { user, isUserLoading } = useUser();
+  const { user, isUserLoading: isAuthLoading } = useUser();
   const [isPending, startTransition] = useTransition();
 
   const id = searchParams.get('id');
@@ -224,14 +224,14 @@ function UnifiedOpenWellPumpingEntryContent() {
         }
       };
 
-      if (isUpdate) {
-        updateDocumentNonBlocking(reportDocRef, reportData);
-      } else {
-        setDocumentNonBlocking(reportDocRef, reportData, { merge: true });
-      }
+      const operation = isUpdate ? updateDoc(reportDocRef, reportData) : setDoc(reportDocRef, reportData);
 
-      toast({ title: isUpdate ? 'Record Updated' : 'Record Saved', description: 'Open well pumping test record synchronized.' });
-      router.push('/pumping-test');
+      operation.then(() => {
+        toast({ title: isUpdate ? 'Record Updated' : 'Record Saved', description: 'Open well pumping test record synchronized.' });
+        router.push('/pumping-test');
+      }).catch(async (error) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: reportDocRef.path, operation: isUpdate ? 'update' : 'create', requestResourceData: reportData }));
+      });
     });
   };
 
@@ -389,10 +389,10 @@ function UnifiedOpenWellPumpingEntryContent() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-           <StaffMultiSelect label="Asst. Exec. Engineer" options={filteredStaff.aee} selected={formData.staffAssignment.assistantExecutiveEngineer} onChange={(names) => updateStaff('assistantExecutiveEngineer', names)} max={1} disabled={!canModify} />
-           <StaffMultiSelect label="Assistant Engineer" options={filteredStaff.ae} selected={formData.staffAssignment.assistantEngineer} onChange={(names) => updateStaff('assistantEngineer', names)} max={1} disabled={!canModify} />
-           <StaffMultiSelect label="Site Supervisor" options={filteredStaff.sup} selected={formData.staffAssignment.supervisor} onChange={(names) => updateStaff('supervisor', names)} max={1} disabled={!canModify} />
-           <StaffMultiSelect label="Other Staff" options={filteredStaff.other} selected={formData.staffAssignment.otherStaff} onChange={(names) => updateStaff('otherStaff', names)} max={10} disabled={!canModify} />
+           <StaffMultiSelect label="Asst. Exec. Engineer" options={filteredStaff.aee} selected={formData.staffAssignment.assistantExecutiveEngineer} onChange={(names) => updateStaff('assistantExecutiveEngineer', names)} max={1} disabled={!isAllowed} />
+           <StaffMultiSelect label="Assistant Engineer" options={filteredStaff.ae} selected={formData.staffAssignment.assistantEngineer} onChange={(names) => updateStaff('assistantEngineer', names)} max={1} disabled={!isAllowed} />
+           <StaffMultiSelect label="Site Supervisor" options={filteredStaff.sup} selected={formData.staffAssignment.supervisor} onChange={(names) => updateStaff('supervisor', names)} max={1} disabled={!isAllowed} />
+           <StaffMultiSelect label="Other Staff" options={filteredStaff.other} selected={formData.staffAssignment.otherStaff} onChange={(names) => updateStaff('otherStaff', names)} max={10} disabled={!isAllowed} />
         </CardContent>
       </Card>
 

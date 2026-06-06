@@ -173,7 +173,7 @@ function UnifiedBorewellPumpingEntryContent() {
     setFormData((prev: any) => {
       const newTable = [...prev[tableKey]];
       newTable[index] = { ...newTable[index], [field]: value };
-      return { ...prev, [tableKey]: newTable };
+      return { ...prev, tableKey: newTable };
     });
   };
 

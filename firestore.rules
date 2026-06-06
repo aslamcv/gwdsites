@@ -22,23 +22,26 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isMasterAdmin() || (isAuthenticated() && getUserDoc().role == 'admin');
+      return isMasterAdmin() || (isAuthenticated() && getUserDoc().get('role', '').lower() == 'admin');
     }
 
     function isEngineer() {
-      return isAuthenticated() && getUserDoc().role == 'engineer';
+      return isAuthenticated() && getUserDoc().get('role', '').lower() == 'engineer';
     }
 
     function isScientist() {
-      return isAuthenticated() && getUserDoc().role == 'scientist';
+      return isAuthenticated() && getUserDoc().get('role', '').lower() == 'scientist';
     }
 
     function isApproved() {
-      return isMasterAdmin() || (isAuthenticated() && getUserDoc().isApproved == true);
+      return isMasterAdmin() || (isAuthenticated() && getUserDoc().get('isApproved', false) != false);
     }
 
     function isOwner() {
-      return isAuthenticated() && request.auth.uid == resource.data.uploadedBy;
+      return isAuthenticated() && (
+        request.auth.uid == resource.data.uploadedBy || 
+        getUserEmail() == resource.data.get('uploadedBy', '')
+      );
     }
 
     // --- COLLECTION RULES ---
@@ -47,7 +50,6 @@ service cloud.firestore {
     match /groundwaterReports/{reportId} {
       
       // READ: Allowed if user is approved and has a technical role.
-      // This allows the list operations to succeed while keeping data modification strictly controlled.
       allow read: if isAdmin() || (isApproved() && (isScientist() || isEngineer()));
       
       // CREATE: Restricted by role module definitions
@@ -56,8 +58,16 @@ service cloud.firestore {
         (isScientist() && (
           request.resource.data.category.lower().contains('investigation') || 
           request.resource.data.purpose.lower().contains('investigation') ||
+          request.resource.data.category.lower().contains('geological') || 
+          request.resource.data.purpose.lower().contains('geological') ||
+          request.resource.data.category.lower().contains('geophysical') || 
+          request.resource.data.purpose.lower().contains('geophysical') ||
           request.resource.data.category.lower().contains('pumping') ||
-          request.resource.data.purpose.lower().contains('pumping')
+          request.resource.data.purpose.lower().contains('pumping') ||
+          request.resource.data.category.lower().contains('complaint') || 
+          request.resource.data.purpose.lower().contains('complaint') ||
+          request.resource.data.category.lower().contains('nhp') || 
+          request.resource.data.purpose.lower().contains('nhp')
         )) ||
         (isEngineer() && (
           request.resource.data.category.lower().contains('drilling') ||
