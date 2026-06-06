@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { 
   ArrowLeft, 
   Save, 
@@ -30,10 +31,11 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, useCollection } from '@/firebase';
+import { useFirestore, useUser, useDoc, useMemoFirebase, useCollection, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, doc, setDoc, updateDoc } from 'firebase/firestore';
 import type { GroundwaterReport, Employee } from '@/lib/types';
 import { StaffMultiSelect } from '@/components/investigation/staff-multi-select';
+import { cn } from '@/lib/utils';
 import { Logo } from '@/components/logo';
 
 const MASTER_ADMIN_EMAIL = 'gwdmpm@gmail.com';
@@ -52,10 +54,9 @@ const categoryMappings: Record<string, string[]> = {
 
 const conveyanceOptions = [
   "TATA SUMO GOLD (KL01CE7618)",
-  "SKE DTH RIG UNIT",
-  "DEPARTMENT TRUCK",
-  "RENTED SUPPORT VEHICLE",
+  "RENTED VEHICLE",
   "PERSONAL VEHICLE",
+  "GENERAL TRANSPORT",
   "PRIVATE RIG VEHICLE"
 ];
 
@@ -113,7 +114,7 @@ function UnifiedFlushingEntryContent() {
     endDate: '',
     conveyance: '',
     sector: 'private',
-    subCategory: 'Drinking Water',
+    category: 'Drinking Water',
     borewellSize: '150mm (6\")',
     fileNo: '',
     nameOfSite: '',
@@ -129,10 +130,9 @@ function UnifiedFlushingEntryContent() {
     remarks: 'Medium yield',
     observations: '',
     staffAssignment: {
-        unitInCharge: [],
-        drillers: [],
-        drillingAssistants: [],
-        drivers: [],
+        assistantExecutiveEngineer: [],
+        assistantEngineer: [],
+        supervisor: [],
         otherStaff: []
     }
   });
@@ -144,14 +144,12 @@ function UnifiedFlushingEntryContent() {
       setFormData((prev: any) => ({
         ...prev,
         ...cloudReport,
-        subCategory: cloudReport.subCategory || prev.subCategory,
         startDate: dateParts[0] || prev.startDate,
         endDate: dateParts[1] || prev.endDate,
         staffAssignment: {
-          unitInCharge: Array.isArray(SaData.unitInCharge) ? SaData.unitInCharge : (SaData.unitInCharge ? (SaData.unitInCharge as string).split(', ') : []),
-          drillers: Array.isArray(SaData.drillers) ? SaData.drillers : (SaData.drillers ? (SaData.drillers as string).split(', ') : []),
-          drillingAssistants: Array.isArray(SaData.drillingAssistants) ? SaData.drillingAssistants : (SaData.drillingAssistants ? (SaData.drillingAssistants as string).split(', ') : []),
-          drivers: Array.isArray(SaData.drivers) ? SaData.drivers : (SaData.drivers ? (SaData.drivers as string).split(', ') : []),
+          assistantExecutiveEngineer: Array.isArray(SaData.assistantExecutiveEngineer) ? SaData.assistantExecutiveEngineer : (SaData.assistantExecutiveEngineer ? (SaData.assistantExecutiveEngineer as string).split(', ') : []),
+          assistantEngineer: Array.isArray(SaData.assistantEngineer) ? SaData.assistantEngineer : (SaData.assistantEngineer ? (SaData.assistantEngineer as string).split(', ') : []),
+          supervisor: Array.isArray(SaData.supervisor) ? SaData.supervisor : (SaData.supervisor ? (SaData.supervisor as string).split(', ') : []),
           otherStaff: Array.isArray(SaData.otherStaff) ? SaData.otherStaff : (SaData.otherStaff ? (SaData.otherStaff as string).split(', ') : [])
         }
       }));
@@ -173,14 +171,18 @@ function UnifiedFlushingEntryContent() {
   };
 
   const filteredStaff = useMemo(() => {
-    if (!employees) return { uic: [], driller: [], asst: [], driver: [], other: [] };
-    const uicList = employees.filter(e => e.designation === 'Master Driller' || e.designation === 'Senior Driller');
-    const drillerList = employees.filter(e => e.designation === 'Driller' || e.designation === 'Driller Mechanic');
-    const asstList = employees.filter(e => e.designation === 'Drilling Assistant' || e.designation === 'Surveyor');
-    const driverList = employees.filter(e => e.designation.includes('Driver'));
-    const specialIds = [...uicList, ...drillerList, ...asstList, ...driverList].map(e => e.id);
+    if (!employees) return { assistantExecutiveEngineer: [], assistantEngineer: [], supervisor: [], otherStaff: [] };
+    const aeeList = employees.filter(e => e.designation.toLowerCase().includes('assistant executive engineer'));
+    const aeList = employees.filter(e => e.designation.toLowerCase().includes('assistant engineer'));
+    const supList = employees.filter(e => ['Master Driller', 'Senior Driller', 'Driller', 'Driller Mechanic', 'Surveyor', 'Drilling Assistant'].includes(e.designation));
+    const specialIds = [...aeeList, ...aeList, ...supList].map(e => e.id);
     const otherList = employees.filter(e => !specialIds.includes(e.id));
-    return { uic: uicList, driller: drillerList, asst: asstList, driver: driverList, other: otherList };
+    return { 
+      assistantExecutiveEngineer: aeeList, 
+      assistantEngineer: aeList, 
+      supervisor: supList, 
+      otherStaff: otherList 
+    };
   }, [employees]);
 
   const detectedLac = useMemo(() => {
@@ -204,19 +206,17 @@ function UnifiedFlushingEntryContent() {
         reportDate: formData.startDate,
         applicantName: formData.nameOfSite,
         status: 'Published' as const,
-        purpose: `Well Flushing / ${formData.sector} / ${formData.subCategory || formData.category}`,
+        purpose: `Well Flushing / ${formData.sector} / ${formData.category}`,
         category: "Well Flushing",
-        subCategory: formData.subCategory || formData.category,
         workType: "FLUSHING",
         dateOfInvestigation,
         updatedAt: new Date().toISOString(),
         uploadedBy: cloudReport?.uploadedBy || user.uid,
         assembly: detectedLac,
         staffAssignment: {
-            unitInCharge: formData.staffAssignment.unitInCharge.join(', '),
-            drillers: formData.staffAssignment.drillers.join(', '),
-            drillingAssistants: formData.staffAssignment.drillingAssistants.join(', '),
-            drivers: formData.staffAssignment.drivers.join(', '),
+            assistantExecutiveEngineer: formData.staffAssignment.assistantExecutiveEngineer.join(', '),
+            assistantEngineer: formData.staffAssignment.assistantEngineer.join(', '),
+            supervisor: formData.staffAssignment.supervisor.join(', '),
             otherStaff: formData.staffAssignment.otherStaff.join(', ')
         }
       };
@@ -224,8 +224,8 @@ function UnifiedFlushingEntryContent() {
       const operation = isUpdate ? updateDoc(reportDocRef, reportData) : setDoc(reportDocRef, reportData);
 
       operation.then(() => {
-        toast({ title: isUpdate ? 'Record Updated' : 'Record Saved', description: 'Flushing technical record synchronized.' });
-        router.push('/well-drilling');
+        toast({ title: isUpdate ? 'Record Updated' : 'Record Saved', description: 'Flushing technical supervision record synchronized.' });
+        router.push('/supervision');
       }).catch(async (error) => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({ path: reportDocRef.path, operation: isUpdate ? 'update' : 'create', requestResourceData: reportData }));
       });
@@ -237,17 +237,16 @@ function UnifiedFlushingEntryContent() {
   }
 
   return (
-    <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black text-left">
+    <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black">
       
-      {/* 1. HEADER SECTION */}
       <div className="bg-white border border-slate-200 p-8 rounded-[32px] shadow-sm ring-1 ring-slate-200/50">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
           <div className="flex items-center gap-5">
             <Button variant="ghost" size="icon" asChild className="rounded-full h-12 w-12 border border-slate-200 text-slate-600 hover:bg-slate-50">
-              <Link href="/well-drilling"><ArrowLeft className="size-5" /></Link>
+              <Link href="/supervision"><ArrowLeft className="size-5" /></Link>
             </Button>
             <div>
-              <h1 className="text-[26px] font-black text-slate-900 uppercase tracking-tighter leading-none">Borewell Flushing Entry</h1>
+              <h1 className="text-[26px] font-black text-slate-900 uppercase tracking-tighter leading-none">Flushing supervision entry</h1>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">Well Development | District Office, Malappuram</p>
             </div>
           </div>
@@ -281,7 +280,7 @@ function UnifiedFlushingEntryContent() {
             </div>
             <div className="space-y-1">
               <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><SearchCode className="size-3" /> Category</Label>
-              <Select disabled={!canModify} onValueChange={(v) => updateField('subCategory', v)} value={formData.subCategory || ''}>
+              <Select disabled={!canModify} onValueChange={(v) => updateField('category', v)} value={formData.category || ''}>
                 <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue placeholder="Select" /></SelectTrigger>
                 <SelectContent className="rounded-xl border-slate-200">
                   {categoryMappings[formData.sector]?.map(c => <SelectItem key={c} value={c} className="text-[10px] font-black uppercase">{c}</SelectItem>)}
@@ -292,7 +291,6 @@ function UnifiedFlushingEntryContent() {
         </div>
       </div>
 
-      {/* 2. BASIC SITE & ADMIN DETAILS */}
       <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
           <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-600 flex items-center gap-3">
@@ -300,52 +298,37 @@ function UnifiedFlushingEntryContent() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-10 space-y-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="space-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="space-y-2 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">File No</Label>
               <Input disabled={!canModify} value={formData.fileNo || ''} onChange={(e) => updateField('fileNo', e.target.value)} className="h-11 border-slate-200 font-black text-primary focus:bg-white" placeholder="MPM/GWD/..." />
             </div>
-            <div className="space-y-2 lg:col-span-1">
-              <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Well Number</Label>
-              <Input 
-                disabled={!canModify} 
-                value={formData.wellNumber || ''} 
-                onChange={(e) => updateField('wellNumber', e.target.value)} 
-                className="h-11 border-slate-200 font-black text-primary focus:bg-white" 
-                placeholder="ENTER WELL NUMBER" 
-              />
-            </div>
-            <div className="space-y-2 lg:col-span-1">
+            <div className="space-y-2 lg:col-span-1 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Name of Site</Label>
               <Input disabled={!canModify} value={formData.nameOfSite || ''} onChange={(e) => updateField('nameOfSite', e.target.value)} className="h-11 border-slate-200 uppercase font-bold text-primary" placeholder="LOCATION NAME" />
             </div>
-            <div className="space-y-2 lg:col-span-1">
+            <div className="space-y-2 lg:col-span-1 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Address</Label>
               <Input disabled={!canModify} value={formData.address || ''} onChange={(e) => updateField('address', e.target.value)} className="h-11 border-slate-200" placeholder="Street/Area" />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="space-y-2 text-left">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
+            <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Grama Panchayath / LSGD</Label>
               <Select disabled={!canModify} onValueChange={(v) => updateField('lsgd', v)} value={formData.lsgd || ''}>
                 <SelectTrigger className="h-11 border-slate-200 font-bold"><SelectValue placeholder="Select" /></SelectTrigger>
                 <SelectContent className="max-h-[400px] rounded-2xl">{lsgs.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="space-y-2 text-left">
+            <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Constituency (LAC)</Label>
               <Input disabled value={detectedLac} className="h-11 border-slate-200 bg-slate-50 font-black text-blue-600 uppercase" placeholder="Auto-detected" />
-            </div>
-            <div className="space-y-2 text-left">
-              <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Total Remittance (₹)</Label>
-              <Input disabled={!canModify} type="text" value={formData.remittance || ''} onChange={(e) => updateField('remittance', e.target.value)} className="h-11 border-slate-200 font-black text-emerald-600" placeholder="0.00" />
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* 3. TECHNICAL FLUSHING PARAMETERS */}
       <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
           <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-accent flex items-center gap-3">
@@ -363,21 +346,21 @@ function UnifiedFlushingEntryContent() {
             </div>
             <div className="space-y-2 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Total Depth (m)</Label>
-              <Input disabled={!canModify} type="text" value={formData.totalDepth || ''} onChange={(e) => updateField('totalDepth', e.target.value)} className="h-11 border-slate-200 font-bold" />
+              <Input disabled={!canModify} type="number" value={formData.totalDepth || ''} onChange={(e) => updateField('totalDepth', e.target.value)} className="h-11 border-slate-200 font-bold" />
             </div>
             <div className="space-y-2 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Overburden (m)</Label>
-              <Input disabled={!canModify} type="text" value={formData.overburden || ''} onChange={(e) => updateField('overburden', e.target.value)} className="h-11 border-slate-200" />
+              <Input disabled={!canModify} type="number" value={formData.overburden || ''} onChange={(e) => updateField('overburden', e.target.value)} className="h-11 border-slate-200" />
             </div>
             <div className="space-y-2 text-left">
-              <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Estimated Yield (LPH)</Label>
-              <Input disabled={!canModify} type="text" value={formData.discharge || ''} onChange={(e) => updateField('discharge', e.target.value)} className="h-11 border-slate-200 font-black text-blue-600" />
+              <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Discharge (LPH)</Label>
+              <Input disabled={!canModify} type="number" value={formData.discharge || ''} onChange={(e) => updateField('discharge', e.target.value)} className="h-11 border-slate-200 font-black text-blue-600" />
             </div>
             <div className="space-y-2 text-left">
-              <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Static Water Level (mbgl)</Label>
-              <Input disabled={!canModify} type="text" value={formData.waterLevel || ''} onChange={(e) => updateField('waterLevel', e.target.value)} className="h-11 border-slate-200" />
+              <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Water Level (mbgl)</Label>
+              <Input disabled={!canModify} type="number" value={formData.waterLevel || ''} onChange={(e) => updateField('waterLevel', e.target.value)} className="h-11 border-slate-200" />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 text-left">
               <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Compressor Working Hour</Label>
               <Input disabled={!canModify} value={formData.compressorWorkingHour} onChange={(e) => updateField('compressorWorkingHour', e.target.value)} placeholder="e.g. 2.5 hrs" className="h-11" />
             </div>
@@ -396,7 +379,7 @@ function UnifiedFlushingEntryContent() {
               </Select>
             </div>
           </div>
-          <div className="space-y-2 text-left">
+          <div className="space-y-2">
             <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Field Observations (Post-Flushing)</Label>
             <Textarea disabled={!canModify} value={formData.observations || ''} onChange={(e) => updateField('observations', e.target.value)} rows={4} className="rounded-2xl border-slate-200 p-6 italic font-medium leading-relaxed" placeholder="Record yield recovery, water clarity or site specific technical notes here..." />
           </div>
@@ -406,21 +389,21 @@ function UnifiedFlushingEntryContent() {
       {/* 4. STAFF DETAILS */}
       <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
-          <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3">
+          <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3 text-left">
              <Users className="size-4" /> 4. STAFF DETAILS (TEAM ASSIGNMENT)
           </CardTitle>
         </CardHeader>
         <CardContent className="p-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-           <StaffMultiSelect label="Unit In-Charge" options={filteredStaff.uic} selected={formData.staffAssignment.unitInCharge} onChange={(names) => updateStaff('unitInCharge', names)} max={2} disabled={!canModify} />
-           <StaffMultiSelect label="Drillers" options={filteredStaff.driller} selected={formData.staffAssignment.drillers} onChange={(names) => updateStaff('drillers', names)} max={5} disabled={!canModify} />
-           <StaffMultiSelect label="Drilling Assistants" options={filteredStaff.asst} selected={formData.staffAssignment.drillingAssistants} onChange={(names) => updateStaff('drillingAssistants', names)} max={7} disabled={!canModify} />
-           <StaffMultiSelect label="Logistics & Support" options={filteredStaff.driver.concat(filteredStaff.other)} selected={formData.staffAssignment.otherStaff} onChange={(names) => updateStaff('otherStaff', names)} max={14} disabled={!canModify} />
+           <StaffMultiSelect label="Asst. Exec. Engineer" options={filteredStaff.assistantExecutiveEngineer} selected={formData.staffAssignment.assistantExecutiveEngineer} onChange={(names) => updateStaff('assistantExecutiveEngineer', names)} max={1} disabled={!canModify} />
+           <StaffMultiSelect label="Assistant Engineer" options={filteredStaff.assistantEngineer} selected={formData.staffAssignment.assistantEngineer} onChange={(names) => updateStaff('assistantEngineer', names)} max={1} disabled={!canModify} />
+           <StaffMultiSelect label="Site Supervisor" options={filteredStaff.supervisor} selected={formData.staffAssignment.supervisor} onChange={(names) => updateStaff('supervisor', names)} max={1} disabled={!canModify} />
+           <StaffMultiSelect label="Other Staff (Max 10)" options={filteredStaff.otherStaff} selected={formData.staffAssignment.otherStaff} onChange={(names) => updateStaff('otherStaff', names)} max={10} disabled={!canModify} />
         </CardContent>
       </Card>
 
       <div className="flex justify-end pt-12 pb-24">
-        <Button onClick={handleSave} disabled={isPending || !canModify} className="h-14 px-12 rounded-2xl bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] gap-2 shadow-xl shadow-blue-900/20">
-          {isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />} 
+        <Button onClick={handleSave} disabled={isPending || !canModify} className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/30 gap-3 hover:bg-blue-900 transition-all active:scale-95">
+          {isPending ? <Loader2 className="size-5 animate-spin" /> : <Save className="size-5" />} 
           {canModify ? (id ? 'UPDATE' : 'SAVE') + ' TECHNICAL RECORD' : 'Access Restricted'}
         </Button>
       </div>

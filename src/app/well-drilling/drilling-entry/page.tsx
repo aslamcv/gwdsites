@@ -10,22 +10,15 @@ import { Badge } from '@/components/ui/badge';
 import { 
   ArrowLeft, 
   Save, 
-  FileText, 
-  Activity,
   Loader2,
   MapPin,
   Calendar as CalendarIcon,
   Truck,
   Building,
-  User,
-  ShieldCheck,
   Users,
-  Settings,
-  ReceiptIndianRupee,
-  Pickaxe,
-  Lock,
   SearchCode,
-  ArrowRight
+  Lock,
+  Pickaxe
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
@@ -39,13 +32,11 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useUser, useDoc, useMemoFirebase, useCollection, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, doc, setDoc, updateDoc } from 'firebase/firestore';
 import type { GroundwaterReport, Employee } from '@/lib/types';
-import { Separator } from '@/components/ui/separator';
 import { StaffMultiSelect } from '@/components/investigation/staff-multi-select';
 import { cn } from '@/lib/utils';
-import { Logo } from '@/components/logo';
 
 const MASTER_ADMIN_EMAIL = 'gwdmpm@gmail.com';
 
@@ -92,9 +83,10 @@ function UnifiedDrillingSupervisionContent() {
   
   const isAllowed = useMemo(() => {
     if (isAuthLoading || isProfileLoading) return false;
-    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
+    if (user?.email === MASTER_ADMIN_EMAIL) return true;
     const role = (userProfile?.role || '').toLowerCase();
-    return (role === 'admin' || role === 'engineer') && userProfile?.isApproved !== false;
+    const isApproved = userProfile?.isApproved !== false;
+    return (role === 'admin' || role === 'engineer') && isApproved;
   }, [user, userProfile, isAuthLoading, isProfileLoading]);
 
   // Fetch Employees for staff selection
@@ -261,7 +253,7 @@ function UnifiedDrillingSupervisionContent() {
     <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black text-left">
       
       <div className="bg-white border border-slate-200 p-8 rounded-[32px] shadow-sm ring-1 ring-slate-200/50">
-        <div className="flex flex-col space-y-8">
+        <div className="flex flex-col space-y-8 text-left">
           <div className="text-center">
             <h1 className="text-[26px] font-black text-slate-900 uppercase tracking-tighter leading-none">Borewell Drilling Entry</h1>
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">Technical Operations | District Office, Malappuram</p>
@@ -319,7 +311,7 @@ function UnifiedDrillingSupervisionContent() {
              <MapPin className="size-4" /> BASIC SITE & ADMIN DETAILS
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-10 space-y-8">
+        <CardContent className="p-10 space-y-8 text-left">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">File No</Label>
@@ -344,19 +336,19 @@ function UnifiedDrillingSupervisionContent() {
               <Input disabled={!canModify} value={formData.address || ''} onChange={(e) => updateField('address', e.target.value)} className="h-11 border-slate-200" placeholder="Street/Area" />
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="space-y-2 text-left">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
+            <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Grama Panchayath / LSGD</Label>
               <Select disabled={!canModify} onValueChange={(v) => updateField('lsgd', v)} value={formData.lsgd || ''}>
                 <SelectTrigger className="h-11 border-slate-200 font-bold"><SelectValue placeholder="Select" /></SelectTrigger>
                 <SelectContent className="max-h-[400px] rounded-2xl">{lsgs.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="space-y-2 text-left">
+            <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Constituency (LAC)</Label>
               <Input disabled value={detectedLac} className="h-11 border-slate-200 bg-slate-50 font-black text-blue-600 uppercase" placeholder="Auto-detected" />
             </div>
-            <div className="space-y-2 text-left">
+            <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Total Remittance (₹)</Label>
               <Input disabled={!canModify} type="text" value={formData.remittance || ''} onChange={(e) => updateField('remittance', e.target.value)} className="h-11 border-slate-200 font-black text-emerald-600" placeholder="0.00" />
             </div>
@@ -370,44 +362,44 @@ function UnifiedDrillingSupervisionContent() {
              <Pickaxe className="size-4" /> TECHNICAL DRILLING PARAMETERS
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-10 space-y-8">
+        <CardContent className="p-10 space-y-8 text-left">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="space-y-2 text-left">
+            <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Borewell Size</Label>
               <Select disabled={!canModify} onValueChange={(v) => updateField('borewellSize', v)} value={formData.borewellSize || ''}>
                 <SelectTrigger className="h-11 border-slate-200 font-black text-primary"><SelectValue /></SelectTrigger>
                 <SelectContent className="rounded-2xl">{borewellSizeOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="space-y-2 text-left">
+            <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Total Depth (m)</Label>
               <Input disabled={!canModify} type="text" value={formData.totalDepth || ''} onChange={(e) => updateField('totalDepth', e.target.value)} className="h-11 border-slate-200 font-bold" />
             </div>
-            <div className="space-y-2 text-left">
+            <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Overburden (m)</Label>
               <Input disabled={!canModify} type="text" value={formData.overburden || ''} onChange={(e) => updateField('overburden', e.target.value)} className="h-11 border-slate-200" />
             </div>
-            <div className="space-y-2 text-left">
+            <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Estimated Yield (LPH)</Label>
               <Input disabled={!canModify} type="text" value={formData.discharge || ''} onChange={(e) => updateField('discharge', e.target.value)} className="h-11 border-slate-200 font-black text-blue-600" />
             </div>
-            <div className="space-y-2 text-left">
+            <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">PVC 140mm 6kg/cm² (m)</Label>
               <Input disabled={!canModify} value={formData.pvc6kg || ''} onChange={(e) => updateField('pvc6kg', e.target.value)} className="h-11 border-slate-200" />
             </div>
-            <div className="space-y-2 text-left">
+            <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">PVC 140mm 10kg/cm² (m)</Label>
               <Input disabled={!canModify} value={formData.pvc10kg || ''} onChange={(e) => updateField('pvc10kg', e.target.value)} className="h-11 border-slate-200" />
             </div>
-            <div className="space-y-2 text-left">
+            <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Zone Details (m)</Label>
               <Input disabled={!canModify} value={formData.zoneDepth || ''} onChange={(e) => updateField('zoneDepth', e.target.value)} className="h-11 border-slate-200" placeholder="e.g. 60-90" />
             </div>
-            <div className="space-y-2 text-left">
+            <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Static Water Level (mbgl)</Label>
               <Input disabled={!canModify} type="text" value={formData.waterLevel || ''} onChange={(e) => updateField('waterLevel', e.target.value)} className="h-11 border-slate-200" />
             </div>
-            <div className="space-y-2 text-left">
+            <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Yield Assessment</Label>
               <Select disabled={!canModify} onValueChange={(val) => updateField('remarks', val)} value={formData.remarks || ''}>
                 <SelectTrigger className="h-11 border-slate-200 font-bold"><SelectValue /></SelectTrigger>
@@ -430,7 +422,7 @@ function UnifiedDrillingSupervisionContent() {
               <Label htmlFor="hasEndCap" className="text-[10px] font-black uppercase text-slate-700 cursor-pointer">End Cap Used</Label>
             </div>
           </div>
-          <div className="space-y-2 text-left">
+          <div className="space-y-2">
             <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Field Observations & Strata Details</Label>
             <Textarea disabled={!canModify} value={formData.observations || ''} onChange={(e) => updateField('observations', e.target.value)} rows={4} className="rounded-2xl border-slate-200 p-6 italic font-medium leading-relaxed" placeholder="Record technical work strata or site specific notes here..." />
           </div>
@@ -444,7 +436,7 @@ function UnifiedDrillingSupervisionContent() {
              <Users className="size-4" /> 4. STAFF DETAILS (TEAM ASSIGNMENT)
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <CardContent className="p-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 text-left">
            <StaffMultiSelect label="Unit In-Charge" options={filteredStaff.uic} selected={formData.staffAssignment.unitInCharge} onChange={(names) => updateStaff('unitInCharge', names)} max={2} disabled={!canModify} />
            <StaffMultiSelect label="Drillers" options={filteredStaff.driller} selected={formData.staffAssignment.drillers} onChange={(names) => updateStaff('drillers', names)} max={5} disabled={!canModify} />
            <StaffMultiSelect label="Drilling Assistants" options={filteredStaff.asst} selected={formData.staffAssignment.drillingAssistants} onChange={(names) => updateStaff('drillingAssistants', names)} max={7} disabled={!canModify} />

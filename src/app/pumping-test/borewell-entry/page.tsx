@@ -10,7 +10,6 @@ import { Badge } from '@/components/ui/badge';
 import { 
   ArrowLeft, 
   Save, 
-  Activity, 
   Loader2,
   MapPin,
   Calendar as CalendarIcon,
@@ -31,7 +30,7 @@ import {
   TableRow 
 } from '@/components/ui/table';
 import Link from 'next/link';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useLsgdData } from '@/hooks/use-lsgd-data';
 import { 
   Select, 
@@ -41,8 +40,8 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useUser, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { collection, doc, setDoc, updateDoc } from 'firebase/firestore';
+import { useFirestore, useUser, useDoc, useMemoFirebase, useCollection, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { collection, doc, setDoc, updateDoc, query, orderBy } from 'firebase/firestore';
 import type { GroundwaterReport, Employee } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
 import { StaffMultiSelect } from '@/components/investigation/staff-multi-select';
@@ -79,7 +78,7 @@ function UnifiedBorewellPumpingEntryContent() {
   const searchParams = useSearchParams();
   const { lsgs, lsgMappings } = useLsgdData();
   const firestore = useFirestore();
-  const { user, isUserLoading } = useUser();
+  const { user, isUserLoading: isAuthLoading } = useUser();
   const [isPending, startTransition] = useTransition();
 
   const id = searchParams.get('id');
@@ -91,12 +90,12 @@ function UnifiedBorewellPumpingEntryContent() {
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
   
   const isAllowed = useMemo(() => {
-    if (isUserLoading || isProfileLoading) return false;
+    if (isAuthLoading || isProfileLoading) return false;
     const role = (userProfile?.role || '').toLowerCase();
     const isApproved = userProfile?.isApproved !== false;
     if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL || role === 'admin') return true;
     return (role === 'engineer' || role === 'scientist') && isApproved;
-  }, [user, userProfile, isUserLoading, isProfileLoading]);
+  }, [user, userProfile, isAuthLoading, isProfileLoading]);
 
   const employeesRef = useMemoFirebase(() => {
     if (!firestore) return null;
