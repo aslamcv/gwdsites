@@ -128,7 +128,7 @@ export default function GroundWaterInvestigationPage() {
       systemUsers.forEach(u => {
         const name = u.displayName || u.email || 'Unknown';
         if (u.uid) map.set(u.uid, name);
-        if (u.id) map.set(u.id, name);
+        if (u.id) map.set(u.id.toLowerCase().trim(), name);
         if (u.email) map.set(u.email.toLowerCase().trim(), name);
       });
     }
@@ -305,7 +305,7 @@ export default function GroundWaterInvestigationPage() {
                     
                     const isOwner = user?.uid === r.uploadedBy;
                     const canModifyRecord = isAdmin || (isScientist && isOwner);
-                    const ownerName = userMap.get(r.uploadedBy) || userMap.get(r.uploadedBy?.toLowerCase()) || '---';
+                    const ownerName = userMap.get(r.uploadedBy) || userMap.get(r.uploadedBy?.toLowerCase()?.trim()) || 'District Officer';
 
                     return (
                       <TableRow key={r.id} className="h-20 border-slate-50 hover:bg-slate-50/80 transition-colors group">

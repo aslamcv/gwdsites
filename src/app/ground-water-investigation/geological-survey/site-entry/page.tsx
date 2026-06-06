@@ -360,6 +360,10 @@ function SiteEntryContent() {
     others: ["Miscellaneous", "Emergency Work", "Special Survey"]
   };
 
+  if (isReportLoading && id) {
+    return <div className="p-12 text-center animate-pulse uppercase tracking-widest font-black opacity-30 text-slate-400">Initializing Technical Node...</div>;
+  }
+
   return (
     <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black text-left">
       
@@ -736,13 +740,13 @@ const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, form, disab
     <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl text-left">
       <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight text-center">DETAILS FOR {structureType?.toUpperCase()}</DialogTitle></DialogHeader>
       {isBorewell ? (
-        <div className="space-y-6 py-4">
+        <div className="space-y-6 py-4 text-left">
           <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Total Depth (m)</Label><Input disabled={disabled} {...form.register(`nearbyBorewell${index}Depth` as any)} /></div>
           <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Diameter</Label><Input disabled={disabled} {...form.register(`nearbyBorewell${index}Diameter` as any)} /></div>
           <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Fracture Zones</Label><Input disabled={disabled} {...form.register(`nearbyBorewell${index}Zones` as any)} /></div>
         </div>
       ) : (
-         <div className="space-y-6 py-4">
+         <div className="space-y-6 py-4 text-left">
           <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Total Depth (m)</Label><Input disabled={disabled} {...form.register(`nearbyOpenwell${index}Depth` as any)} /></div>
           <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Water Level (m)</Label><Input disabled={disabled} {...form.register(`nearbyOpenwell${index}WaterLevel` as any)} /></div>
           <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Parapet (m)</Label><Input disabled={disabled} {...form.register(`nearbyOpenwell${index}ParapetHeight` as any)} /></div>
