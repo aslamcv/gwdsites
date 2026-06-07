@@ -1,38 +1,32 @@
 'use client';
 
 import { Suspense, useState, useTransition, useEffect, useMemo } from 'react';
-import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { 
   ArrowLeft, 
   Save, 
-  FileText, 
-  Activity, 
   Loader2,
-  ClipboardList,
-  Zap,
-  Waves,
-  Lock,
+  MapPin,
+  Calendar as CalendarIcon,
   Truck,
   Building,
-  User,
+  Users,
+  SearchCode,
+  Lock,
+  Zap,
+  Waves,
   Settings,
   Wind,
-  Hammer,
-  Users,
-  ShieldCheck,
-  SearchCode,
-  MapPin,
-  Calendar as CalendarIcon
+  Hammer
 } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useLsgdData } from '@/hooks/use-lsgd-data';
-import { useToast } from '@/hooks/use-toast';
 import { 
   Select, 
   SelectContent, 
@@ -40,13 +34,12 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
-import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
+import { useToast } from '@/hooks/use-toast';
+import { useFirestore, useUser, useDoc, useMemoFirebase, useCollection, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, doc, setDoc, updateDoc } from 'firebase/firestore';
 import type { GroundwaterReport, Employee } from '@/lib/types';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { StaffMultiSelect } from '@/components/investigation/staff-multi-select';
-import { Logo } from '@/components/logo';
 
 const MASTER_ADMIN_EMAIL = 'gwdmpm@gmail.com';
 
@@ -77,12 +70,11 @@ function UnifiedMWSSSupervisionContent() {
   const searchParams = useSearchParams();
   const { lsgs, lsgMappings } = useLsgdData();
   const firestore = useFirestore();
-  const { user, isUserLoading } = useUser();
+  const { user, isUserLoading: isAuthLoading } = useUser();
   const [isPending, startTransition] = useTransition();
 
   const id = searchParams.get('id');
 
-  // Role detection
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user?.email) return null;
     return doc(firestore, 'users', user.email.toLowerCase().trim());
@@ -90,13 +82,13 @@ function UnifiedMWSSSupervisionContent() {
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
   
   const isAllowed = useMemo(() => {
-    if (isUserLoading || isProfileLoading) return false;
-    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
+    if (isAuthLoading || isProfileLoading) return false;
     const role = (userProfile?.role || '').toLowerCase();
-    return (role === 'admin' || role === 'engineer') && userProfile?.isApproved === true;
-  }, [user, userProfile, isUserLoading, isProfileLoading]);
+    const isApproved = userProfile?.isApproved !== false;
+    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL || role === 'admin') return true;
+    return (role === 'admin' || role === 'engineer') && isApproved;
+  }, [user, userProfile, isAuthLoading, isProfileLoading]);
 
-  // Fetch Employees for staff selection
   const employeesRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'employees');
@@ -109,6 +101,14 @@ function UnifiedMWSSSupervisionContent() {
   }, [firestore, id]);
 
   const { data: cloudReport, isLoading: isReportLoading } = useDoc<GroundwaterReport>(reportRef);
+
+  const isOwner = useMemo(() => {
+    if (!cloudReport || !user) return false;
+    const creator = (cloudReport.uploadedBy || '').trim();
+    return creator === user.uid || creator === user.email?.toLowerCase().trim();
+  }, [cloudReport, user]);
+
+  const canModify = isAllowed && (!id || isOwner || user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL || userProfile?.role?.toLowerCase() === 'admin');
 
   const [formData, setFormData] = useState<any>({
     reportDate: new Date().toISOString().split('T')[0],
@@ -131,35 +131,16 @@ function UnifiedMWSSSupervisionContent() {
     hexNipple: '',
     erection: '',
     panelBoard: '',
-    cableCover25mmTrench: '',
-    cableCover25mmNoTrench: '',
     ssAdaptor40mm: '',
-    pm50mmTrench: '',
     tank: '',
     structureTankPumpHouse: '',
-    tankConnector50mm: '',
-    tankConnector63mm: '',
     pvcBallValve50mm: '',
-    pvcBallValve63mm: '',
     distLine32mmTrench: '',
-    distLine32mmNoTrench: '',
-    giAsPvcCover32mm: '',
     distLine40mmTrench: '',
-    distLine40mmNoTrench: '',
-    giAsPvcCover50mm: '',
     distLine50mmTrench: '',
-    distLine50mmNoTrench: '',
-    giAsPvcCover50mmPipe: '',
-    distLine63mmTrench: '',
     demolishingConcrete: '',
     pccCoverDemolished: '',
-    pccGiFixing: '',
-    starter: '',
-    hydrants: '',
-    heavyDutyTap: '',
-    pvcEndCap140mm: '',
     wellProtectionCover: '',
-    elecAccessories: '',
     remarks: '',
     observations: '',
     staffAssignment: {
@@ -216,7 +197,7 @@ function UnifiedMWSSSupervisionContent() {
   }, [formData.lsgd, lsgMappings]);
 
   const handleSave = () => {
-    if (!user || !firestore || !isAllowed) return;
+    if (!user || !firestore || !canModify) return;
 
     startTransition(() => {
       const isUpdate = !!id;
@@ -231,6 +212,7 @@ function UnifiedMWSSSupervisionContent() {
         purpose: "Supervision / MWSS",
         category: "Supervision / MWSS",
         updatedAt: new Date().toISOString(),
+        uploadedBy: cloudReport?.uploadedBy || user.uid,
         staffAssignment: {
             assistantExecutiveEngineer: formData.staffAssignment.assistantExecutiveEngineer.join(', '),
             assistantEngineer: formData.staffAssignment.assistantEngineer.join(', '),
@@ -239,7 +221,7 @@ function UnifiedMWSSSupervisionContent() {
         }
       };
 
-      const operation = isUpdate ? updateDocumentNonBlocking(reportDocRef, reportData) : setDocumentNonBlocking(reportDocRef, reportData, { merge: true });
+      const operation = isUpdate ? updateDoc(reportDocRef, reportData) : setDoc(reportDocRef, reportData);
 
       operation.then(() => {
         toast({ title: isUpdate ? 'Record Updated' : 'Record Saved', description: 'MWSS technical record synchronized.' });
@@ -257,10 +239,8 @@ function UnifiedMWSSSupervisionContent() {
   return (
     <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black text-left">
       
-      {/* 1. HEADER SECTION */}
       <div className="bg-white border border-slate-200 p-8 rounded-[32px] shadow-sm ring-1 ring-slate-200/50">
-        <div className="flex flex-col space-y-8">
-          {/* Top Center Heading */}
+        <div className="flex flex-col space-y-8 text-left">
           <div className="text-center">
             <h1 className="text-[26px] font-black text-slate-900 uppercase tracking-tighter leading-none">MWSS Supervision Entry</h1>
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">Mini Water Supply Scheme | District Office, Malappuram</p>
@@ -273,25 +253,23 @@ function UnifiedMWSSSupervisionContent() {
               </Button>
             </div>
             
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 w-full lg:w-auto">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full lg:w-auto">
               <div className="space-y-1">
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
                   <CalendarIcon className="size-3 pointer-events-none" /> Completion Date
                 </Label>
-                <Input disabled={!isAllowed} type="date" value={formData.reportDate} onChange={(e) => updateField('reportDate', e.target.value)} className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl focus:bg-white" />
+                <Input disabled={!canModify} type="date" value={formData.reportDate} onChange={(e) => updateField('reportDate', e.target.value)} className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl focus:bg-white" />
               </div>
               <div className="space-y-1">
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><Truck className="size-3" /> Conveyance</Label>
-                <Select disabled={!isAllowed} onValueChange={(v) => updateField('conveyance', v)} value={formData.conveyance}>
+                <Select disabled={!canModify} onValueChange={(v) => updateField('conveyance', v)} value={formData.conveyance}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl"><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent className="rounded-xl border-slate-200">
-                    {conveyanceOptions.map(o => <SelectItem key={o} value={o} className="text-xs font-bold">{o}</SelectItem>)}
-                  </SelectContent>
+                  <SelectContent className="rounded-xl border-slate-200">{conveyanceOptions.map(o => <SelectItem key={o} value={o} className="text-xs font-bold">{o}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><Building className="size-3" /> Sector</Label>
-                <Select disabled={!isAllowed} onValueChange={(v) => updateField('sector', v)} value={formData.sector}>
+                <Select disabled={!canModify} onValueChange={(v) => updateField('sector', v)} value={formData.sector}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">
                     {sectorOptions.map(s => <SelectItem key={s.id} value={s.id} className="text-[10px] font-black uppercase">{s.label}</SelectItem>)}
@@ -300,7 +278,7 @@ function UnifiedMWSSSupervisionContent() {
               </div>
               <div className="space-y-1">
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><SearchCode className="size-3" /> Sub Category</Label>
-                <Select disabled={!isAllowed} onValueChange={(v) => updateField('category', v)} value={formData.category}>
+                <Select disabled={!canModify} onValueChange={(v) => updateField('category', v)} value={formData.category}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">
                     {categoryMappings[formData.sector]?.map(c => <SelectItem key={c} value={c} className="text-[10px] font-black uppercase">{c}</SelectItem>)}
@@ -312,7 +290,6 @@ function UnifiedMWSSSupervisionContent() {
         </div>
       </div>
 
-      {/* 2. BASIC SITE & ADMIN DETAILS */}
       <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
           <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-600 flex items-center gap-3">
@@ -321,28 +298,28 @@ function UnifiedMWSSSupervisionContent() {
         </CardHeader>
         <CardContent className="p-10 space-y-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="space-y-2">
+            <div className="space-y-2 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">File No</Label>
-              <Input disabled={!isAllowed} value={formData.fileNo} onChange={(e) => updateField('fileNo', e.target.value)} className="h-11 border-slate-200 font-black text-primary focus:bg-white" placeholder="MPM/GWD/..." />
+              <Input disabled={!canModify} value={formData.fileNo} onChange={(e) => updateField('fileNo', e.target.value)} className="h-11 border-slate-200 font-black text-primary focus:bg-white" placeholder="MPM/GWD/..." />
             </div>
-            <div className="space-y-2 lg:col-span-1">
+            <div className="space-y-2 lg:col-span-1 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Name of Site</Label>
-              <Input disabled={!isAllowed} value={formData.nameOfSite} onChange={(e) => updateField('nameOfSite', e.target.value)} className="h-11 border-slate-200 uppercase font-bold text-primary" placeholder="SCHEME NAME" />
+              <Input disabled={!canModify} value={formData.nameOfSite} onChange={(e) => updateField('nameOfSite', e.target.value)} className="h-11 border-slate-200 uppercase font-bold text-primary" placeholder="SCHEME NAME" />
             </div>
-            <div className="space-y-2 lg:col-span-1">
+            <div className="space-y-2 lg:col-span-1 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Address</Label>
-              <Input disabled={!isAllowed} value={formData.address} onChange={(e) => updateField('address', e.target.value)} className="h-11 border-slate-200" placeholder="Location Details" />
+              <Input disabled={!canModify} value={formData.address} onChange={(e) => updateField('address', e.target.value)} className="h-11 border-slate-200" placeholder="Location Details" />
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Contractor Name</Label>
-              <Input disabled={!isAllowed} value={formData.nameOfContractor} onChange={(e) => updateField('nameOfContractor', e.target.value)} className="h-11 border-slate-200 font-bold" />
+              <Input disabled={!canModify} value={formData.nameOfContractor} onChange={(e) => updateField('nameOfContractor', e.target.value)} className="h-11 border-slate-200 font-bold" />
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Grama Panchayath / LSGD</Label>
-              <Select disabled={!isAllowed} onValueChange={(v) => updateField('lsgd', v)} value={formData.lsgd}>
+              <Select disabled={!canModify} onValueChange={(v) => updateField('lsgd', v)} value={formData.lsgd}>
                 <SelectTrigger className="h-11 border-slate-200 font-bold"><SelectValue placeholder="Select" /></SelectTrigger>
                 <SelectContent className="max-h-[400px] rounded-2xl">{lsgs.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
               </Select>
@@ -355,7 +332,6 @@ function UnifiedMWSSSupervisionContent() {
         </CardContent>
       </Card>
 
-      {/* 3. TECHNICAL PARAMETERS */}
       <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
           <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-emerald-600 flex items-center gap-3">
@@ -369,12 +345,10 @@ function UnifiedMWSSSupervisionContent() {
                   <h3 className="text-[11px] font-black uppercase text-slate-700 tracking-wider">1. Pumping Unit & Power</h3>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  <div className="space-y-1.5"><Label className="text-[9px] font-bold text-slate-400 uppercase">Submersible Pump (3HP)</Label><Input value={formData.pump3hp || ''} onChange={(e) => updateField('pump3hp', e.target.value)} className="h-10" /></div>
-                  <div className="space-y-1.5"><Label className="text-[9px] font-bold text-slate-400 uppercase">Cable 4mm (m)</Label><Input value={formData.cable4mm || ''} onChange={(e) => updateField('cable4mm', e.target.value)} className="h-10" /></div>
-                  <div className="space-y-1.5"><Label className="text-[9px] font-bold text-slate-400 uppercase">Motor Starter</Label><Input value={formData.starter || ''} onChange={(e) => updateField('starter', e.target.value)} className="h-10" /></div>
-                  <div className="space-y-1.5"><Label className="text-[9px] font-bold text-slate-400 uppercase">Panel Board</Label><Input value={formData.panelBoard || ''} onChange={(e) => updateField('panelBoard', e.target.value)} className="h-10" /></div>
-                  <div className="space-y-1.5"><Label className="text-[9px] font-bold text-slate-400 uppercase">Elec Accessories</Label><Input value={formData.elecAccessories || ''} onChange={(e) => updateField('elecAccessories', e.target.value)} className="h-10" /></div>
-                  <div className="space-y-1.5"><Label className="text-[9px] font-bold text-slate-400 uppercase">Erection Charge</Label><Input value={formData.erection || ''} onChange={(e) => updateField('erection', e.target.value)} className="h-10" /></div>
+                  <div className="space-y-1.5"><Label className="text-[9px] font-bold text-slate-400 uppercase">Submersible Pump (3HP)</Label><Input disabled={!canModify} value={formData.pump3hp || ''} onChange={(e) => updateField('pump3hp', e.target.value)} className="h-10" /></div>
+                  <div className="space-y-1.5"><Label className="text-[9px] font-bold text-slate-400 uppercase">Cable 4mm (m)</Label><Input disabled={!canModify} value={formData.cable4mm || ''} onChange={(e) => updateField('cable4mm', e.target.value)} className="h-10" /></div>
+                  <div className="space-y-1.5"><Label className="text-[9px] font-bold text-slate-400 uppercase">Panel Board</Label><Input disabled={!canModify} value={formData.panelBoard || ''} onChange={(e) => updateField('panelBoard', e.target.value)} className="h-10" /></div>
+                  <div className="space-y-1.5"><Label className="text-[9px] font-bold text-slate-400 uppercase">Erection Charge</Label><Input disabled={!canModify} value={formData.erection || ''} onChange={(e) => updateField('erection', e.target.value)} className="h-10" /></div>
                 </div>
            </div>
 
@@ -384,14 +358,10 @@ function UnifiedMWSSSupervisionContent() {
                   <h3 className="text-[11px] font-black uppercase text-slate-700 tracking-wider">2. Pipes & Technical Fittings</h3>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  <div className="space-y-1.5"><Label className="text-[9px] font-bold text-slate-400 uppercase">UPVC Pipe 50mm (m)</Label><Input value={formData.upvc50mm || ''} onChange={(e) => updateField('upvc50mm', e.target.value)} className="h-10" /></div>
-                  <div className="space-y-1.5"><Label className="text-[9px] font-bold text-slate-400 uppercase">Nylon Rope 14mm (m)</Label><Input value={formData.rope14mm || ''} onChange={(e) => updateField('rope14mm', e.target.value)} className="h-10" /></div>
-                  <div className="space-y-1.5"><Label className="text-[9px] font-bold text-slate-400 uppercase">SS Adaptor 40mm</Label><Input value={formData.ssAdaptor40mm || ''} onChange={(e) => updateField('ssAdaptor40mm', e.target.value)} className="h-10" /></div>
-                  <div className="space-y-1.5"><Label className="text-[9px] font-bold text-slate-400 uppercase">NRV 40mm</Label><Input value={formData.nrv40mm || ''} onChange={(e) => updateField('nrv40mm', e.target.value)} className="h-10" /></div>
-                  <div className="space-y-1.5"><Label className="text-[9px] font-bold text-slate-400 uppercase">Union 40mm</Label><Input value={formData.union40mm || ''} onChange={(e) => updateField('union40mm', e.target.value)} className="h-10" /></div>
-                  <div className="space-y-1.5"><Label className="text-[9px] font-bold text-slate-400 uppercase">Bend 40mm</Label><Input value={formData.bend40mm || ''} onChange={(e) => updateField('bend40mm', e.target.value)} className="h-10" /></div>
-                  <div className="space-y-1.5"><Label className="text-[9px] font-bold text-slate-400 uppercase">Socket 40mm</Label><Input value={formData.socket40mm || ''} onChange={(e) => updateField('socket40mm', e.target.value)} className="h-10" /></div>
-                  <div className="space-y-1.5"><Label className="text-[9px] font-bold text-slate-400 uppercase">140mm End Cap</Label><Input value={formData.pvcEndCap140mm || ''} onChange={(e) => updateField('pvcEndCap140mm', e.target.value)} className="h-10" /></div>
+                  <div className="space-y-1.5"><Label className="text-[9px] font-bold text-slate-400 uppercase">UPVC Pipe 50mm (m)</Label><Input disabled={!canModify} value={formData.upvc50mm || ''} onChange={(e) => updateField('upvc50mm', e.target.value)} className="h-10" /></div>
+                  <div className="space-y-1.5"><Label className="text-[9px] font-bold text-slate-400 uppercase">Nylon Rope 14mm (m)</Label><Input disabled={!canModify} value={formData.rope14mm || ''} onChange={(e) => updateField('rope14mm', e.target.value)} className="h-10" /></div>
+                  <div className="space-y-1.5"><Label className="text-[9px] font-bold text-slate-400 uppercase">SS Adaptor 40mm</Label><Input disabled={!canModify} value={formData.ssAdaptor40mm || ''} onChange={(e) => updateField('ssAdaptor40mm', e.target.value)} className="h-10" /></div>
+                  <div className="space-y-1.5"><Label className="text-[9px] font-bold text-slate-400 uppercase">NRV 40mm</Label><Input disabled={!canModify} value={formData.nrv40mm || ''} onChange={(e) => updateField('nrv40mm', e.target.value)} className="h-10" /></div>
                 </div>
            </div>
 
@@ -401,13 +371,9 @@ function UnifiedMWSSSupervisionContent() {
                   <h3 className="text-[11px] font-black uppercase text-slate-700 tracking-wider">3. Storage & Components</h3>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  <div className="space-y-1.5"><Label className="text-[9px] font-bold text-slate-400 uppercase">Water Tank (Ltrs)</Label><Input value={formData.tank || ''} onChange={(e) => updateField('tank', e.target.value)} className="h-10" /></div>
-                  <div className="space-y-1.5"><Label className="text-[9px] font-bold text-slate-400 uppercase">Tank Platform & House</Label><Input value={formData.structureTankPumpHouse || ''} onChange={(e) => updateField('structureTankPumpHouse', e.target.value)} className="h-10" /></div>
-                  <div className="space-y-1.5"><Label className="text-[9px] font-bold text-slate-400 uppercase">Well Protection Cover</Label><Input value={formData.wellProtectionCover || ''} onChange={(e) => updateField('wellProtectionCover', e.target.value)} className="h-10" /></div>
-                  <div className="space-y-1.5"><Label className="text-[9px] font-bold text-slate-400 uppercase">Tank Connectors</Label><Input value={formData.tankConnector50mm || ''} onChange={(e) => updateField('tankConnector50mm', e.target.value)} className="h-10" placeholder="Specify Qty" /></div>
-                  <div className="space-y-1.5"><Label className="text-[9px] font-bold text-slate-400 uppercase">Ball Valves</Label><Input value={formData.pvcBallValve50mm || ''} onChange={(e) => updateField('pvcBallValve50mm', e.target.value)} className="h-10" /></div>
-                  <div className="space-y-1.5"><Label className="text-[9px] font-bold text-slate-400 uppercase">Hydrants</Label><Input value={formData.hydrants || ''} onChange={(e) => updateField('hydrants', e.target.value)} className="h-10" /></div>
-                  <div className="space-y-1.5"><Label className="text-[9px] font-bold text-slate-400 uppercase">Heavy Duty Taps</Label><Input value={formData.heavyDutyTap || ''} onChange={(e) => updateField('heavyDutyTap', e.target.value)} className="h-10" /></div>
+                  <div className="space-y-1.5"><Label className="text-[9px] font-bold text-slate-400 uppercase">Water Tank (Ltrs)</Label><Input disabled={!canModify} value={formData.tank || ''} onChange={(e) => updateField('tank', e.target.value)} className="h-10" /></div>
+                  <div className="space-y-1.5"><Label className="text-[9px] font-bold text-slate-400 uppercase">Tank Platform & House</Label><Input disabled={!canModify} value={formData.structureTankPumpHouse || ''} onChange={(e) => updateField('structureTankPumpHouse', e.target.value)} className="h-10" /></div>
+                  <div className="space-y-1.5"><Label className="text-[9px] font-bold text-slate-400 uppercase">Well Protection Cover</Label><Input disabled={!canModify} value={formData.wellProtectionCover || ''} onChange={(e) => updateField('wellProtectionCover', e.target.value)} className="h-10" /></div>
                 </div>
            </div>
 
@@ -417,21 +383,18 @@ function UnifiedMWSSSupervisionContent() {
                   <h3 className="text-[11px] font-black uppercase text-slate-700 tracking-wider">4. Civil & Distribution Lines</h3>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  <div className="space-y-1.5"><Label className="text-[9px] font-bold text-slate-400 uppercase">32mm Line (Trench) m</Label><Input value={formData.distLine32mmTrench || ''} onChange={(e) => updateField('distLine32mmTrench', e.target.value)} className="h-10" /></div>
-                  <div className="space-y-1.5"><Label className="text-[9px] font-bold text-slate-400 uppercase">40mm Line (Trench) m</Label><Input value={formData.distLine40mmTrench || ''} onChange={(e) => updateField('distLine40mmTrench', e.target.value)} className="h-10" /></div>
-                  <div className="space-y-1.5"><Label className="text-[9px] font-bold text-slate-400 uppercase">50mm Line (Trench) m</Label><Input value={formData.distLine50mmTrench || ''} onChange={(e) => updateField('distLine50mmTrench', e.target.value)} className="h-10" /></div>
-                  <div className="space-y-1.5"><Label className="text-[9px] font-bold text-slate-400 uppercase">63mm Line (Trench) m</Label><Input value={formData.distLine63mmTrench || ''} onChange={(e) => updateField('distLine63mmTrench', e.target.value)} className="h-10" /></div>
-                  <div className="space-y-1.5"><Label className="text-[9px] font-bold text-slate-400 uppercase">Demolishing Concrete m³</Label><Input value={formData.demolishingConcrete || ''} onChange={(e) => updateField('demolishingConcrete', e.target.value)} className="h-10" /></div>
-                  <div className="space-y-1.5"><Label className="text-[9px] font-bold text-slate-400 uppercase">PCC Restoration m³</Label><Input value={formData.pccCoverDemolished || ''} onChange={(e) => updateField('pccCoverDemolished', e.target.value)} className="h-10" /></div>
+                  <div className="space-y-1.5"><Label className="text-[9px] font-bold text-slate-400 uppercase">32mm Line (Trench) m</Label><Input disabled={!canModify} value={formData.distLine32mmTrench || ''} onChange={(e) => updateField('distLine32mmTrench', e.target.value)} className="h-10" /></div>
+                  <div className="space-y-1.5"><Label className="text-[9px] font-bold text-slate-400 uppercase">40mm Line (Trench) m</Label><Input disabled={!canModify} value={formData.distLine40mmTrench || ''} onChange={(e) => updateField('distLine40mmTrench', e.target.value)} className="h-10" /></div>
+                  <div className="space-y-1.5"><Label className="text-[9px] font-bold text-slate-400 uppercase">50mm Line (Trench) m</Label><Input disabled={!canModify} value={formData.distLine50mmTrench || ''} onChange={(e) => updateField('distLine50mmTrench', e.target.value)} className="h-10" /></div>
+                  <div className="space-y-1.5"><Label className="text-[9px] font-bold text-slate-400 uppercase">Demolishing Concrete m³</Label><Input disabled={!canModify} value={formData.demolishingConcrete || ''} onChange={(e) => updateField('demolishingConcrete', e.target.value)} className="h-10" /></div>
                 </div>
            </div>
         </CardContent>
       </Card>
 
-      {/* 4. STAFF DETAILS */}
       <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
-          <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3">
+          <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3 text-left">
              <Users className="size-4" /> 4. STAFF DETAILS (TEAM ASSIGNMENT)
           </CardTitle>
         </CardHeader>
@@ -443,11 +406,11 @@ function UnifiedMWSSSupervisionContent() {
         </CardContent>
       </Card>
 
-      <div className="flex justify-end pt-12 pb-24">
-        <Button onClick={handleSave} disabled={isPending || !isAllowed} className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/30 gap-3 hover:bg-blue-900 transition-all hover:scale-[1.02] active:scale-95"
+      <div className="flex justify-end pt-12 pb-24 text-left">
+        <Button onClick={handleSave} disabled={isPending || !canModify} className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/30 gap-3 hover:bg-blue-900 transition-all active:scale-95"
         >
-          {isPending ? <Loader2 className="size-5 animate-spin" /> : <Save className="size-5" />} 
-          {isAllowed ? (id ? 'UPDATE SUPERVISION RECORD' : 'SAVE SUPERVISION RECORD') : 'ACCESS RESTRICTED'}
+          {isPending ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />} 
+          {canModify ? (id ? 'UPDATE SUPERVISION RECORD' : 'SAVE SUPERVISION RECORD') : 'ACCESS RESTRICTED'}
         </Button>
       </div>
     </div>

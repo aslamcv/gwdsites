@@ -37,9 +37,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, doc, setDoc, updateDoc } from 'firebase/firestore';
 import type { GroundwaterReport, Employee } from '@/lib/types';
-import { Separator } from '@/components/ui/separator';
 import { StaffMultiSelect } from '@/components/investigation/staff-multi-select';
-import { Logo } from '@/components/logo';
 
 const MASTER_ADMIN_EMAIL = 'gwdmpm@gmail.com';
 
@@ -52,7 +50,7 @@ const sectorOptions = [
 
 const categoryMappings: Record<string, string[]> = {
   private: ["Domestic", "Agriculture", "Others"],
-  government: ["Local Bodies", "Institutional", "Others"],
+  government: ["Local Bodies", "Institutional", "GWBDWS", "Others"],
   institutional: ["Project Support", "Grant-in-Aid"]
 };
 
@@ -108,13 +106,7 @@ function UnifiedARSDugwellContent() {
     return creator === user.uid || creator === user.email?.toLowerCase().trim();
   }, [cloudReport, user]);
 
-  const canModify = isAllowed && (!id || isOwner || isAdminUser(user?.email, userProfile?.role));
-
-  function isAdminUser(email?: string | null, role?: string) {
-      if (!email) return false;
-      if (email.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
-      return (role || '').toLowerCase().trim() === 'admin';
-  }
+  const canModify = isAllowed && (!id || isOwner || user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL || userProfile?.role?.toLowerCase() === 'admin');
 
   const [formData, setFormData] = useState<any>({
     reportDate: new Date().toISOString().split('T')[0],
@@ -179,18 +171,13 @@ function UnifiedARSDugwellContent() {
   };
 
   const filteredStaff = useMemo(() => {
-    if (!employees) return { assistantExecutiveEngineer: [], assistantEngineer: [], supervisor: [], otherStaff: [] };
+    if (!employees) return { aee: [], ae: [], sup: [], other: [] };
     const aeeList = employees.filter(e => e.designation.toLowerCase().includes('assistant executive engineer'));
     const aeList = employees.filter(e => e.designation.toLowerCase().includes('assistant engineer'));
     const supList = employees.filter(e => ['Master Driller', 'Senior Driller', 'Driller', 'Driller Mechanic', 'Surveyor', 'Drilling Assistant'].includes(e.designation));
     const specialIds = [...aeeList, ...aeList, ...supList].map(e => e.id);
     const otherList = employees.filter(e => !specialIds.includes(e.id));
-    return { 
-      assistantExecutiveEngineer: aeeList, 
-      assistantEngineer: aeList, 
-      supervisor: supList, 
-      otherStaff: otherList 
-    };
+    return { aee: aeeList, ae: aeList, sup: supList, other: otherList };
   }, [employees]);
 
   const detectedLac = useMemo(() => {
@@ -235,11 +222,7 @@ function UnifiedARSDugwellContent() {
           router.push('/supervision');
         }
       }).catch(async (error) => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({ 
-          path: reportDocRef.path, 
-          operation: isUpdate ? 'update' : 'create', 
-          requestResourceData: reportData 
-        }));
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: reportDocRef.path, operation: isUpdate ? 'update' : 'create', requestResourceData: reportData }));
       });
     });
   };
@@ -385,15 +368,15 @@ function UnifiedARSDugwellContent() {
 
       <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
-          <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3">
+          <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3 text-left">
              <Users className="size-4" /> 4. STAFF DETAILS (TEAM ASSIGNMENT)
           </CardTitle>
         </CardHeader>
         <CardContent className="p-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-           <StaffMultiSelect label="Asst. Exec. Engineer" options={filteredStaff.assistantExecutiveEngineer} selected={formData.staffAssignment.assistantExecutiveEngineer} onChange={(names) => updateStaff('assistantExecutiveEngineer', names)} max={1} disabled={!canModify} />
-           <StaffMultiSelect label="Assistant Engineer" options={filteredStaff.assistantEngineer} selected={formData.staffAssignment.assistantEngineer} onChange={(names) => updateStaff('assistantEngineer', names)} max={1} disabled={!canModify} />
-           <StaffMultiSelect label="Site Supervisor" options={filteredStaff.supervisor} selected={formData.staffAssignment.supervisor} onChange={(names) => updateStaff('supervisor', names)} max={1} disabled={!canModify} />
-           <StaffMultiSelect label="Other Staff" options={filteredStaff.otherStaff} selected={formData.staffAssignment.otherStaff} onChange={(names) => updateStaff('otherStaff', names)} max={10} disabled={!canModify} />
+           <StaffMultiSelect label="Asst. Exec. Engineer" options={filteredStaff.assistantExecutiveEngineer} selected={formData.staffAssignment.assistantExecutiveEngineer} onChange={(names) => updateStaff('assistantExecutiveEngineer', names)} max={1} disabled={!isAllowed} />
+           <StaffMultiSelect label="Assistant Engineer" options={filteredStaff.assistantEngineer} selected={formData.staffAssignment.assistantEngineer} onChange={(names) => updateStaff('assistantEngineer', names)} max={1} disabled={!isAllowed} />
+           <StaffMultiSelect label="Site Supervisor" options={filteredStaff.supervisor} selected={formData.staffAssignment.supervisor} onChange={(names) => updateStaff('supervisor', names)} max={1} disabled={!isAllowed} />
+           <StaffMultiSelect label="Other Staff" options={filteredStaff.otherStaff} selected={formData.staffAssignment.otherStaff} onChange={(names) => updateStaff('otherStaff', names)} max={10} disabled={!isAllowed} />
         </CardContent>
       </Card>
 

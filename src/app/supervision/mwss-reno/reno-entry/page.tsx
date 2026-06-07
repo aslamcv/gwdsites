@@ -30,13 +30,11 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { collection, doc, setDoc, updateDoc } from 'firebase/firestore';
 import type { GroundwaterReport, Employee } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { StaffMultiSelect } from '@/components/investigation/staff-multi-select';
-import { Logo } from '@/components/logo';
-
 
 const MASTER_ADMIN_EMAIL = 'gwdmpm@gmail.com';
 
@@ -60,13 +58,21 @@ const conveyanceOptions = [
   "DEPARTMENT VEHICLE"
 ];
 
+const SPARES_LIST = [
+  { id: "pumpRepair", label: "Pump Repair/Replacement" },
+  { id: "cableReplacement", label: "Cable Replacement (m)" },
+  { id: "upvcReplacement", label: "UPVC Replacement (m)" },
+  { id: "panelBoardRepair", label: "Panel Board Repair" },
+  { id: "distLineTrenchRepair", label: "Dist. Line Repair (Trench)" },
+];
+
 function UnifiedMWSSRenoSupervisionContent() {
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { lsgs, lsgMappings } = useLsgdData();
   const firestore = useFirestore();
-  const { user, isUserLoading } = useUser();
+  const { user, isUserLoading: isAuthLoading } = useUser();
   const [isPending, startTransition] = useTransition();
 
   const id = searchParams.get('id');
@@ -78,10 +84,12 @@ function UnifiedMWSSRenoSupervisionContent() {
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
   
   const isAllowed = useMemo(() => {
-    if (isUserLoading || isProfileLoading) return false;
+    if (isAuthLoading || isProfileLoading) return false;
     if (user?.email === MASTER_ADMIN_EMAIL) return true;
-    return (userProfile?.role === 'admin' || userProfile?.role === 'engineer') && userProfile?.isApproved === true;
-  }, [user, userProfile, isUserLoading, isProfileLoading]);
+    const role = (userProfile?.role || '').toLowerCase();
+    const isApproved = userProfile?.isApproved !== false;
+    return (role === 'admin' || role === 'engineer') && isApproved;
+  }, [user, userProfile, isAuthLoading, isProfileLoading]);
 
   const employeesRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -96,6 +104,14 @@ function UnifiedMWSSRenoSupervisionContent() {
 
   const { data: cloudReport, isLoading: isReportLoading } = useDoc<GroundwaterReport>(reportRef);
 
+  const isOwner = useMemo(() => {
+    if (!cloudReport || !user) return false;
+    const creator = (cloudReport.uploadedBy || '').trim();
+    return creator === user.uid || creator === user.email?.toLowerCase().trim();
+  }, [cloudReport, user]);
+
+  const canModify = isAllowed && (!id || isOwner || user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL || userProfile?.role?.toLowerCase() === 'admin');
+
   const [formData, setFormData] = useState<any>(() => {
     const initial: any = {
       reportDate: new Date().toISOString().split('T')[0],
@@ -107,36 +123,7 @@ function UnifiedMWSSRenoSupervisionContent() {
       lsgd: '',
       nameOfContractor: '',
       natureOfRenovation: 'Repair',
-      pumpRepair: '',
-      cableReplacement: '',
-      panelBoardRepair: '',
-      starterRepair: '',
-      elecRepair: '',
-      erectionCharges: '',
-      upvcReplacement: '',
-      ropeReplacement: '',
-      pipeReplacementTrench: '',
-      unionReplacement: '',
-      nrvReplacement: '',
-      bendReplacement: '',
-      socketReplacement: '',
-      hexNippleReplacement: '',
-      ssAdaptorReplacement: '',
-      tankRepairCleaning: '',
-      structureRepair: '',
-      tankConnectorReplacement: '',
-      ballValveReplacement: '',
-      distLineTrenchRepair: '',
-      distLineNoTrenchRepair: '',
-      giPvcCoverReplacement: '',
-      pipelineRenovation: '',
-      wellProtectionRepair: '',
-      concreteRepair: '',
-      pccRestoration: '',
-      hydrantRepair: '',
-      tapReplacement: '',
-      endCapReplacement: '',
-      reasonForRenovation: '',
+      remarks: 'Repair completed successfully',
       observations: '',
       staffAssignment: {
           assistantExecutiveEngineer: [],
@@ -145,6 +132,7 @@ function UnifiedMWSSRenoSupervisionContent() {
           otherStaff: []
       }
     };
+    SPARES_LIST.forEach(s => { initial[s.id] = ''; });
     return initial;
   });
 
@@ -188,14 +176,13 @@ function UnifiedMWSSRenoSupervisionContent() {
     return { aee: aeeList, ae: aeList, sup: supList, other: otherList };
   }, [employees]);
 
-
   const detectedLac = useMemo(() => {
     const mapping = lsgMappings?.find(m => m.lsg === formData.lsgd);
     return mapping?.constituency || '';
   }, [formData.lsgd, lsgMappings]);
 
   const handleSave = () => {
-    if (!user || !firestore || !isAllowed) return;
+    if (!user || !firestore || !canModify) return;
 
     startTransition(() => {
       const isUpdate = !!id;
@@ -210,6 +197,7 @@ function UnifiedMWSSRenoSupervisionContent() {
         purpose: "Supervision / MWSS Reno",
         category: "Supervision / MWSS Reno",
         updatedAt: new Date().toISOString(),
+        uploadedBy: cloudReport?.uploadedBy || user.uid,
         assembly: detectedLac,
         staffAssignment: {
           assistantExecutiveEngineer: formData.staffAssignment.assistantExecutiveEngineer.join(', '),
@@ -229,85 +217,39 @@ function UnifiedMWSSRenoSupervisionContent() {
       });
     });
   };
-  
-  const renovationItems = {
-    "1. MECHANICAL & PUMPING": [
-      { id: "pumpRepair", label: "Pump Repair/Replacement" },
-      { id: "cableReplacement", label: "Cable Replacement (m)" },
-      { id: "panelBoardRepair", label: "Panel Board Repair" },
-      { id: "starterRepair", label: "Starter Repair" },
-      { id: "elecRepair", label: "Elec. Repair Works" },
-      { id: "erectionCharges", label: "Erection Charges" },
-    ],
-    "2. PIPE & LINE REPLACEMENT": [
-      { id: "upvcReplacement", label: "UPVC Replacement (m)" },
-      { id: "ropeReplacement", label: "Rope Replacement (m)" },
-      { id: "pipeReplacementTrench", label: "Pipe Replacement (Trench)" },
-      { id: "unionReplacement", label: "Union Replacement" },
-      { id: "nrvReplacement", label: "NRV Replacement" },
-      { id: "bendReplacement", label: "Bend Replacement" },
-      { id: "socketReplacement", label: "Socket Replacement" },
-      { id: "hexNippleReplacement", label: "Hex Nipple Replacement" },
-      { id: "ssAdaptorReplacement", label: "SS Adaptor Replacement" },
-    ],
-    "3. INFRASTRUCTURE & DISTRIBUTION": [
-      { id: "tankRepairCleaning", label: "Tank Repair/Cleaning" },
-      { id: "structureRepair", label: "Platform/House Repair" },
-      { id: "tankConnectorReplacement", label: "Tank Connector Repl." },
-      { id: "ballValveReplacement", label: "Ball Valve Replacement" },
-      { id: "distLineTrenchRepair", label: "Dist. Line Repair (Trench)" },
-      { id: "distLineNoTrenchRepair", label: "Dist. Line Repair (Open)" },
-      { id: "giPvcCoverReplacement", label: "GI/UPVC Cover Replacement" },
-      { id: "pipelineRenovation", label: "Pipeline Renovation (m)" },
-      { id: "wellProtectionRepair", label: "Well Protection Repair" },
-    ],
-    "4. CIVIL & MISCELLANEOUS": [
-      { id: "concreteRepair", label: "Concrete Repair (m³)" },
-      { id: "pccRestoration", label: "PCC Restoration (m³)" },
-      { id: "hydrantRepair", label: "Hydrant Repair" },
-      { id: "tapReplacement", label: "Heavy Duty Tap Repl." },
-      { id: "endCapReplacement", label: "End Cap Replacement" },
-    ],
-  };
 
   if (isReportLoading && id) {
     return <div className="p-12 text-center animate-pulse uppercase tracking-widest font-black opacity-30 text-slate-400">Loading Renovation Node...</div>;
   }
 
   return (
-    <div className="p-4 sm:p-8 space-y-6 text-left">
+    <div className="p-4 sm:p-8 space-y-6 text-left font-sans text-black">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" asChild>
-          <Link href="/supervision">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
+          <Link href="/supervision"><ArrowLeft className="h-5 w-5" /></Link>
         </Button>
         <PageHeader title="MWSS Renovation Supervision" />
       </div>
 
-       <Card className="rounded-[32px] border-none shadow-sm ring-1 ring-slate-200 bg-white overflow-hidden">
+       <Card className="rounded-[32px] border-none shadow-sm ring-1 ring-slate-200 bg-white overflow-hidden text-left">
         <CardContent className="p-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full text-left">
-              <div className="space-y-1">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 w-full text-left">
+              <div className="space-y-1 text-left">
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
                   <CalendarIcon className="size-3 pointer-events-none" /> Completion Date
                 </Label>
-                <Input disabled={!isAllowed} type="date" value={formData.reportDate} onChange={(e) => updateField('reportDate', e.target.value)} className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl focus:bg-white" />
+                <Input disabled={!canModify} type="date" value={formData.reportDate} onChange={(e) => updateField('reportDate', e.target.value)} className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl focus:bg-white" />
               </div>
               <div className="space-y-1">
-                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
-                  <Truck className="size-3" /> Conveyance
-                </Label>
-                <Select disabled={!isAllowed} onValueChange={(v) => updateField('conveyance', v)} value={formData.conveyance}>
+                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><Truck className="size-3" /> Conveyance</Label>
+                <Select disabled={!canModify} onValueChange={(v) => updateField('conveyance', v)} value={formData.conveyance}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">{conveyanceOptions.map(o => <SelectItem key={o} value={o} className="text-xs font-bold">{o}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
-                  <Building className="size-3" /> Sector
-                </Label>
-                <Select disabled={!isAllowed} onValueChange={(v) => updateField('sector', v)} value={formData.sector}>
+                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><Building className="size-3" /> Sector</Label>
+                <Select disabled={!canModify} onValueChange={(v) => updateField('sector', v)} value={formData.sector}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">
                     {sectorOptions.map(s => <SelectItem key={s.id} value={s.id} className="text-[10px] font-black uppercase">{s.label}</SelectItem>)}
@@ -315,10 +257,8 @@ function UnifiedMWSSRenoSupervisionContent() {
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
-                  <SearchCode className="size-3" /> Sub Category
-                </Label>
-                <Select disabled={!isAllowed} onValueChange={(v) => updateField('category', v)} value={formData.category}>
+                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><SearchCode className="size-3" /> Sub Category</Label>
+                <Select disabled={!canModify} onValueChange={(v) => updateField('category', v)} value={formData.category}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">
                     {categoryMappings[formData.sector]?.map(c => <SelectItem key={c} value={c} className="text-[10px] font-black uppercase">{c}</SelectItem>)}
@@ -338,26 +278,22 @@ function UnifiedMWSSRenoSupervisionContent() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>File No</Label>
-                <Input disabled={!isAllowed} value={formData.fileNo} onChange={(e) => updateField('fileNo', e.target.value)} placeholder="MPM/GWD/..."/>
-              </div>
-              <div className="space-y-2">
-                <Label>Contractor</Label>
-                <Input disabled={!isAllowed} value={formData.nameOfContractor} onChange={(e) => updateField('nameOfContractor', e.target.value)} placeholder="Contractor Name"/>
+                <Input disabled={!canModify} value={formData.fileNo} onChange={(e) => updateField('fileNo', e.target.value)} placeholder="MPM/GWD/..."/>
               </div>
               <div className="space-y-2">
                 <Label>Site Name</Label>
-                <Input disabled={!isAllowed} value={formData.nameOfSite} onChange={(e) => updateField('nameOfSite', e.target.value)} placeholder="Site Location"/>
+                <Input disabled={!canModify} value={formData.nameOfSite} onChange={(e) => updateField('nameOfSite', e.target.value)} placeholder="Site Location"/>
               </div>
               <div className="space-y-2">
                 <Label>LSGD</Label>
-                <Select disabled={!isAllowed} onValueChange={(v) => updateField('lsgd', v)} value={formData.lsgd}>
+                <Select disabled={!canModify} onValueChange={(v) => updateField('lsgd', v)} value={formData.lsgd}>
                   <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent>{lsgs.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
+                  <SelectContent className="max-h-[300px]">{lsgs.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
                 <Label>Nature of Work</Label>
-                <Select disabled={!isAllowed} onValueChange={(v) => updateField('natureOfRenovation', v)} value={formData.natureOfRenovation}>
+                <Select disabled={!canModify} onValueChange={(v) => updateField('natureOfRenovation', v)} value={formData.natureOfRenovation}>
                   <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Repair">Repair</SelectItem>
@@ -376,19 +312,14 @@ function UnifiedMWSSRenoSupervisionContent() {
               <CardTitle className="text-sm font-black uppercase tracking-widest text-primary">Renovation Parameters</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              {Object.entries(renovationItems).map(([sectionTitle, items]) => (
-                <div key={sectionTitle}>
-                  <h3 className="text-xs font-bold uppercase text-muted-foreground mb-4">{sectionTitle}</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {items.map(item => (
-                      <div key={item.id} className="space-y-1">
-                        <Label className="text-xs">{item.label}</Label>
-                        <Input disabled={!isAllowed} value={formData[item.id] || ''} onChange={(e) => updateField(item.id, e.target.value)} />
-                      </div>
-                    ))}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-left">
+                {SPARES_LIST.map(item => (
+                  <div key={item.id} className="space-y-1">
+                    <Label className="text-xs">{item.label}</Label>
+                    <Input disabled={!canModify} value={formData[item.id] || ''} onChange={(e) => updateField(item.id, e.target.value)} />
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -396,27 +327,22 @@ function UnifiedMWSSRenoSupervisionContent() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm font-black uppercase tracking-widest text-primary">Renovation Context & Observations</CardTitle>
+          <CardTitle className="text-sm font-black uppercase tracking-widest text-primary">Remarks & Observations</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <Textarea 
-            disabled={!isAllowed}
-            value={formData.reasonForRenovation} 
-            onChange={e => updateField('reasonForRenovation', e.target.value)} 
-            placeholder="Reason for renovation (e.g. system failure, pump burnout, leakages)..."
-          />
-          <Textarea 
-            disabled={!isAllowed}
-            value={formData.observations}
-            onChange={e => updateField('observations', e.target.value)}
-            placeholder="Field observations during renovation process..."
+            disabled={!canModify}
+            value={formData.remarks}
+            onChange={e => updateField('remarks', e.target.value)}
+            placeholder="Technical remarks and findings..."
+            rows={4}
           />
         </CardContent>
       </Card>
 
       <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
-          <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3">
+          <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3 text-left">
              <Users className="size-4" /> 4. STAFF DETAILS (TEAM ASSIGNMENT)
           </CardTitle>
         </CardHeader>
@@ -429,9 +355,10 @@ function UnifiedMWSSRenoSupervisionContent() {
       </Card>
 
       <div className="flex justify-end pt-12 pb-24 text-left">
-        <Button onClick={handleSave} disabled={isPending || !isAllowed} className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/20 transition-all hover:scale-[1.02] active:scale-95">
-          {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-          {isAllowed ? (id ? 'UPDATE REPAIR RECORD' : 'SAVE REPAIR RECORD') : 'ACCESS RESTRICTED'}
+        <Button onClick={handleSave} disabled={isPending || !canModify} className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/20 transition-all hover:scale-[1.02] active:scale-95"
+        >
+          {isPending ? <Loader2 className="size-5 animate-spin" /> : <Save className="size-5" />} 
+          {canModify ? (id ? 'UPDATE REPAIR RECORD' : 'SAVE REPAIR RECORD') : 'ACCESS RESTRICTED'}
         </Button>
       </div>
     </div>

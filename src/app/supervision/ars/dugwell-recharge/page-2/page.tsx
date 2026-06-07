@@ -14,17 +14,17 @@ import {
   PlusCircle,
   Construction,
   ShieldCheck,
-  MapPin
+  MapPin,
+  CheckCircle2
 } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useUser, setDocumentNonBlocking } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { useFirestore, useUser, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { collection, doc, setDoc } from 'firebase/firestore';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CheckCircle2 } from 'lucide-react';
 import { useLsgdData } from '@/hooks/use-lsgd-data';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 
@@ -139,15 +139,18 @@ function ARSDugwellMultiSiteContent() {
         createdAt: new Date().toISOString(),
       };
 
-      setDocumentNonBlocking(docRef, reportData, { merge: true });
-      toast({ title: "Session Finalized", description: `${sites.length} site records synchronized.` });
-      router.push('/downloads');
+      setDoc(docRef, reportData).then(() => {
+        toast({ title: "Session Finalized", description: `${sites.length} site records synchronized.` });
+        router.push('/supervision');
+      }).catch(error => {
+          errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'create', requestResourceData: reportData }));
+      });
     });
   };
 
   return (
-    <div className="p-4 sm:p-8 space-y-8 bg-[#F1F5F9] min-h-screen pb-32">
-      <div className="bg-white border border-slate-200 p-8 rounded-[32px] shadow-sm">
+    <div className="p-4 sm:p-8 space-y-8 bg-[#F1F5F9] min-h-screen pb-32 text-left">
+      <div className="bg-white border border-slate-200 p-8 rounded-[32px] shadow-sm text-left">
         <div className="flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-5">
             <Button variant="ghost" size="icon" asChild className="rounded-full h-12 w-12 border">
@@ -244,10 +247,10 @@ function ARSDugwellMultiSiteContent() {
         ))}
       </Tabs>
 
-      <div className="flex justify-end">
-        <Button onClick={handleFinalize} disabled={isPending || sites.some(s => !s.isComplete)}>
-          {isPending ? <Loader2 className="mr-2 animate-spin"/> : <ShieldCheck className="mr-2"/>}
-          Finalize Session
+      <div className="flex justify-end pt-8">
+        <Button onClick={handleFinalize} disabled={isPending || sites.some(s => !s.isComplete)} className="h-12 px-12 rounded-xl bg-primary text-white font-black uppercase tracking-widest text-[10px] gap-2 shadow-xl">
+          {isPending ? <Loader2 className="mr-2 animate-spin size-4"/> : <ShieldCheck className="mr-2 size-4"/>}
+          Finalize & Save Technical Node
         </Button>
       </div>
     </div>

@@ -327,8 +327,9 @@ export default function SupervisionLedgerPage() {
                 ) : paginatedRecords.length > 0 ? (
                   paginatedRecords.map((r) => {
                     const category = getSupervisionCategory(r);
+                    
                     const isOwner = 
-                      (user?.uid && r.uploadedBy && user.uid.trim() === r.uploadedBy.trim()) || 
+                      (user?.uid && r.uploadedBy && user.uid.toLowerCase().trim() === r.uploadedBy.toLowerCase().trim()) || 
                       (user?.email && r.uploadedBy && user.email.toLowerCase().trim() === r.uploadedBy.toLowerCase().trim());
                     
                     const canModifyRecord = isAdmin || ((isEngineer || isScientist) && isOwner);

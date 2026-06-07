@@ -32,12 +32,11 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { collection, doc, setDoc, updateDoc } from 'firebase/firestore';
 import type { GroundwaterReport, Employee } from '@/lib/types';
 import { StaffMultiSelect } from '@/components/investigation/staff-multi-select';
 import { Separator } from '@/components/ui/separator';
-import { Logo } from '@/components/logo';
 
 const MASTER_ADMIN_EMAIL = 'gwdmpm@gmail.com';
 
@@ -50,7 +49,7 @@ const sectorOptions = [
 
 const categoryMappings: Record<string, string[]> = {
   private: ["Domestic", "Agriculture", "Others"],
-  government: ["Local Bodies", "Institutional", "Others"],
+  government: ["Local Bodies", "Institutional", "GWBDWS", "Others"],
   institutional: ["Project Support", "Grant-in-Aid"]
 };
 
@@ -68,12 +67,11 @@ function UnifiedARSPitContent() {
   const searchParams = useSearchParams();
   const { lsgs, lsgMappings } = useLsgdData();
   const firestore = useFirestore();
-  const { user, isUserLoading } = useUser();
+  const { user, isUserLoading: isAuthLoading } = useUser();
   const [isPending, startTransition] = useTransition();
 
   const id = searchParams.get('id');
 
-  // Role detection
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user?.email) return null;
     return doc(firestore, 'users', user.email.toLowerCase().trim());
@@ -81,13 +79,13 @@ function UnifiedARSPitContent() {
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
   
   const isAllowed = useMemo(() => {
-    if (isUserLoading || isProfileLoading) return false;
-    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
+    if (isAuthLoading || isProfileLoading) return false;
     const role = (userProfile?.role || '').toLowerCase();
-    return (role === 'admin' || role === 'engineer') && userProfile?.isApproved === true;
-  }, [user, userProfile, isUserLoading, isProfileLoading]);
+    const isApproved = userProfile?.isApproved !== false;
+    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL || role === 'admin') return true;
+    return (role === 'admin' || role === 'engineer') && isApproved;
+  }, [user, userProfile, isAuthLoading, isProfileLoading]);
 
-  // Fetch Employees for staff selection
   const employeesRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'employees');
@@ -100,6 +98,14 @@ function UnifiedARSPitContent() {
   }, [firestore, id]);
 
   const { data: cloudReport, isLoading: isReportLoading } = useDoc<GroundwaterReport>(reportRef);
+
+  const isOwner = useMemo(() => {
+    if (!cloudReport || !user) return false;
+    const creator = (cloudReport.uploadedBy || '').trim();
+    return creator === user.uid || creator === user.email?.toLowerCase().trim();
+  }, [cloudReport, user]);
+
+  const canModify = isAllowed && (!id || isOwner || user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL || userProfile?.role?.toLowerCase() === 'admin');
 
   const [formData, setFormData] = useState<any>({
     reportDate: new Date().toISOString().split('T')[0],
@@ -172,7 +178,7 @@ function UnifiedARSPitContent() {
   }, [formData.lsgd, lsgMappings]);
 
   const handleSave = () => {
-    if (!user || !firestore || !isAllowed) return;
+    if (!user || !firestore || !isAllowed || !canModify) return;
 
     startTransition(() => {
       const isUpdate = !!id;
@@ -189,6 +195,7 @@ function UnifiedARSPitContent() {
         category: "Supervision / ARS Pit",
         assembly: detectedLac,
         updatedAt: new Date().toISOString(),
+        uploadedBy: cloudReport?.uploadedBy || user.uid,
         staffAssignment: {
             assistantExecutiveEngineer: formData.staffAssignment.assistantExecutiveEngineer.join(', '),
             assistantEngineer: formData.staffAssignment.assistantEngineer.join(', '),
@@ -213,12 +220,10 @@ function UnifiedARSPitContent() {
   }
 
   return (
-    <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black">
+    <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black text-left">
       
-      {/* 1. HEADER SECTION */}
-      <div className="bg-white border border-slate-200 p-8 rounded-[32px] shadow-sm ring-1 ring-slate-200/50 text-left">
+      <div className="bg-white border border-slate-200 p-8 rounded-[32px] shadow-sm ring-1 ring-slate-200/50">
         <div className="flex flex-col space-y-8">
-          {/* Top Center Heading */}
           <div className="text-center">
             <h1 className="text-[26px] font-black text-slate-900 uppercase tracking-tighter leading-none">ARS Pit Recharge</h1>
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">TECHNICAL OVERSIGHT | DISTRICT OFFICE, MALAPPURAM</p>
@@ -236,20 +241,18 @@ function UnifiedARSPitContent() {
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
                   <CalendarIcon className="size-3 pointer-events-none" /> Completion Date
                 </Label>
-                <Input disabled={!isAllowed} type="date" value={formData.reportDate} onChange={(e) => updateField('reportDate', e.target.value)} className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl focus:bg-white" />
+                <Input disabled={!canModify} type="date" value={formData.reportDate} onChange={(e) => updateField('reportDate', e.target.value)} className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl focus:bg-white" />
               </div>
               <div className="space-y-1">
-                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
-                  <Truck className="size-3" /> Conveyance
-                </Label>
-                <Select disabled={!isAllowed} onValueChange={(v) => updateField('conveyance', v)} value={formData.conveyance}>
+                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><Truck className="size-3" /> Conveyance</Label>
+                <Select disabled={!canModify} onValueChange={(v) => updateField('conveyance', v)} value={formData.conveyance}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">{conveyanceOptions.map(o => <SelectItem key={o} value={o} className="text-xs font-bold">{o}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><Building className="size-3" /> Sector</Label>
-                <Select disabled={!isAllowed} onValueChange={(v) => updateField('sector', v)} value={formData.sector}>
+                <Select disabled={!canModify} onValueChange={(v) => updateField('sector', v)} value={formData.sector}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">
                     {sectorOptions.map(s => <SelectItem key={s.id} value={s.id} className="text-[10px] font-black uppercase">{s.label}</SelectItem>)}
@@ -257,10 +260,8 @@ function UnifiedARSPitContent() {
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
-                  <SearchCode className="size-3" /> Sub Category
-                </Label>
-                <Select disabled={!isAllowed} onValueChange={(v) => updateField('category', v)} value={formData.category}>
+                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><SearchCode className="size-3" /> Sub Category</Label>
+                <Select disabled={!canModify} onValueChange={(v) => updateField('category', v)} value={formData.category}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">
                     {categoryMappings[formData.sector]?.map(c => <SelectItem key={c} value={c} className="text-[10px] font-black uppercase">{c}</SelectItem>)}
@@ -272,7 +273,6 @@ function UnifiedARSPitContent() {
         </div>
       </div>
 
-      {/* 2. BASIC SITE & ADMIN DETAILS */}
       <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
           <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-600 flex items-center gap-3">
@@ -283,15 +283,15 @@ function UnifiedARSPitContent() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">File No</Label>
-              <Input disabled={!isAllowed} value={formData.fileNo} onChange={(e) => updateField('fileNo', e.target.value)} className="h-11 border-slate-200 font-black text-primary focus:bg-white" placeholder="MPM/GWD/..." />
+              <Input disabled={!canModify} value={formData.fileNo} onChange={(e) => updateField('fileNo', e.target.value)} className="h-11 border-slate-200 font-black text-primary focus:bg-white" placeholder="MPM/GWD/..." />
             </div>
             <div className="space-y-2 lg:col-span-1">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Scheme/Site Name</Label>
-              <Input disabled={!isAllowed} value={formData.nameOfSite} onChange={(e) => updateField('nameOfSite', e.target.value)} className="h-11 border-slate-200 uppercase font-bold text-primary" placeholder="LOCATION NAME" />
+              <Input disabled={!canModify} value={formData.nameOfSite} onChange={(e) => updateField('nameOfSite', e.target.value)} className="h-11 border-slate-200 uppercase font-bold text-primary" placeholder="LOCATION NAME" />
             </div>
             <div className="space-y-2 lg:col-span-1">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Grama Panchayath / LSGD</Label>
-              <Select disabled={!isAllowed} onValueChange={(v) => updateField('lsgd', v)} value={formData.lsgd}>
+              <Select disabled={!canModify} onValueChange={(v) => updateField('lsgd', v)} value={formData.lsgd}>
                 <SelectTrigger className="h-11 border-slate-200 font-bold"><SelectValue placeholder="Select" /></SelectTrigger>
                 <SelectContent className="max-h-[400px] rounded-2xl">{lsgs.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
               </Select>
@@ -301,64 +301,42 @@ function UnifiedARSPitContent() {
               <Input disabled value={detectedLac} className="h-11 border-slate-200 bg-slate-50 font-black text-blue-600 uppercase" placeholder="Auto-detected" />
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Ward No</Label>
-              <Input disabled={!isAllowed} value={formData.ward} onChange={(e) => updateField('ward', e.target.value)} className="h-11 border-slate-200" />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Implementation Year</Label>
-              <Input disabled={!isAllowed} value={formData.implementationYear} onChange={(e) => updateField('implementationYear', e.target.value)} className="h-11 border-slate-200" />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Application Date</Label>
-              <Input disabled={!isAllowed} type="date" value={formData.applicationDate} onChange={(e) => updateField('applicationDate', e.target.value)} className="h-11 border-slate-200" />
-            </div>
-             <div className="space-y-2">
-              <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Name of Beneficiary</Label>
-              <Input disabled={!isAllowed} value={formData.applicantName} onChange={(e) => updateField('applicantName', e.target.value)} className="h-11 border-slate-200" />
-            </div>
-          </div>
         </CardContent>
       </Card>
 
-      {/* 3. TECHNICAL SPECIFICATIONS */}
       <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
           <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-emerald-600 flex items-center gap-3">
              <Wrench className="size-4" /> TECHNICAL SPECIFICATIONS
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-10 space-y-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="space-y-2 text-left">
+        <CardContent className="p-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Size of Pit (L x B x H)</Label>
-              <Input disabled={!isAllowed} value={formData.pitSize} onChange={(e) => updateField('pitSize', e.target.value)} className="h-11 border-slate-200 font-bold" />
+              <Input disabled={!canModify} value={formData.pitSize} onChange={(e) => updateField('pitSize', e.target.value)} className="h-11 border-slate-200 font-bold" />
             </div>
-            <div className="space-y-2 text-left">
+            <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Depth of Pit (m)</Label>
-              <Input disabled={!isAllowed} type="number" value={formData.depthOfPit} onChange={(e) => updateField('depthOfPit', e.target.value)} className="h-11 border-slate-200 font-bold" />
+              <Input disabled={!canModify} type="number" value={formData.depthOfPit} onChange={(e) => updateField('depthOfPit', e.target.value)} className="h-11 border-slate-200 font-bold" />
             </div>
-            <div className="space-y-2 text-left">
+            <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">WL Before (mbgl)</Label>
-              <Input disabled={!isAllowed} type="number" value={formData.swlBefore} onChange={(e) => updateField('swlBefore', e.target.value)} className="h-11 bg-rose-50/50 border-rose-100 font-black text-rose-700 rounded-xl" />
+              <Input disabled={!canModify} type="number" value={formData.swlBefore} onChange={(e) => updateField('swlBefore', e.target.value)} className="h-11 bg-rose-50/50 border-rose-100 font-black text-rose-700 rounded-xl" />
             </div>
-            <div className="space-y-2 text-left">
+            <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">WL After (mbgl)</Label>
-              <Input disabled={!isAllowed} type="number" value={formData.swlAfter} onChange={(e) => updateField('swlAfter', e.target.value)} className="h-11 bg-blue-50/50 border-blue-100 font-black text-blue-700 rounded-xl" />
+              <Input disabled={!canModify} type="number" value={formData.swlAfter} onChange={(e) => updateField('swlAfter', e.target.value)} className="h-11 bg-blue-50/50 border-blue-100 font-black text-blue-700 rounded-xl" />
             </div>
-          </div>
-          <div className="space-y-2 text-left">
-            <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Technical Remarks</Label>
-            <Textarea disabled={!isAllowed} value={formData.remarks} onChange={(e) => updateField('remarks', e.target.value)} rows={3} className="rounded-2xl border-slate-200 italic text-[11px] uppercase font-bold" />
-          </div>
+            <div className="space-y-2 md:col-span-4">
+              <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Technical Remarks</Label>
+              <Textarea disabled={!canModify} value={formData.remarks} onChange={(e) => updateField('remarks', e.target.value)} rows={3} className="rounded-2xl border-slate-200 italic" />
+            </div>
         </CardContent>
       </Card>
 
-      {/* 4. STAFF DETAILS */}
       <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
-          <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3">
+          <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3 text-left">
              <Users className="size-4" /> 4. STAFF DETAILS (TEAM ASSIGNMENT)
           </CardTitle>
         </CardHeader>
@@ -370,11 +348,11 @@ function UnifiedARSPitContent() {
         </CardContent>
       </Card>
 
-      <div className="flex justify-end pt-12 pb-24">
-        <Button onClick={handleSave} disabled={isPending || !isAllowed} className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/30 gap-3 hover:bg-blue-900 transition-all hover:scale-[1.02] active:scale-95"
+      <div className="flex justify-end pt-12 pb-24 text-left">
+        <Button onClick={handleSave} disabled={isPending || !canModify} className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/30 gap-3 hover:bg-blue-900 transition-all active:scale-95"
         >
           {isPending ? <Loader2 className="size-5 animate-spin" /> : <Save className="size-5" />} 
-          {isAllowed ? (id ? 'UPDATE PIT RECORD' : 'SAVE PIT RECORD') : 'ACCESS RESTRICTED'}
+          {canModify ? (id ? 'UPDATE PIT RECORD' : 'SAVE PIT RECORD') : 'ACCESS RESTRICTED'}
         </Button>
       </div>
     </div>
