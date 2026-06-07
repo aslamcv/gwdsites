@@ -31,7 +31,7 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { collection, doc, setDoc, updateDoc } from 'firebase/firestore';
 import type { GroundwaterReport, Employee } from '@/lib/types';
 import { StaffMultiSelect } from '@/components/investigation/staff-multi-select';
@@ -83,8 +83,9 @@ function UnifiedFlushingEntryContent() {
   const isAllowed = useMemo(() => {
     if (isAuthLoading || isProfileLoading) return false;
     if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
-    const role = (userProfile?.role || '').toLowerCase();
-    return (role === 'admin' || role === 'engineer') && userProfile?.isApproved === true;
+    const role = (userProfile?.role || '').toLowerCase().trim();
+    const isApproved = userProfile?.isApproved !== false;
+    return (role === 'admin' || role === 'engineer') && isApproved;
   }, [user, userProfile, isAuthLoading, isProfileLoading]);
 
   // Fetch Employees for staff selection
@@ -100,6 +101,14 @@ function UnifiedFlushingEntryContent() {
   }, [firestore, id]);
 
   const { data: cloudReport, isLoading: isReportLoading } = useDoc<GroundwaterReport>(reportRef);
+
+  const isOwner = useMemo(() => {
+    if (!cloudReport || !user) return false;
+    const creator = (cloudReport.uploadedBy || '').trim();
+    return creator === user.uid || creator === user.email?.toLowerCase().trim();
+  }, [cloudReport, user]);
+
+  const canModify = isAllowed && (!id || isOwner || user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL || userProfile?.role?.toLowerCase() === 'admin');
 
   const [formData, setFormData] = useState<any>({
     startDate: new Date().toISOString().split('T')[0],
@@ -162,18 +171,13 @@ function UnifiedFlushingEntryContent() {
   };
 
   const filteredStaff = useMemo(() => {
-    if (!employees) return { assistantExecutiveEngineer: [], assistantEngineer: [], supervisor: [], otherStaff: [] };
+    if (!employees) return { aee: [], ae: [], sup: [], other: [] };
     const aeeList = employees.filter(e => e.designation.toLowerCase().includes('assistant executive engineer'));
     const aeList = employees.filter(e => e.designation.toLowerCase().includes('assistant engineer'));
     const supList = employees.filter(e => ['Master Driller', 'Senior Driller', 'Driller', 'Driller Mechanic', 'Surveyor', 'Drilling Assistant'].includes(e.designation));
     const specialIds = [...aeeList, ...aeList, ...supList].map(e => e.id);
     const otherList = employees.filter(e => !specialIds.includes(e.id));
-    return { 
-      assistantExecutiveEngineer: aeeList, 
-      assistantEngineer: aeList, 
-      supervisor: supList, 
-      otherStaff: otherList 
-    };
+    return { aee: aeeList, ae: aeList, sup: supList, other: otherList };
   }, [employees]);
 
   const detectedLac = useMemo(() => {
@@ -182,7 +186,7 @@ function UnifiedFlushingEntryContent() {
   }, [formData.lsgd, lsgMappings]);
 
   const handleSave = () => {
-    if (!user || !firestore || !isAllowed) return;
+    if (!user || !firestore || !canModify) return;
 
     startTransition(() => {
       const isUpdate = !!id;
@@ -202,6 +206,7 @@ function UnifiedFlushingEntryContent() {
         workType: "FLUSHING",
         dateOfInvestigation,
         updatedAt: new Date().toISOString(),
+        uploadedBy: cloudReport?.uploadedBy || user.uid,
         assembly: detectedLac,
         staffAssignment: {
             assistantExecutiveEngineer: formData.staffAssignment.assistantExecutiveEngineer.join(', '),
@@ -231,7 +236,7 @@ function UnifiedFlushingEntryContent() {
       
       <div className="bg-white border border-slate-200 p-8 rounded-[32px] shadow-sm ring-1 ring-slate-200/50">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
-          <div className="flex items-center gap-5">
+          <div className="flex items-center gap-5 text-left">
             <Button variant="ghost" size="icon" asChild className="rounded-full h-12 w-12 border border-slate-200 text-slate-600 hover:bg-slate-50">
               <Link href="/supervision"><ArrowLeft className="size-5" /></Link>
             </Button>
@@ -241,27 +246,27 @@ function UnifiedFlushingEntryContent() {
             </div>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 w-full lg:w-auto">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 w-full lg:w-auto text-left">
             <div className="space-y-1">
               <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
                 <CalendarIcon className="size-3 pointer-events-none" /> Start Date
               </Label>
-              <Input disabled={!isAllowed} type="date" value={formData.startDate || ''} onChange={(e) => updateField('startDate', e.target.value)} className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl focus:bg-white" />
+              <Input disabled={!canModify} type="date" value={formData.startDate || ''} onChange={(e) => updateField('startDate', e.target.value)} className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl focus:bg-white" />
             </div>
             <div className="space-y-1">
               <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><CalendarIcon className="size-3 pointer-events-none" /> End Date (Opt)</Label>
-              <Input disabled={!isAllowed} type="date" value={formData.endDate || ''} onChange={(e) => updateField('endDate', e.target.value)} className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl focus:bg-white" />
+              <Input disabled={!canModify} type="date" value={formData.endDate || ''} onChange={(e) => updateField('endDate', e.target.value)} className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl focus:bg-white" />
             </div>
             <div className="space-y-1">
               <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><Truck className="size-3" /> Conveyance</Label>
-              <Select disabled={!isAllowed} onValueChange={(v) => updateField('conveyance', v)} value={formData.conveyance || ''}>
+              <Select disabled={!canModify} onValueChange={(v) => updateField('conveyance', v)} value={formData.conveyance || ''}>
                 <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl"><SelectValue placeholder="Select" /></SelectTrigger>
                 <SelectContent className="rounded-xl border-slate-200">{conveyanceOptions.map(o => <SelectItem key={o} value={o} className="text-xs font-bold">{o}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-1">
               <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><Building className="size-3" /> Sector</Label>
-              <Select disabled={!isAllowed} onValueChange={(v) => updateField('sector', v)} value={formData.sector || ''}>
+              <Select disabled={!canModify} onValueChange={(v) => updateField('sector', v)} value={formData.sector || ''}>
                 <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue /></SelectTrigger>
                 <SelectContent className="rounded-xl border-slate-200">
                   {sectorOptions.map(s => <SelectItem key={s.id} value={s.id} className="text-[10px] font-black uppercase">{s.label}</SelectItem>)}
@@ -270,7 +275,7 @@ function UnifiedFlushingEntryContent() {
             </div>
             <div className="space-y-1">
               <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><SearchCode className="size-3" /> Category</Label>
-              <Select disabled={!isAllowed} onValueChange={(v) => updateField('category', v)} value={formData.category || ''}>
+              <Select disabled={!canModify} onValueChange={(v) => updateField('category', v)} value={formData.category || ''}>
                 <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl font-bold uppercase"><SelectValue placeholder="Select" /></SelectTrigger>
                 <SelectContent className="rounded-xl border-slate-200">
                   {categoryMappings[formData.sector]?.map(c => <SelectItem key={c} value={c} className="text-[10px] font-black uppercase">{c}</SelectItem>)}
@@ -291,22 +296,22 @@ function UnifiedFlushingEntryContent() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             <div className="space-y-2 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">File No</Label>
-              <Input disabled={!isAllowed} value={formData.fileNo || ''} onChange={(e) => updateField('fileNo', e.target.value)} className="h-11 border-slate-200 font-black text-primary focus:bg-white" placeholder="MPM/GWD/..." />
+              <Input disabled={!canModify} value={formData.fileNo || ''} onChange={(e) => updateField('fileNo', e.target.value)} className="h-11 border-slate-200 font-black text-primary focus:bg-white" placeholder="MPM/GWD/..." />
             </div>
             <div className="space-y-2 lg:col-span-1 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Name of Site</Label>
-              <Input disabled={!isAllowed} value={formData.nameOfSite || ''} onChange={(e) => updateField('nameOfSite', e.target.value)} className="h-11 border-slate-200 uppercase font-bold text-primary" placeholder="LOCATION NAME" />
+              <Input disabled={!canModify} value={formData.nameOfSite || ''} onChange={(e) => updateField('nameOfSite', e.target.value)} className="h-11 border-slate-200 uppercase font-bold text-primary" placeholder="LOCATION NAME" />
             </div>
             <div className="space-y-2 lg:col-span-1 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Address</Label>
-              <Input disabled={!isAllowed} value={formData.address || ''} onChange={(e) => updateField('address', e.target.value)} className="h-11 border-slate-200" placeholder="Street/Area" />
+              <Input disabled={!canModify} value={formData.address || ''} onChange={(e) => updateField('address', e.target.value)} className="h-11 border-slate-200" placeholder="Street/Area" />
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Grama Panchayath / LSGD</Label>
-              <Select disabled={!isAllowed} onValueChange={(v) => updateField('lsgd', v)} value={formData.lsgd || ''}>
+              <Select disabled={!canModify} onValueChange={(v) => updateField('lsgd', v)} value={formData.lsgd || ''}>
                 <SelectTrigger className="h-11 border-slate-200 font-bold"><SelectValue placeholder="Select" /></SelectTrigger>
                 <SelectContent className="max-h-[400px] rounded-2xl">{lsgs.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
               </Select>
@@ -327,36 +332,36 @@ function UnifiedFlushingEntryContent() {
         </CardHeader>
         <CardContent className="p-10 space-y-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="space-y-2">
+            <div className="space-y-2 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Borewell Size</Label>
-              <Select disabled={!isAllowed} onValueChange={(v) => updateField('borewellSize', v)} value={formData.borewellSize || ''}>
+              <Select disabled={!canModify} onValueChange={(v) => updateField('borewellSize', v)} value={formData.borewellSize || ''}>
                 <SelectTrigger className="h-11 border-slate-200 font-black text-primary"><SelectValue /></SelectTrigger>
                 <SelectContent className="rounded-2xl">{borewellSizeOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Total Depth (m)</Label>
-              <Input disabled={!isAllowed} type="number" value={formData.totalDepth || ''} onChange={(e) => updateField('totalDepth', e.target.value)} className="h-11 border-slate-200 font-bold" />
+              <Input disabled={!canModify} type="text" value={formData.totalDepth || ''} onChange={(e) => updateField('totalDepth', e.target.value)} className="h-11 border-slate-200 font-bold" />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Overburden (m)</Label>
-              <Input disabled={!isAllowed} type="number" value={formData.overburden || ''} onChange={(e) => updateField('overburden', e.target.value)} className="h-11 border-slate-200" />
+              <Input disabled={!canModify} type="text" value={formData.overburden || ''} onChange={(e) => updateField('overburden', e.target.value)} className="h-11 border-slate-200" />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Discharge (LPH)</Label>
-              <Input disabled={!isAllowed} type="number" value={formData.discharge || ''} onChange={(e) => updateField('discharge', e.target.value)} className="h-11 border-slate-200 font-black text-blue-600" />
+              <Input disabled={!canModify} type="text" value={formData.discharge || ''} onChange={(e) => updateField('discharge', e.target.value)} className="h-11 border-slate-200 font-black text-blue-600" />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Water Level (mbgl)</Label>
-              <Input disabled={!isAllowed} type="number" value={formData.waterLevel || ''} onChange={(e) => updateField('waterLevel', e.target.value)} className="h-11 border-slate-200" />
+              <Input disabled={!canModify} type="text" value={formData.waterLevel || ''} onChange={(e) => updateField('waterLevel', e.target.value)} className="h-11 border-slate-200" />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 text-left">
               <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Compressor Working Hour</Label>
-              <Input disabled={!isAllowed} value={formData.compressorWorkingHour} onChange={(e) => updateField('compressorWorkingHour', e.target.value)} placeholder="e.g. 2.5 hrs" className="h-11" />
+              <Input disabled={!canModify} value={formData.compressorWorkingHour} onChange={(e) => updateField('compressorWorkingHour', e.target.value)} placeholder="e.g. 2.5 hrs" className="h-11" />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Yield Assessment</Label>
-              <Select disabled={!isAllowed} onValueChange={(val) => updateField('remarks', val)} value={formData.remarks || ''}>
+              <Select disabled={!canModify} onValueChange={(val) => updateField('remarks', val)} value={formData.remarks || ''}>
                 <SelectTrigger className="h-11 border-slate-200 font-bold"><SelectValue /></SelectTrigger>
                 <SelectContent className="rounded-2xl">
                   <SelectItem value="Low yield">Low Yield</SelectItem>
@@ -369,9 +374,9 @@ function UnifiedFlushingEntryContent() {
               </Select>
             </div>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2 text-left">
             <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Field Observations (Post-Flushing)</Label>
-            <Textarea disabled={!isAllowed} value={formData.observations || ''} onChange={(e) => updateField('observations', e.target.value)} rows={4} className="rounded-2xl border-slate-200 p-6 italic font-medium leading-relaxed" placeholder="Record yield recovery, water clarity or site specific technical notes here..." />
+            <Textarea disabled={!canModify} value={formData.observations || ''} onChange={(e) => updateField('observations', e.target.value)} rows={4} className="rounded-2xl border-slate-200 p-6 italic font-medium leading-relaxed" placeholder="Record yield recovery, water clarity or site specific technical notes here..." />
           </div>
         </CardContent>
       </Card>
@@ -391,10 +396,10 @@ function UnifiedFlushingEntryContent() {
         </CardContent>
       </Card>
 
-      <div className="flex justify-end pt-12 pb-24">
-        <Button onClick={handleSave} disabled={isPending || !isAllowed} className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/30 gap-3 hover:bg-blue-900 transition-all active:scale-95">
+      <div className="flex justify-end pt-12 pb-24 text-left">
+        <Button onClick={handleSave} disabled={isPending || !canModify} className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/30 gap-3 hover:bg-blue-900 transition-all active:scale-95">
           {isPending ? <Loader2 className="size-5 animate-spin" /> : <Save className="size-5" />} 
-          {isAllowed ? (id ? 'UPDATE' : 'SAVE') + ' TECHNICAL RECORD' : 'Access Restricted'}
+          {canModify ? (id ? 'UPDATE' : 'SAVE') + ' TECHNICAL RECORD' : 'Access Restricted'}
         </Button>
       </div>
 

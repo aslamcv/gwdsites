@@ -94,8 +94,7 @@ export default function SupervisionLedgerPage() {
     if (isAuthLoading || isProfileLoading) return false;
     const email = user?.email?.toLowerCase().trim();
     const role = (userProfile?.role || '').toLowerCase().trim();
-    if (email === MASTER_ADMIN_EMAIL || role === 'admin') return true;
-    return false;
+    return email === MASTER_ADMIN_EMAIL || role === 'admin';
   }, [user, userProfile, isAuthLoading, isProfileLoading]);
 
   const isEngineer = useMemo(() => (userProfile?.role || '').toLowerCase().trim() === 'engineer', [userProfile]);
@@ -122,7 +121,7 @@ export default function SupervisionLedgerPage() {
 
   const userMap = useMemo(() => {
     const map = new Map();
-    map.set(MASTER_ADMIN_EMAIL.toLowerCase(), 'District Officer');
+    map.set(MASTER_ADMIN_EMAIL.toLowerCase().trim(), 'District Officer');
     
     if (systemUsers) {
       systemUsers.forEach(u => {
