@@ -104,7 +104,8 @@ function UnifiedDrillingSupervisionContent() {
 
   const isOwner = useMemo(() => {
     if (!cloudReport || !user) return false;
-    return cloudReport.uploadedBy === user.uid;
+    const creator = (cloudReport.uploadedBy || '').trim();
+    return creator === user.uid || creator === user.email?.toLowerCase().trim();
   }, [cloudReport, user]);
 
   const canModify = isAllowed && (!id || isOwner || user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL || userProfile?.role?.toLowerCase() === 'admin');
@@ -306,11 +307,11 @@ function UnifiedDrillingSupervisionContent() {
         </CardHeader>
         <CardContent className="p-10 space-y-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 text-left">
-            <div className="space-y-2">
+            <div className="space-y-2 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">File No</Label>
               <Input disabled={!canModify} value={formData.fileNo || ''} onChange={(e) => updateField('fileNo', e.target.value)} className="h-11 border-slate-200 font-black text-primary focus:bg-white" placeholder="MPM/GWD/..." />
             </div>
-            <div className="space-y-2 lg:col-span-1">
+            <div className="space-y-2 lg:col-span-1 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Well Number</Label>
               <Input 
                 disabled={!canModify} 
@@ -320,28 +321,28 @@ function UnifiedDrillingSupervisionContent() {
                 placeholder="ENTER WELL NUMBER" 
               />
             </div>
-            <div className="space-y-2 lg:col-span-1">
+            <div className="space-y-2 lg:col-span-1 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Name of Site</Label>
               <Input disabled={!canModify} value={formData.nameOfSite || ''} onChange={(e) => updateField('nameOfSite', e.target.value)} className="h-11 border-slate-200 uppercase font-bold text-primary" placeholder="LOCATION NAME" />
             </div>
-            <div className="space-y-2 lg:col-span-1">
+            <div className="space-y-2 lg:col-span-1 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Address</Label>
               <Input disabled={!canModify} value={formData.address || ''} onChange={(e) => updateField('address', e.target.value)} className="h-11 border-slate-200" placeholder="Street/Area" />
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
-            <div className="space-y-2">
+            <div className="space-y-2 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Grama Panchayath / LSGD</Label>
               <Select disabled={!canModify} onValueChange={(v) => updateField('lsgd', v)} value={formData.lsgd || ''}>
                 <SelectTrigger className="h-11 border-slate-200 font-bold"><SelectValue placeholder="Select" /></SelectTrigger>
                 <SelectContent className="max-h-[400px] rounded-2xl">{lsgs.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Constituency (LAC)</Label>
               <Input disabled value={detectedLac} className="h-11 border-slate-200 bg-slate-50 font-black text-blue-600 uppercase" placeholder="Auto-detected" />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Total Remittance (₹)</Label>
               <Input disabled={!canModify} type="text" value={formData.remittance || ''} onChange={(e) => updateField('remittance', e.target.value)} className="h-11 border-slate-200 font-black text-emerald-600" placeholder="0.00" />
             </div>
@@ -405,7 +406,7 @@ function UnifiedDrillingSupervisionContent() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center space-x-2 pt-6">
+            <div className="flex items-center space-x-2 pt-6 text-left">
               <Checkbox 
                 id="hasEndCap" 
                 checked={formData.hasEndCap} 
@@ -415,14 +416,13 @@ function UnifiedDrillingSupervisionContent() {
               <Label htmlFor="hasEndCap" className="text-[10px] font-black uppercase text-slate-700 cursor-pointer">End Cap Used</Label>
             </div>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2 text-left">
             <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Field Observations & Strata Details</Label>
             <Textarea disabled={!canModify} value={formData.observations || ''} onChange={(e) => updateField('observations', e.target.value)} rows={4} className="rounded-2xl border-slate-200 p-6 italic font-medium leading-relaxed" placeholder="Record technical work strata or site specific notes here..." />
           </div>
         </CardContent>
       </Card>
 
-      {/* 4. STAFF DETAILS */}
       <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
           <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3">
@@ -430,21 +430,21 @@ function UnifiedDrillingSupervisionContent() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 text-left">
-           <StaffMultiSelect label="Unit In-Charge" options={filteredStaff.uic} selected={formData.staffAssignment.unitInCharge} onChange={(names) => updateStaff('unitInCharge', names)} max={2} disabled={!canModify} />
-           <StaffMultiSelect label="Drillers" options={filteredStaff.driller} selected={formData.staffAssignment.drillers} onChange={(names) => updateStaff('drillers', names)} max={5} disabled={!canModify} />
-           <StaffMultiSelect label="Drilling Assistants" options={filteredStaff.asst} selected={formData.staffAssignment.drillingAssistants} onChange={(names) => updateStaff('drillingAssistants', names)} max={7} disabled={!canModify} />
-           <StaffMultiSelect label="Logistics & Support" options={filteredStaff.driver.concat(filteredStaff.other)} selected={formData.staffAssignment.otherStaff} onChange={(names) => updateStaff('otherStaff', names)} max={14} disabled={!canModify} />
+           <StaffMultiSelect label="Unit In-Charge" options={filteredStaff.uic} selected={formData.staffAssignment.unitInCharge} onChange={(names) => updateStaff('unitInCharge', names)} max={2} disabled={!isAllowed} />
+           <StaffMultiSelect label="Drillers" options={filteredStaff.driller} selected={formData.staffAssignment.drillers} onChange={(names) => updateStaff('drillers', names)} max={5} disabled={!isAllowed} />
+           <StaffMultiSelect label="Drilling Assistants" options={filteredStaff.asst} selected={formData.staffAssignment.drillingAssistants} onChange={(names) => updateStaff('drillingAssistants', names)} max={7} disabled={!isAllowed} />
+           <StaffMultiSelect label="Logistics & Support" options={filteredStaff.driver.concat(filteredStaff.other)} selected={formData.staffAssignment.otherStaff} onChange={(names) => updateStaff('otherStaff', names)} max={14} disabled={!isAllowed} />
         </CardContent>
       </Card>
 
       <div className="flex justify-end pt-12 pb-24 text-left">
         <Button 
           onClick={handleSave} 
-          disabled={isPending || !canModify} 
-          className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/30 gap-3 hover:bg-blue-900 transition-all hover:scale-[1.02] active:scale-95"
+          disabled={isPending || !isAllowed || !canModify} 
+          className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/20 transition-all hover:scale-[1.02] active:scale-95 gap-3"
         >
           {isPending ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-5" />} 
-          {canModify ? (id ? 'UPDATE TECHNICAL RECORD' : 'SAVE TECHNICAL RECORD') : <Lock className="size-4" />}
+          {canModify ? (id ? 'UPDATE' : 'SAVE') + ' TECHNICAL RECORD' : 'Access Restricted'}
         </Button>
       </div>
 

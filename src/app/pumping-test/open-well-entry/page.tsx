@@ -406,10 +406,10 @@ function UnifiedOpenWellPumpingEntryContent() {
       </Card>
 
       <div className="flex justify-end pt-12 pb-24 text-left">
-        <Button onClick={handleSave} disabled={isPending || !canModify} className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/30 gap-3 hover:bg-blue-900 transition-all hover:scale-[1.02] active:scale-95"
+        <Button onClick={handleSave} disabled={isPending || !isAllowed || !canModify} className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/30 gap-3 hover:bg-blue-900 transition-all hover:scale-[1.02] active:scale-95"
         >
           {isPending ? <Loader2 className="size-5 animate-spin" /> : <Save className="size-5" />} 
-          {canModify ? (id ? 'UPDATE TEST RECORD' : 'SAVE TEST RECORD') : <Lock className="size-4" />}
+          {canModify ? (id ? 'UPDATE TEST RECORD' : 'SAVE TEST RECORD') : 'ACCESS RESTRICTED'}
         </Button>
       </div>
 

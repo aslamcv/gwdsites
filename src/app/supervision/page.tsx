@@ -25,8 +25,8 @@ import {
   User as UserIcon
 } from 'lucide-react';
 import Link from 'next/link';
-import { useCollection, useFirestore, useUser, useMemoFirebase, deleteDocumentNonBlocking, useDoc } from '@/firebase';
-import { collection, query, doc } from 'firebase/firestore';
+import { useCollection, useFirestore, useUser, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { collection, query, doc, deleteDoc } from 'firebase/firestore';
 import type { GroundwaterReport } from '@/lib/types';
 import { 
   Table, 
@@ -105,12 +105,6 @@ export default function SupervisionLedgerPage() {
   const isEngineer = useMemo(() => (userProfile?.role || '').toLowerCase().trim() === 'engineer', [userProfile]);
   const isScientist = useMemo(() => (userProfile?.role || '').toLowerCase().trim() === 'scientist', [userProfile]);
 
-  const isAllowedToAdd = useMemo(() => {
-    if (isAuthLoading || isProfileLoading) return false;
-    if (isAdmin) return true;
-    return (isEngineer || isScientist) && isApproved;
-  }, [isAdmin, isEngineer, isScientist, isApproved, isAuthLoading, isProfileLoading]);
-
   const reportsQuery = useMemoFirebase(() => {
     if (!firestore || isAuthLoading || !user) return null;
     return query(collection(firestore, 'groundwaterReports'));
@@ -131,7 +125,7 @@ export default function SupervisionLedgerPage() {
     if (systemUsers) {
       systemUsers.forEach(u => {
         const name = u.displayName || u.email || 'Technical Officer';
-        const uid = (u.uid || '').trim().toLowerCase();
+        const uid = (u.uid || '').trim();
         const email = (u.email || '').toLowerCase().trim();
         if (uid) map.set(uid, name);
         if (email) map.set(email, name);
@@ -218,8 +212,18 @@ export default function SupervisionLedgerPage() {
   const handleDeleteReport = () => {
     if (!firestore || !reportToDelete) return;
     const docRef = doc(firestore, 'groundwaterReports', reportToDelete.id);
-    deleteDocumentNonBlocking(docRef);
-    toast({ title: "Record Deleted", variant: "destructive" });
+    
+    deleteDoc(docRef)
+      .then(() => {
+        toast({ title: "Record Deleted", variant: "destructive" });
+      })
+      .catch(async (error) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: docRef.path,
+          operation: 'delete',
+        }));
+      });
+      
     setReportToDelete(null);
   };
 
@@ -335,14 +339,15 @@ export default function SupervisionLedgerPage() {
                   paginatedRecords.map((r) => {
                     const category = getSupervisionCategory(r);
                     
-                    const creatorId = (r.uploadedBy || '').trim().toLowerCase();
-                    const userUid = (user?.uid || '').trim().toLowerCase();
-                    const userEmail = (user?.email || '').trim().toLowerCase();
+                    const creatorId = (r.uploadedBy || '').trim();
+                    const userUid = (user?.uid || '').trim();
+                    const userEmail = (user?.email || '').toLowerCase().trim();
+                    const creatorLower = creatorId.toLowerCase();
                     
-                    const isOwner = (userUid && creatorId === userUid) || (userEmail && creatorId === userEmail);
+                    const isOwner = (userUid && creatorId === userUid) || (userEmail && creatorLower === userEmail);
                     
                     const canModifyRecord = isAdmin || (isApproved && (isEngineer || isScientist) && isOwner);
-                    const ownerName = userMap.get(creatorId) || 'District Officer';
+                    const ownerName = userMap.get(creatorId) || userMap.get(creatorLower) || 'District Officer';
 
                     return (
                       <TableRow key={r.id} className="h-20 border-slate-50 hover:bg-slate-50/50 transition-colors group text-left">

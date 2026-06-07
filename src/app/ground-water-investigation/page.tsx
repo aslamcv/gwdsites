@@ -24,8 +24,8 @@ import {
   User as UserIcon
 } from 'lucide-react';
 import Link from 'next/link';
-import { useCollection, useFirestore, useUser, useMemoFirebase, deleteDocumentNonBlocking, useDoc } from '@/firebase';
-import { collection, query, doc } from 'firebase/firestore';
+import { useCollection, useFirestore, useUser, useMemoFirebase, FirestorePermissionError, errorEmitter } from '@/firebase';
+import { collection, query, doc, deleteDoc } from 'firebase/firestore';
 import type { GroundwaterReport } from '@/lib/types';
 import { 
   Table, 
@@ -128,7 +128,7 @@ export default function GroundWaterInvestigationPage() {
     if (systemUsers) {
       systemUsers.forEach(u => {
         const name = u.displayName || u.email || 'Technical Officer';
-        const uid = (u.uid || '').trim().toLowerCase();
+        const uid = (u.uid || '').trim();
         const email = (u.email || '').toLowerCase().trim();
         if (uid) map.set(uid, name);
         if (email) map.set(email, name);
@@ -176,8 +176,18 @@ export default function GroundWaterInvestigationPage() {
   const handleDeleteReport = () => {
     if (!firestore || !reportToDelete) return;
     const docRef = doc(firestore, 'groundwaterReports', reportToDelete.id);
-    deleteDocumentNonBlocking(docRef);
-    toast({ title: "Record Deleted", variant: "destructive" });
+    
+    deleteDoc(docRef)
+      .then(() => {
+        toast({ title: "Record Deleted", variant: "destructive" });
+      })
+      .catch(async (error) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: docRef.path,
+          operation: 'delete',
+        }));
+      });
+      
     setReportToDelete(null);
   };
 
@@ -289,14 +299,15 @@ export default function GroundWaterInvestigationPage() {
                     const hasOpenwellFeasibility = recType === 'openwell';
                     const hasFeasibility = hasBorewellFeasibility || hasOpenwellFeasibility;
                     
-                    const creatorId = (r.uploadedBy || '').trim().toLowerCase();
-                    const userUid = (user?.uid || '').trim().toLowerCase();
-                    const userEmail = (user?.email || '').trim().toLowerCase();
+                    const creatorId = (r.uploadedBy || '').trim();
+                    const userUid = (user?.uid || '').trim();
+                    const userEmail = (user?.email || '').toLowerCase().trim();
+                    const creatorLower = creatorId.toLowerCase();
                     
-                    const isOwner = (userUid && creatorId === userUid) || (userEmail && creatorId === userEmail);
+                    const isOwner = (userUid && creatorId === userUid) || (userEmail && creatorLower === userEmail);
                     
                     const canModifyRecord = isAdmin || (isApproved && (isEngineer || isScientist) && isOwner);
-                    const ownerName = userMap.get(creatorId) || 'District Officer';
+                    const ownerName = userMap.get(creatorId) || userMap.get(creatorLower) || 'District Officer';
 
                     return (
                       <TableRow key={r.id} className="h-20 border-slate-50 hover:bg-slate-50/80 transition-colors group">
@@ -383,7 +394,7 @@ export default function GroundWaterInvestigationPage() {
       </Card>
       
       <Dialog open={!!viewingReport} onOpenChange={(open) => !open && setViewingReport(null)}>
-        <DialogContent className="max-w-3xl rounded-[32px] overflow-hidden p-0 border-none shadow-2xl bg-white text-left text-left">
+        <DialogContent className="max-w-3xl rounded-[32px] overflow-hidden p-0 border-none shadow-2xl bg-white text-left">
           <DialogHeader className="p-8 bg-slate-50/50 border-b text-left">
             <DialogTitle className="text-xl font-black uppercase text-slate-900">Technical Record: {viewingReport?.fileNo || 'Preview'}</DialogTitle>
             <DialogDescription className="text-sm font-medium text-slate-500">Viewing all saved parameters for site: {viewingReport?.nameOfSite || viewingReport?.applicantName || viewingReport?.location}</DialogDescription>
@@ -408,6 +419,20 @@ export default function GroundWaterInvestigationPage() {
         isOpen={isConsolidatedDialogOpen} 
         onOpenChange={setIsConsolidatedDialogOpen} 
       />
+
+      <AlertDialog open={!!reportToDelete} onOpenChange={(open) => !open && setReportToDelete(null)}>
+        <AlertDialogContent className="rounded-3xl p-8">
+            <AlertDialogHeader className="flex flex-col items-center text-center">
+                <div className="size-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-4"><Trash2 className="size-8" /></div>
+                <AlertDialogTitle className="text-2xl font-black text-slate-800 uppercase tracking-tight">Delete Investigation Record?</AlertDialogTitle>
+                <AlertDialogDescription className="text-slate-500 text-lg mt-2">You are about to permanently delete the record for <strong>{reportToDelete?.fileNo || reportToDelete?.id}</strong>. This action cannot be reversed.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="mt-8 flex gap-3 sm:justify-center">
+                <AlertDialogCancel onClick={() => setReportToDelete(null)} className="rounded-2xl h-12 px-8 border-slate-200">Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteReport} className="bg-red-600 hover:bg-red-700 rounded-2xl h-12 px-8 text-white font-bold shadow-lg shadow-red-200">Confirm Deletion</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
