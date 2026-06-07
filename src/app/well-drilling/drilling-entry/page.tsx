@@ -83,9 +83,9 @@ function UnifiedDrillingSupervisionContent() {
   
   const isAllowed = useMemo(() => {
     if (isAuthLoading || isProfileLoading) return false;
-    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
     const role = (userProfile?.role || '').toLowerCase();
     const isApproved = userProfile?.isApproved !== false;
+    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL || role === 'admin') return true;
     return (role === 'admin' || role === 'engineer') && isApproved;
   }, [user, userProfile, isAuthLoading, isProfileLoading]);
 
@@ -252,7 +252,7 @@ function UnifiedDrillingSupervisionContent() {
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">Technical Operations | District Office, Malappuram</p>
           </div>
           
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 text-left">
             <div className="flex items-center gap-5">
               <Button variant="ghost" size="icon" asChild className="rounded-full h-12 w-12 border border-slate-200 text-slate-600 hover:bg-slate-50">
                 <Link href="/well-drilling"><ArrowLeft className="size-5" /></Link>

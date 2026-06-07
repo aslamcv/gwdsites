@@ -92,9 +92,10 @@ function UnifiedBorewellPumpingEntryContent() {
   
   const isAllowed = useMemo(() => {
     if (isAuthLoading || isProfileLoading) return false;
-    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
     const role = (userProfile?.role || '').toLowerCase();
-    return (role === 'admin' || role === 'engineer' || role === 'scientist') && userProfile?.isApproved !== false;
+    const isApproved = userProfile?.isApproved !== false;
+    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL || role === 'admin') return true;
+    return (role === 'admin' || role === 'engineer' || role === 'scientist') && isApproved;
   }, [user, userProfile, isAuthLoading, isProfileLoading]);
 
   const employeesRef = useMemoFirebase(() => {

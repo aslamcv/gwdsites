@@ -16,7 +16,7 @@ service cloud.firestore {
 
     function getUserDoc() {
       let email = getUserEmail();
-      return exists(/databases/$(database)/documents/users/$(email))
+      return email != "" && exists(/databases/$(database)/documents/users/$(email))
         ? get(/databases/$(database)/documents/users/$(email)).data
         : {};
     }
@@ -28,17 +28,20 @@ service cloud.firestore {
 
     function isAdmin() {
       let user = getUserDoc();
-      return user.get('role', '').lower() == 'admin' || getUserEmail() == 'gwdmpm@gmail.com';
+      let role = user.get('role', '').lower();
+      return role == 'admin' || getUserEmail() == 'gwdmpm@gmail.com';
     }
 
     function isEngineer() {
       let user = getUserDoc();
-      return user.get('role', '').lower() == 'engineer';
+      let role = user.get('role', '').lower();
+      return role == 'engineer';
     }
 
     function isScientist() {
       let user = getUserDoc();
-      return user.get('role', '').lower() == 'scientist';
+      let role = user.get('role', '').lower();
+      return role == 'scientist';
     }
 
     function isOwner() {
@@ -55,6 +58,7 @@ service cloud.firestore {
       allow read: if isAdmin() || (isApproved() && (isScientist() || isEngineer()));
       
       // Approved Scientists and Engineers can create technical records
+      // Authorize based on the user's role in the district registry
       allow create: if isApproved() && (isAdmin() || isScientist() || isEngineer());
       
       // Only Admins or the original creator can modify/delete
