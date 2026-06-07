@@ -99,13 +99,14 @@ export default function GroundWaterInvestigationPage() {
     return userProfile?.role?.toLowerCase() === 'admin';
   }, [user, userProfile, isUserLoading, isProfileLoading]);
 
+  const isEngineer = useMemo(() => userProfile?.role?.toLowerCase() === 'engineer', [userProfile]);
   const isScientist = useMemo(() => userProfile?.role?.toLowerCase() === 'scientist', [userProfile]);
 
   const isAllowedToAdd = useMemo(() => {
     if (isUserLoading || isProfileLoading) return false;
     if (isAdmin) return true;
-    return isScientist && userProfile?.isApproved !== false;
-  }, [isAdmin, isScientist, userProfile, isUserLoading, isProfileLoading]);
+    return (isEngineer || isScientist) && userProfile?.isApproved !== false;
+  }, [isAdmin, isEngineer, isScientist, userProfile, isUserLoading, isProfileLoading]);
 
   const reportsQuery = useMemoFirebase(() => {
     if (!firestore || isUserLoading || !user) return null;
@@ -122,13 +123,12 @@ export default function GroundWaterInvestigationPage() {
 
   const userMap = useMemo(() => {
     const map = new Map();
-    map.set(MASTER_ADMIN_EMAIL, 'District Officer');
+    map.set(MASTER_ADMIN_EMAIL.toLowerCase(), 'District Officer');
     
     if (systemUsers) {
       systemUsers.forEach(u => {
-        const name = u.displayName || u.email || 'Unknown';
+        const name = u.displayName || u.email || 'Technical Officer';
         if (u.uid) map.set(u.uid, name);
-        if (u.id) map.set(u.id, name);
         if (u.email) map.set(u.email.toLowerCase().trim(), name);
       });
     }
@@ -155,7 +155,7 @@ export default function GroundWaterInvestigationPage() {
   const sortedRecords = useMemo(() => {
     return [...allRecords].sort((a, b) => {
       const dateA = a.createdAt || a.reportDate || a.dateOfInvestigation || '';
-      const dateB = b.createdAt || b.reportDate || b.dateOfInvestigation || '';
+      const dateB = b.createdAt || b.reportDate || a.dateOfInvestigation || '';
       return dateB.localeCompare(dateA);
     });
   }, [allRecords]);
@@ -303,8 +303,8 @@ export default function GroundWaterInvestigationPage() {
                     const hasOpenwellFeasibility = recType === 'openwell';
                     const hasFeasibility = hasBorewellFeasibility || hasOpenwellFeasibility;
                     
-                    const isOwner = user?.uid === r.uploadedBy;
-                    const canModifyRecord = isAdmin || (isScientist && isOwner);
+                    const isOwner = user?.uid === r.uploadedBy || user?.email?.toLowerCase() === r.uploadedBy?.toLowerCase();
+                    const canModifyRecord = isAdmin || ((isEngineer || isScientist) && isOwner);
                     const ownerName = userMap.get(r.uploadedBy) || userMap.get(r.uploadedBy?.toLowerCase()?.trim()) || userMap.get(r.uploadedBy?.trim()) || 'District Officer';
 
                     return (
@@ -364,7 +364,7 @@ export default function GroundWaterInvestigationPage() {
                           <div className="flex items-center justify-end gap-1.5">
                              <Button variant="ghost" size="icon" onClick={() => setViewingReport(r)} className="size-8 rounded-lg bg-white ring-1 ring-slate-100 shadow-sm" title="View Saved Data"><Eye className="size-3.5 text-slate-400 hover:text-primary" /></Button>
                              <Button variant="ghost" size="icon" asChild disabled={!canModifyRecord} className="size-8 rounded-lg bg-white ring-1 ring-slate-100 shadow-sm" title={canModifyRecord ? 'Edit Record' : 'Access Restricted'}>
-                                <Link href={canModifyRecord ? (isVes ? `/ground-water-investigation/geophysical-survey/site-entry?id=${r.id}` : `/ground-water-investigation/geological-survey/site-entry?id=${r.id}`) : '#'} className={!canModifyRecord ? "pointer-events-none opacity-50" : ""}><Edit3 className="size-3.5 text-slate-400 hover:text-emerald-600" /></Link>
+                                <Link href={canModifyRecord ? (isVes ? `/ground-water-investigation/geophysical-survey/site-entry?id=${r.id}` : `/ground-water-investigation/geological-survey/site-entry?id=${r.id}`) : '#'} className={!canModifyRecord ? "pointer-events-none opacity-50" : ""}><Edit3 className={cn("size-3.5", canModifyRecord ? "text-slate-400 hover:text-emerald-600" : "opacity-30")} /></Link>
                              </Button>
                              <Button variant="ghost" size="icon" onClick={() => canModifyRecord && setReportToDelete(r)} disabled={!canModifyRecord} className={cn("size-8 rounded-lg transition-colors bg-white ring-1 ring-slate-100", canModifyRecord ? "text-rose-400 hover:text-rose-600 hover:bg-rose-50" : "opacity-20")} title={canModifyRecord ? 'Delete' : 'Access Restricted'}><Trash2 className="size-3.5" /></Button>
                           </div>

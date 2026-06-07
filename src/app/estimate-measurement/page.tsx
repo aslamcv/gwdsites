@@ -117,13 +117,12 @@ export default function EstimateMeasurementLedgerPage() {
 
   const userMap = useMemo(() => {
     const map = new Map();
-    map.set(MASTER_ADMIN_EMAIL, 'District Officer');
+    map.set(MASTER_ADMIN_EMAIL.toLowerCase(), 'District Officer');
     
     if (systemUsers) {
       systemUsers.forEach(u => {
-        const name = u.displayName || u.email || 'Unknown';
+        const name = u.displayName || u.email || 'Technical Officer';
         if (u.uid) map.set(u.uid, name);
-        if (u.id) map.set(u.id, name);
         if (u.email) map.set(u.email.toLowerCase().trim(), name);
       });
     }
@@ -238,7 +237,7 @@ export default function EstimateMeasurementLedgerPage() {
                   ))
                 ) : paginatedRecords.length > 0 ? (
                   paginatedRecords.map((r) => {
-                    const isOwner = user?.uid === r.uploadedBy;
+                    const isOwner = user?.uid === r.uploadedBy || user?.email?.toLowerCase() === r.uploadedBy?.toLowerCase();
                     const canModifyRecord = isAdmin || (isEngineer && isOwner);
                     const ownerName = userMap.get(r.uploadedBy) || userMap.get(r.uploadedBy?.toLowerCase()?.trim()) || userMap.get(r.uploadedBy?.trim()) || 'District Officer';
 

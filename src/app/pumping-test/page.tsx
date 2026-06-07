@@ -115,13 +115,12 @@ export default function PumpingTestLedgerPage() {
 
   const userMap = useMemo(() => {
     const map = new Map();
-    map.set(MASTER_ADMIN_EMAIL, 'District Officer');
+    map.set(MASTER_ADMIN_EMAIL.toLowerCase(), 'District Officer');
     
     if (systemUsers) {
       systemUsers.forEach(u => {
-        const name = u.displayName || u.email || 'Unknown';
+        const name = u.displayName || u.email || 'Technical Officer';
         if (u.uid) map.set(u.uid, name);
-        if (u.id) map.set(u.id, name);
         if (u.email) map.set(u.email.toLowerCase().trim(), name);
       });
     }
@@ -243,7 +242,7 @@ export default function PumpingTestLedgerPage() {
                     const viewUrl = isBore ? `/pumping-test/private/agriculture/bore-well/yield-test/completion-report?id=${r.id}` : `/pumping-test/private/agriculture/open-well/yield-test/completion-report?id=${r.id}`;
                     const editUrl = isBore ? `/pumping-test/borewell-entry?id=${r.id}` : `/pumping-test/open-well-entry?id=${r.id}`;
                     
-                    const isOwner = user?.uid === r.uploadedBy;
+                    const isOwner = user?.uid === r.uploadedBy || user?.email?.toLowerCase() === r.uploadedBy?.toLowerCase();
                     const canModifyRecord = isAdmin || ((isEngineer || isScientist) && isOwner);
                     const ownerName = userMap.get(r.uploadedBy) || userMap.get(r.uploadedBy?.toLowerCase()?.trim()) || userMap.get(r.uploadedBy?.trim()) || 'District Officer';
 
@@ -270,7 +269,7 @@ export default function PumpingTestLedgerPage() {
                         <TableCell className="text-right pr-8">
                           <div className="flex items-center justify-end gap-1.5">
                              <Button variant="ghost" size="icon" onClick={() => setViewingReport(r)} className="size-8 rounded-lg bg-white ring-1 ring-slate-100 shadow-sm" title="View Saved Data"><Eye className="size-3.5 text-slate-400 hover:text-primary" /></Button>
-                             <Button variant="ghost" size="icon" asChild disabled={!canModifyRecord} className="size-8 rounded-lg bg-white ring-1 ring-slate-100 shadow-sm" title={canModifyRecord ? 'Edit Record' : 'Access Restricted'}><Link href={canModifyRecord ? editUrl : '#'} className={!canModifyRecord ? "pointer-events-none opacity-50" : ""}><Edit3 className="size-3.5 text-slate-400 hover:text-emerald-600" /></Link></Button>
+                             <Button variant="ghost" size="icon" asChild disabled={!canModifyRecord} className="size-8 rounded-lg bg-white ring-1 ring-slate-100 shadow-sm" title={canModifyRecord ? 'Edit Record' : 'Access Restricted'}><Link href={canModifyRecord ? editUrl : '#'} className={!canModifyRecord ? "pointer-events-none opacity-50" : ""}><Edit3 className={cn("size-3.5", canModifyRecord ? "text-slate-400 hover:text-emerald-600" : "opacity-30")} /></Link></Button>
                              <Button variant="ghost" size="icon" onClick={() => canModifyRecord && setReportToDelete(r)} disabled={!canModifyRecord} className={cn("size-8 rounded-lg transition-colors bg-white ring-1 ring-slate-100", canModifyRecord ? "text-rose-400 hover:text-rose-600 hover:bg-rose-50" : "opacity-20")} title={canModifyRecord ? 'Delete' : 'Access Restricted'}><Trash2 className="size-3.5" /></Button>
                           </div>
                         </TableCell>
@@ -319,7 +318,6 @@ export default function PumpingTestLedgerPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!reportToDelete} onOpenChange={(open) => !open && setReportToDelete(null)}>
         <AlertDialogContent className="rounded-3xl p-8">
             <AlertDialogHeader className="flex flex-col items-center text-center">
