@@ -55,14 +55,16 @@ service cloud.firestore {
 
     match /groundwaterReports/{reportId} {
       // Admins and approved technical staff can read
-      allow read: if isAdmin() || (isApproved() && (isScientist() || isEngineer()));
+      allow read: if isAdmin() || isApproved();
       
-      // Approved Scientists and Engineers can create technical records
-      // Authorize based on the user's role in the district registry
+      // Approved staff can create technical records
       allow create: if isApproved() && (isAdmin() || isScientist() || isEngineer());
       
       // Only Admins or the original creator can modify/delete
-      allow update, delete: if isAdmin() || isOwner();
+      allow update, delete: if isAdmin() || (isApproved() && (
+        request.auth.uid == resource.data.get('uploadedBy', '') || 
+        getUserEmail() == resource.data.get('uploadedBy', '')
+      ));
     }
 
     match /appSettings/{document=**} {

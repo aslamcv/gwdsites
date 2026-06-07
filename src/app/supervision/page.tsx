@@ -82,7 +82,7 @@ export default function SupervisionLedgerPage() {
   const itemsPerPage = 10;
 
   const firestore = useFirestore();
-  const { user, isUserLoading } = useUser();
+  const { user, isUserLoading: isAuthLoading } = useUser();
 
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user?.email) return null;
@@ -91,32 +91,33 @@ export default function SupervisionLedgerPage() {
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
   
   const isAdmin = useMemo(() => {
-    if (isUserLoading || isProfileLoading) return false;
+    if (isAuthLoading || isProfileLoading) return false;
     const email = user?.email?.toLowerCase().trim();
-    if (email === MASTER_ADMIN_EMAIL) return true;
-    return userProfile?.role?.toLowerCase().trim() === 'admin';
-  }, [user, userProfile, isUserLoading, isProfileLoading]);
+    const role = (userProfile?.role || '').toLowerCase().trim();
+    if (email === MASTER_ADMIN_EMAIL || role === 'admin') return true;
+    return false;
+  }, [user, userProfile, isAuthLoading, isProfileLoading]);
 
-  const isEngineer = useMemo(() => userProfile?.role?.toLowerCase().trim() === 'engineer', [userProfile]);
-  const isScientist = useMemo(() => userProfile?.role?.toLowerCase().trim() === 'scientist', [userProfile]);
+  const isEngineer = useMemo(() => (userProfile?.role || '').toLowerCase().trim() === 'engineer', [userProfile]);
+  const isScientist = useMemo(() => (userProfile?.role || '').toLowerCase().trim() === 'scientist', [userProfile]);
 
   const isAllowedToAdd = useMemo(() => {
-    if (isUserLoading || isProfileLoading) return false;
+    if (isAuthLoading || isProfileLoading) return false;
     if (isAdmin) return true;
     return (isEngineer || isScientist) && userProfile?.isApproved !== false;
-  }, [isAdmin, isEngineer, isScientist, userProfile, isUserLoading, isProfileLoading]);
+  }, [isAdmin, isEngineer, isScientist, userProfile, isAuthLoading, isProfileLoading]);
 
   const reportsQuery = useMemoFirebase(() => {
-    if (!firestore || isUserLoading || !user) return null;
+    if (!firestore || isAuthLoading || !user) return null;
     return query(collection(firestore, 'groundwaterReports'));
-  }, [firestore, user, isUserLoading]);
+  }, [firestore, user, isAuthLoading]);
 
   const { data: reports, isLoading } = useCollection<GroundwaterReport>(reportsQuery);
 
   const usersQuery = useMemoFirebase(() => {
-    if (!firestore || isUserLoading || !user) return null;
+    if (!firestore || isAuthLoading || !user) return null;
     return query(collection(firestore, 'users'));
-  }, [firestore, user, isUserLoading]);
+  }, [firestore, user, isAuthLoading]);
   const { data: systemUsers, isLoading: isUsersLoading } = useCollection(usersQuery);
 
   const userMap = useMemo(() => {
@@ -126,7 +127,7 @@ export default function SupervisionLedgerPage() {
     if (systemUsers) {
       systemUsers.forEach(u => {
         const name = u.displayName || u.email || 'Technical Officer';
-        if (u.uid) map.set(u.uid.toLowerCase().trim(), name);
+        if (u.uid) map.set(u.uid.trim(), name);
         if (u.email) map.set(u.email.toLowerCase().trim(), name);
       });
     }
@@ -262,25 +263,25 @@ export default function SupervisionLedgerPage() {
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild className="rounded-xl cursor-pointer p-3 focus:bg-emerald-50 group">
                   <Link href="/supervision/mwss-reno/mwss-entry" className="flex items-center gap-4">
-                    <div className="p-2 bg-emerald-50 rounded-lg group-focus:bg-emerald-200"><Waves className="size-4 text-emerald-600" /></div>
+                    <div className="p-2 bg-emerald-100 rounded-lg group-focus:bg-emerald-200"><Waves className="size-4 text-emerald-600" /></div>
                     <span className="font-bold text-xs uppercase text-slate-700 tracking-tight">MWSS Supervision</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild className="rounded-xl cursor-pointer p-3 focus:bg-teal-50 group">
                   <Link href="/supervision/mwss-reno/reno-entry" className="flex items-center gap-4">
-                    <div className="p-2 bg-teal-50 rounded-lg group-focus:bg-teal-200"><Settings className="size-4 text-teal-600" /></div>
+                    <div className="p-2 bg-teal-100 rounded-lg group-focus:bg-teal-200"><Settings className="size-4 text-teal-600" /></div>
                     <span className="font-bold text-xs uppercase text-slate-700 tracking-tight">MWSS Reno Supervision</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild className="rounded-xl cursor-pointer p-3 focus:bg-purple-50 group">
                   <Link href="/supervision/ars/pit/inspection" className="flex items-center gap-4">
-                    <div className="p-2 bg-purple-50 rounded-lg group-hover:scale-110 transition-transform"><Activity className="size-4 text-purple-600" /></div>
+                    <div className="p-2 bg-purple-100 rounded-lg group-hover:scale-110 transition-transform"><Activity className="size-4 text-purple-600" /></div>
                     <span className="font-bold text-xs uppercase text-slate-700 tracking-tight">ARS Pit Recharge</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild className="rounded-xl cursor-pointer p-3 focus:bg-indigo-50 group">
                   <Link href="/supervision/ars/dugwell-entry" className="flex items-center gap-4">
-                    <div className="p-2 bg-indigo-50 rounded-lg group-hover:scale-110 transition-transform"><Activity className="size-4 text-indigo-600" /></div>
+                    <div className="p-2 bg-indigo-100 rounded-lg group-hover:scale-110 transition-transform"><Activity className="size-4 text-indigo-600" /></div>
                     <span className="font-bold text-xs uppercase text-slate-700 tracking-tight">ARS Dugwell Recharge</span>
                   </Link>
                 </DropdownMenuItem>
@@ -329,7 +330,7 @@ export default function SupervisionLedgerPage() {
                     
                     const canModifyRecord = isAdmin || ((isEngineer || isScientist) && isOwner);
                     const ownerLookup = r.uploadedBy?.toLowerCase().trim();
-                    const ownerName = userMap.get(ownerLookup) || 'District Officer';
+                    const ownerName = userMap.get(ownerLookup) || userMap.get(r.uploadedBy) || 'District Officer';
 
                     return (
                       <TableRow key={r.id} className="h-20 border-slate-50 hover:bg-slate-50/50 transition-colors group">

@@ -34,7 +34,7 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useUser, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useUser, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, doc, setDoc, updateDoc } from 'firebase/firestore';
 import type { GroundwaterReport, Employee } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
@@ -70,7 +70,7 @@ function UnifiedARSDugwellContent() {
   const searchParams = useSearchParams();
   const { lsgs, lsgMappings } = useLsgdData();
   const firestore = useFirestore();
-  const { user, isUserLoading } = useUser();
+  const { user, isUserLoading: isAuthLoading } = useUser();
   const [isPending, startTransition] = useTransition();
 
   const id = searchParams.get('id');
@@ -82,12 +82,12 @@ function UnifiedARSDugwellContent() {
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
   
   const isAllowed = useMemo(() => {
-    if (isUserLoading || isProfileLoading) return false;
-    const role = (userProfile?.role || '').toLowerCase();
+    if (isAuthLoading || isProfileLoading) return false;
+    const role = (userProfile?.role || '').toLowerCase().trim();
     const isApproved = userProfile?.isApproved !== false;
     if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL || role === 'admin') return true;
     return (role === 'admin' || role === 'engineer') && isApproved;
-  }, [user, userProfile, isUserLoading, isProfileLoading]);
+  }, [user, userProfile, isAuthLoading, isProfileLoading]);
 
   const employeesRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -104,15 +104,17 @@ function UnifiedARSDugwellContent() {
 
   const isOwner = useMemo(() => {
     if (!cloudReport || !user) return false;
-    return cloudReport.uploadedBy === user.uid;
+    const creator = (cloudReport.uploadedBy || '').trim();
+    return creator === user.uid || creator === user.email?.toLowerCase().trim();
   }, [cloudReport, user]);
 
-  const canModify = isAllowed && (
-    !id || 
-    isOwner || 
-    user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL || 
-    userProfile?.role?.toLowerCase() === 'admin'
-  );
+  const canModify = isAllowed && (!id || isOwner || isAdminUser(user?.email, userProfile?.role));
+
+  function isAdminUser(email?: string | null, role?: string) {
+      if (!email) return false;
+      if (email.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
+      return (role || '').toLowerCase().trim() === 'admin';
+  }
 
   const [formData, setFormData] = useState<any>({
     reportDate: new Date().toISOString().split('T')[0],
@@ -223,20 +225,22 @@ function UnifiedARSDugwellContent() {
         }
       };
 
-      if (isUpdate) {
-        updateDocumentNonBlocking(reportDocRef, reportData);
-      } else {
-        setDocumentNonBlocking(reportDocRef, reportData, { merge: true });
-      }
+      const operation = isUpdate ? updateDoc(reportDocRef, reportData) : setDoc(reportDocRef, reportData);
 
-      toast({ title: 'Technical Draft Saved', description: 'Site information and staff assignments synchronized.' });
-
-      if (goToPage2) {
-        const nextPath = `/supervision/ars/dugwell-recharge/page-2?id=${reportId}`;
-        router.push(nextPath);
-      } else {
-        router.push('/supervision');
-      }
+      operation.then(() => {
+        toast({ title: 'Technical Draft Saved', description: 'Site information and staff assignments synchronized.' });
+        if (goToPage2) {
+          router.push(`/supervision/ars/dugwell-recharge/page-2?id=${reportId}`);
+        } else {
+          router.push('/supervision');
+        }
+      }).catch(async (error) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ 
+          path: reportDocRef.path, 
+          operation: isUpdate ? 'update' : 'create', 
+          requestResourceData: reportData 
+        }));
+      });
     });
   };
 
@@ -248,20 +252,20 @@ function UnifiedARSDugwellContent() {
     <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black text-left">
       
       <div className="bg-white border border-slate-200 p-8 rounded-[32px] shadow-sm ring-1 ring-slate-200/50">
-        <div className="flex flex-col space-y-8">
+        <div className="flex flex-col space-y-8 text-left">
           <div className="text-center">
             <h1 className="text-[26px] font-black text-slate-900 uppercase tracking-tighter leading-none">ARS Dugwell Recharge</h1>
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">Technical Oversight | District Office, Malappuram</p>
           </div>
           
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 text-left">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
             <div className="flex items-center gap-5">
               <Button variant="ghost" size="icon" asChild className="rounded-full h-12 w-12 border border-slate-200 text-slate-600 hover:bg-slate-50">
                 <Link href="/supervision"><ArrowLeft className="size-5" /></Link>
               </Button>
             </div>
             
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full lg:w-auto">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full lg:w-auto text-left">
               <div className="space-y-1">
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
                   <CalendarIcon className="size-3 pointer-events-none" /> Completion Date
@@ -298,7 +302,7 @@ function UnifiedARSDugwellContent() {
         </div>
       </div>
 
-      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white">
+      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
           <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-600 flex items-center gap-3">
              <MapPin className="size-4" /> BASIC SITE & ADMIN DETAILS
@@ -335,45 +339,26 @@ function UnifiedARSDugwellContent() {
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Constituency (LAC)</Label>
               <Input disabled value={detectedLac} className="h-11 border-slate-200 bg-slate-50 font-black text-blue-600 uppercase" placeholder="Auto-detected" />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Implementation Year</Label>
               <Input disabled={!canModify} value={formData.implementationYear || ''} onChange={(e) => updateField('implementationYear', e.target.value)} className="h-11 border-slate-200" />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 text-left">
               <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Application Date</Label>
               <Input disabled={!canModify} type="date" value={formData.applicationDate || ''} onChange={(e) => updateField('applicationDate', e.target.value)} className="h-11 border-slate-200" />
-            </div>
-             <div className="space-y-2">
-              <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Name of Beneficiary</Label>
-              <Input disabled={!canModify} value={formData.applicantName || ''} onChange={(e) => updateField('applicantName', e.target.value)} className="h-11 border-slate-200" />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Land Type</Label>
-              <Select disabled={!canModify} onValueChange={(v) => updateField('landType', v)} value={formData.landType || ''}>
-                <SelectTrigger className="h-11 border-slate-200"><SelectValue /></SelectTrigger>
-                <SelectContent><SelectItem value="Private">Private</SelectItem><SelectItem value="Government">Government</SelectItem><SelectItem value="Public/Community">Public/Community</SelectItem></SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Revenue Village</Label>
-              <Input disabled={!canModify} value={formData.village || ''} onChange={(e) => updateField('village', e.target.value)} className="h-11 border-slate-200" />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Block Panchayath</Label>
-              <Input disabled={!canModify} value={formData.block || ''} onChange={(e) => updateField('block', e.target.value)} className="h-11 border-slate-200" />
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white">
+      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
           <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-emerald-600 flex items-center gap-3">
              <Construction className="size-4" /> TECHNICAL SPECIFICATIONS
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-10 space-y-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 text-left">
+        <CardContent className="p-10 space-y-8 text-left">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Diameter of Well (m)</Label>
               <Input disabled={!canModify} value={formData.diameterOfWell || ''} onChange={(e) => updateField('diameterOfWell', e.target.value)} className="h-11 border-slate-200 font-bold" />
@@ -390,27 +375,8 @@ function UnifiedARSDugwellContent() {
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">WL After (mbgl)</Label>
               <Input disabled={!canModify} type="text" value={formData.swlAfter || ''} onChange={(e) => updateField('swlAfter', e.target.value)} className="h-11 bg-blue-50/50 border-blue-100 font-black text-blue-700 rounded-xl" />
             </div>
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Soil Type</Label>
-              <Input disabled={!canModify} value={formData.soilType || ''} onChange={(e) => updateField('soilType', e.target.value)} className="h-11 border-slate-200" placeholder="e.g. Lateritic" />
-            </div>
-            <div className="space-y-2 lg:col-span-2">
-              <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nearest Landmark</Label>
-              <Input disabled={!canModify} value={formData.nearestLandmark || ''} onChange={(e) => updateField('nearestLandmark', e.target.value)} className="h-11 border-slate-200" />
-            </div>
-            <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Recharge Effectiveness</Label>
-                <Select disabled={!canModify} onValueChange={(v) => updateField('rechargeEffectiveness', v)} value={formData.rechargeEffectiveness || ''}>
-                  <SelectTrigger className="h-11 border-slate-200"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Excellent">Excellent</SelectItem>
-                    <SelectItem value="Good">Good</SelectItem>
-                    <SelectItem value="Moderate">Moderate</SelectItem>
-                  </SelectContent>
-                </Select>
-            </div>
           </div>
-          <div className="space-y-2 text-left">
+          <div className="space-y-2">
             <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Technical Remarks</Label>
             <Textarea disabled={!canModify} value={formData.remarks || ''} onChange={(e) => updateField('remarks', e.target.value)} rows={3} className="rounded-2xl border-slate-200 italic text-[11px] uppercase font-bold" />
           </div>

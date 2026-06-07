@@ -75,20 +75,20 @@ function UnifiedDrillingSupervisionContent() {
 
   const id = searchParams.get('id');
 
-  // Role detection
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user?.email) return null;
-    return doc(firestore, 'users', user.email);
+    return doc(firestore, 'users', user.email.toLowerCase().trim());
   }, [firestore, user?.email]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
   
   const isAllowed = useMemo(() => {
     if (isAuthLoading || isProfileLoading) return false;
-    if (user?.email === MASTER_ADMIN_EMAIL) return true;
-    return (userProfile?.role === 'admin' || userProfile?.role === 'engineer') && userProfile?.isApproved === true;
+    const role = (userProfile?.role || '').toLowerCase().trim();
+    const isApproved = userProfile?.isApproved !== false;
+    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL || role === 'admin') return true;
+    return (role === 'admin' || role === 'engineer') && isApproved;
   }, [user, userProfile, isAuthLoading, isProfileLoading]);
 
-  // Fetch Employees for staff selection
   const employeesRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'employees');
@@ -101,6 +101,20 @@ function UnifiedDrillingSupervisionContent() {
   }, [firestore, id]);
 
   const { data: cloudReport, isLoading: isReportLoading } = useDoc<GroundwaterReport>(reportRef);
+
+  const isOwner = useMemo(() => {
+    if (!cloudReport || !user) return false;
+    const creator = (cloudReport.uploadedBy || '').trim();
+    return creator === user.uid || creator === user.email?.toLowerCase().trim();
+  }, [cloudReport, user]);
+
+  const canModify = isAllowed && (!id || isOwner || isAdminUser(user?.email, userProfile?.role));
+
+  function isAdminUser(email?: string | null, role?: string) {
+      if (!email) return false;
+      if (email.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
+      return (role || '').toLowerCase().trim() === 'admin';
+  }
 
   const [formData, setFormData] = useState<any>({
     startDate: new Date().toISOString().split('T')[0],
@@ -180,12 +194,12 @@ function UnifiedDrillingSupervisionContent() {
   }, [employees]);
 
   const detectedLac = useMemo(() => {
-    const mapping = lsgMappings.find(m => m.lsg === formData.lsgd);
+    const mapping = lsgMappings?.find(m => m.lsg === formData.lsgd);
     return mapping?.constituency || '';
   }, [formData.lsgd, lsgMappings]);
 
   const handleSave = () => {
-    if (!user || !firestore || !isAllowed) return;
+    if (!user || !firestore || !canModify) return;
 
     startTransition(() => {
       const isUpdate = !!id;
@@ -205,6 +219,7 @@ function UnifiedDrillingSupervisionContent() {
         workType: "DRILLING",
         dateOfInvestigation,
         updatedAt: new Date().toISOString(),
+        uploadedBy: cloudReport?.uploadedBy || user.uid,
         assembly: detectedLac,
         staffAssignment: {
             assistantExecutiveEngineer: formData.staffAssignment.assistantExecutiveEngineer.join(', '),
@@ -244,7 +259,7 @@ function UnifiedDrillingSupervisionContent() {
       
        <Card className="rounded-[32px] border-none shadow-sm ring-1 ring-slate-200 bg-white overflow-hidden">
         <CardContent className="p-6">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 w-full">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 w-full text-left">
             <div className="space-y-1">
               <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1"><CalendarIcon className="size-3 pointer-events-none" /> Start Date</Label>
               <Input disabled={!isAllowed} type="date" value={formData.startDate || ''} onChange={(e) => updateField('startDate', e.target.value)} className="h-10 text-xs bg-slate-50 border-slate-200 rounded-xl focus:bg-white" />
@@ -282,7 +297,7 @@ function UnifiedDrillingSupervisionContent() {
         </CardContent>
       </Card>
 
-      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white">
+      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
           <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-600 flex items-center gap-3">
              <MapPin className="size-4" /> BASIC SITE & ADMIN DETAILS
@@ -290,24 +305,24 @@ function UnifiedDrillingSupervisionContent() {
         </CardHeader>
         <CardContent className="p-10 space-y-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            <div className="space-y-2">
+            <div className="space-y-2 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">File No</Label>
-              <Input disabled={!isAllowed} value={formData.fileNo || ''} onChange={(e) => updateField('fileNo', e.target.value)} className="h-11 border-slate-200 font-black text-primary focus:bg-white" placeholder="MPM/GWD/..." />
+              <Input disabled={!canModify} value={formData.fileNo || ''} onChange={(e) => updateField('fileNo', e.target.value)} className="h-11 border-slate-200 font-black text-primary focus:bg-white" placeholder="MPM/GWD/..." />
             </div>
-            <div className="space-y-2 lg:col-span-1">
+            <div className="space-y-2 lg:col-span-1 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Name of Site</Label>
-              <Input disabled={!isAllowed} value={formData.nameOfSite || ''} onChange={(e) => updateField('nameOfSite', e.target.value)} className="h-11 border-slate-200 uppercase font-bold text-primary" placeholder="LOCATION NAME" />
+              <Input disabled={!canModify} value={formData.nameOfSite || ''} onChange={(e) => updateField('nameOfSite', e.target.value)} className="h-11 border-slate-200 uppercase font-bold text-primary" placeholder="LOCATION NAME" />
             </div>
-            <div className="space-y-2 lg:col-span-1">
+            <div className="space-y-2 lg:col-span-1 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Address</Label>
-              <Input disabled={!isAllowed} value={formData.address || ''} onChange={(e) => updateField('address', e.target.value)} className="h-11 border-slate-200" placeholder="Street/Area" />
+              <Input disabled={!canModify} value={formData.address || ''} onChange={(e) => updateField('address', e.target.value)} className="h-11 border-slate-200" placeholder="Street/Area" />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Grama Panchayath / LSGD</Label>
-              <Select disabled={!isAllowed} onValueChange={(v) => updateField('lsgd', v)} value={formData.lsgd || ''}>
+              <Select disabled={!canModify} onValueChange={(v) => updateField('lsgd', v)} value={formData.lsgd || ''}>
                 <SelectTrigger className="h-11 border-slate-200 font-bold"><SelectValue placeholder="Select" /></SelectTrigger>
                 <SelectContent className="max-h-[400px] rounded-2xl">{lsgs.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
               </Select>
@@ -320,52 +335,52 @@ function UnifiedDrillingSupervisionContent() {
         </CardContent>
       </Card>
 
-      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white">
+      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
           <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-orange-600 flex items-center gap-3">
              <Pickaxe className="size-4" /> TECHNICAL DRILLING PARAMETERS
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-10 space-y-8">
+        <CardContent className="p-10 space-y-8 text-left">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Borewell Size</Label>
-              <Select disabled={!isAllowed} onValueChange={(v) => updateField('borewellSize', v)} value={formData.borewellSize || ''}>
+              <Select disabled={!canModify} onValueChange={(v) => updateField('borewellSize', v)} value={formData.borewellSize || ''}>
                 <SelectTrigger className="h-11 border-slate-200 font-black text-primary"><SelectValue /></SelectTrigger>
                 <SelectContent className="rounded-2xl">{borewellSizeOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Total Depth (m)</Label>
-              <Input disabled={!isAllowed} type="number" value={formData.totalDepth || ''} onChange={(e) => updateField('totalDepth', e.target.value)} className="h-11 border-slate-200 font-bold" />
+              <Input disabled={!canModify} type="number" value={formData.totalDepth || ''} onChange={(e) => updateField('totalDepth', e.target.value)} className="h-11 border-slate-200 font-bold" />
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Overburden (m)</Label>
-              <Input disabled={!isAllowed} type="number" value={formData.overburden || ''} onChange={(e) => updateField('overburden', e.target.value)} className="h-11 border-slate-200" />
+              <Input disabled={!canModify} type="number" value={formData.overburden || ''} onChange={(e) => updateField('overburden', e.target.value)} className="h-11 border-slate-200" />
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Estimated Yield (LPH)</Label>
-              <Input disabled={!isAllowed} type="number" value={formData.discharge || ''} onChange={(e) => updateField('discharge', e.target.value)} className="h-11 border-slate-200 font-black text-blue-600" />
+              <Input disabled={!canModify} type="number" value={formData.discharge || ''} onChange={(e) => updateField('discharge', e.target.value)} className="h-11 border-slate-200 font-black text-blue-600" />
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">PVC 140mm 6kg/cm² (m)</Label>
-              <Input disabled={!isAllowed} value={formData.pvc6kg || ''} onChange={(e) => updateField('pvc6kg', e.target.value)} className="h-11 border-slate-200" />
+              <Input disabled={!canModify} value={formData.pvc6kg || ''} onChange={(e) => updateField('pvc6kg', e.target.value)} className="h-11 border-slate-200" />
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">PVC 140mm 10kg/cm² (m)</Label>
-              <Input disabled={!isAllowed} value={formData.pvc10kg || ''} onChange={(e) => updateField('pvc10kg', e.target.value)} className="h-11 border-slate-200" />
+              <Input disabled={!canModify} value={formData.pvc10kg || ''} onChange={(e) => updateField('pvc10kg', e.target.value)} className="h-11 border-slate-200" />
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Zone Details (m)</Label>
-              <Input disabled={!isAllowed} value={formData.zoneDepth || ''} onChange={(e) => updateField('zoneDepth', e.target.value)} className="h-11 border-slate-200" placeholder="e.g. 60-90" />
+              <Input disabled={!canModify} value={formData.zoneDepth || ''} onChange={(e) => updateField('zoneDepth', e.target.value)} className="h-11 border-slate-200" placeholder="e.g. 60-90" />
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Static Water Level (mbgl)</Label>
-              <Input disabled={!isAllowed} type="number" value={formData.waterLevel || ''} onChange={(e) => updateField('waterLevel', e.target.value)} className="h-11 border-slate-200" />
+              <Input disabled={!canModify} type="number" value={formData.waterLevel || ''} onChange={(e) => updateField('waterLevel', e.target.value)} className="h-11 border-slate-200" />
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Yield Assessment</Label>
-              <Select disabled={!isAllowed} onValueChange={(val) => updateField('remarks', val)} value={formData.remarks || ''}>
+              <Select disabled={!canModify} onValueChange={(val) => updateField('remarks', val)} value={formData.remarks || ''}>
                 <SelectTrigger className="h-11 border-slate-200 font-bold"><SelectValue /></SelectTrigger>
                 <SelectContent className="rounded-2xl">
                   <SelectItem value="Low yield">Low Yield</SelectItem>
@@ -379,14 +394,14 @@ function UnifiedDrillingSupervisionContent() {
           </div>
           <div className="space-y-2">
             <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Field Observations & Strata Details</Label>
-            <Textarea disabled={!isAllowed} value={formData.observations || ''} onChange={(e) => updateField('observations', e.target.value)} rows={4} className="rounded-2xl border-slate-200 p-6 italic font-medium leading-relaxed" placeholder="Record technical work strata or site specific notes here..." />
+            <Textarea disabled={!canModify} value={formData.observations || ''} onChange={(e) => updateField('observations', e.target.value)} rows={4} className="rounded-2xl border-slate-200 p-6 italic font-medium leading-relaxed" placeholder="Record technical work strata or site specific notes here..." />
           </div>
         </CardContent>
       </Card>
 
-      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white">
+      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
-          <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3">
+          <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3 text-left">
              <Users className="size-4" /> 4. STAFF DETAILS (TEAM ASSIGNMENT)
           </CardTitle>
         </CardHeader>
@@ -398,10 +413,10 @@ function UnifiedDrillingSupervisionContent() {
         </CardContent>
       </Card>
 
-      <div className="flex justify-end pt-8">
-        <Button onClick={handleSave} disabled={isPending || !isAllowed} className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/30 gap-3 hover:bg-blue-900 transition-all active:scale-95">
+      <div className="flex justify-end pt-8 text-left">
+        <Button onClick={handleSave} disabled={isPending || !canModify} className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/30 gap-3 hover:bg-blue-900 transition-all active:scale-95">
           {isPending ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-5" />} 
-          {isAllowed ? (id ? 'UPDATE TECHNICAL RECORD' : 'SAVE TECHNICAL RECORD') : 'ACCESS RESTRICTED'}
+          {canModify ? (id ? 'UPDATE TECHNICAL RECORD' : 'SAVE TECHNICAL RECORD') : 'ACCESS RESTRICTED'}
         </Button>
       </div>
 

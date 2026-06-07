@@ -92,10 +92,10 @@ function UnifiedBorewellPumpingEntryContent() {
   
   const isAllowed = useMemo(() => {
     if (isAuthLoading || isProfileLoading) return false;
-    const role = (userProfile?.role || '').toLowerCase();
+    const role = (userProfile?.role || '').toLowerCase().trim();
     const isApproved = userProfile?.isApproved !== false;
     if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL || role === 'admin') return true;
-    return (role === 'admin' || role === 'engineer' || role === 'scientist') && isApproved;
+    return (role === 'engineer' || role === 'scientist') && isApproved;
   }, [user, userProfile, isAuthLoading, isProfileLoading]);
 
   const employeesRef = useMemoFirebase(() => {
@@ -113,10 +113,17 @@ function UnifiedBorewellPumpingEntryContent() {
 
   const isOwner = useMemo(() => {
     if (!cloudReport || !user) return false;
-    return cloudReport.uploadedBy === user.uid;
+    const creator = (cloudReport.uploadedBy || '').trim();
+    return creator === user.uid || creator === user.email?.toLowerCase().trim();
   }, [cloudReport, user]);
 
-  const canModify = isAllowed && (!id || isOwner || user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL || userProfile?.role?.toLowerCase() === 'admin');
+  const canModify = isAllowed && (!id || isOwner || isAdminUser(user?.email, userProfile?.role));
+
+  function isAdminUser(email?: string | null, role?: string) {
+      if (!email) return false;
+      if (email.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
+      return (role || '').toLowerCase().trim() === 'admin';
+  }
 
   const [formData, setFormData] = useState<any>({
     reportDate: new Date().toISOString().split('T')[0],
@@ -417,7 +424,7 @@ function UnifiedBorewellPumpingEntryContent() {
         <Button onClick={handleSave} disabled={isPending || !canModify} className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/30 gap-3 hover:bg-blue-900 transition-all hover:scale-[1.02] active:scale-95"
         >
           {isPending ? <Loader2 className="size-5 animate-spin" /> : <Save className="size-5" />} 
-          {canModify ? (id ? 'UPDATE TEST RECORD' : 'SAVE TEST RECORD') : 'ACCESS RESTRICTED'}
+          {canModify ? (id ? 'UPDATE TEST RECORD' : 'SAVE TEST RECORD') : <Lock className="size-4" />}
         </Button>
       </div>
 
