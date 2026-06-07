@@ -95,18 +95,13 @@ export default function GroundWaterInvestigationPage() {
 
   const isAdmin = useMemo(() => {
     if (isUserLoading || isProfileLoading) return false;
-    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
-    return userProfile?.role?.toLowerCase() === 'admin';
+    const email = user?.email?.toLowerCase().trim();
+    if (email === MASTER_ADMIN_EMAIL) return true;
+    return userProfile?.role?.toLowerCase().trim() === 'admin';
   }, [user, userProfile, isUserLoading, isProfileLoading]);
 
-  const isEngineer = useMemo(() => userProfile?.role?.toLowerCase() === 'engineer', [userProfile]);
-  const isScientist = useMemo(() => userProfile?.role?.toLowerCase() === 'scientist', [userProfile]);
-
-  const isAllowedToAdd = useMemo(() => {
-    if (isUserLoading || isProfileLoading) return false;
-    if (isAdmin) return true;
-    return (isEngineer || isScientist) && userProfile?.isApproved !== false;
-  }, [isAdmin, isEngineer, isScientist, userProfile, isUserLoading, isProfileLoading]);
+  const isEngineer = useMemo(() => userProfile?.role?.toLowerCase().trim() === 'engineer', [userProfile]);
+  const isScientist = useMemo(() => userProfile?.role?.toLowerCase().trim() === 'scientist', [userProfile]);
 
   const reportsQuery = useMemoFirebase(() => {
     if (!firestore || isUserLoading || !user) return null;
@@ -128,7 +123,7 @@ export default function GroundWaterInvestigationPage() {
     if (systemUsers) {
       systemUsers.forEach(u => {
         const name = u.displayName || u.email || 'Technical Officer';
-        if (u.uid) map.set(u.uid, name);
+        if (u.uid) map.set(u.uid.toLowerCase().trim(), name);
         if (u.email) map.set(u.email.toLowerCase().trim(), name);
       });
     }
@@ -179,26 +174,6 @@ export default function GroundWaterInvestigationPage() {
     setReportToDelete(null);
   };
 
-  const handleNewTechnicalEntry = (type: string) => {
-    switch(type) {
-      case "geological":
-        router.push("/ground-water-investigation/geological-survey/site-entry");
-        break;
-      case "geophysical":
-        router.push("/ground-water-investigation/geophysical-survey/site-entry");
-        break;
-      case "complaints":
-        router.push("/ground-water-investigation/complaints");
-        break;
-      case "joint":
-        router.push("/ground-water-investigation/joint-inspection");
-        break;
-      case "nhp":
-        router.push("/ground-water-investigation/nhp-data");
-        break;
-    }
-  };
-
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-8 animate-in fade-in duration-700 text-left">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 text-left">
@@ -219,7 +194,7 @@ export default function GroundWaterInvestigationPage() {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button disabled={!isAllowedToAdd} size="lg" className="h-14 px-8 rounded-2xl bg-[#1e3a8a] hover:bg-blue-900 shadow-xl shadow-blue-900/20 font-black uppercase tracking-widest text-[11px] gap-3">
+              <Button disabled={!(isAdmin || isEngineer || isScientist)} size="lg" className="h-14 px-8 rounded-2xl bg-[#1e3a8a] hover:bg-blue-900 shadow-xl shadow-blue-900/20 font-black uppercase tracking-widest text-[11px] gap-3">
                 <PlusCircle className="size-5" />
                 NEW TECHNICAL ENTRY
                 <ChevronDown className="size-4 opacity-50" />
@@ -228,35 +203,35 @@ export default function GroundWaterInvestigationPage() {
             <DropdownMenuContent align="end" className="w-[300px] p-2 rounded-[24px] border-slate-200 shadow-2xl bg-white/95 backdrop-blur-xl">
               <DropdownMenuLabel className="px-4 py-3 text-[10px] font-black uppercase text-slate-400 tracking-widest">Select Category</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => handleNewTechnicalEntry("geological")} className="rounded-xl cursor-pointer p-3 focus:bg-blue-50 group">
-                <div className="flex items-center gap-3 w-full">
+              <DropdownMenuItem asChild className="rounded-xl cursor-pointer p-3 focus:bg-blue-50 group">
+                <Link href="/ground-water-investigation/geological-survey/site-entry" className="flex items-center gap-3 w-full">
                   <div className="p-2 bg-blue-50 rounded-lg group-hover:scale-110 transition-transform"><FileText className="size-4 text-blue-600" /></div>
                   <span className="font-bold text-xs uppercase text-slate-700">Geological Survey</span>
-                </div>
+                </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleNewTechnicalEntry("geophysical")} className="rounded-xl cursor-pointer p-3 focus:bg-emerald-50 group">
-                <div className="flex items-center gap-3 w-full">
+              <DropdownMenuItem asChild className="rounded-xl cursor-pointer p-3 focus:bg-emerald-50 group">
+                <Link href="/ground-water-investigation/geophysical-survey/site-entry" className="flex items-center gap-3 w-full">
                   <div className="p-2 bg-emerald-100 rounded-lg group-hover:scale-110 transition-transform"><Calculator className="size-4 text-emerald-600" /></div>
                   <span className="font-bold text-xs uppercase text-slate-700">Geophysical Survey</span>
-                </div>
+                </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleNewTechnicalEntry("complaints")} className="rounded-xl cursor-pointer p-3 focus:bg-rose-50 group">
-                <div className="flex items-center gap-3 w-full">
+              <DropdownMenuItem asChild className="rounded-xl cursor-pointer p-3 focus:bg-rose-50 group">
+                <Link href="/ground-water-investigation/complaints" className="flex items-center gap-3 w-full">
                   <div className="p-2 bg-rose-50 rounded-lg group-hover:scale-110 transition-transform"><ShieldAlert className="size-4 text-rose-600" /></div>
                   <span className="font-bold text-xs uppercase text-slate-700">Complaints</span>
-                </div>
+                </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleNewTechnicalEntry("joint")} className="rounded-xl cursor-pointer p-3 focus:bg-purple-50 group">
-                <div className="flex items-center gap-3 w-full">
+              <DropdownMenuItem asChild className="rounded-xl cursor-pointer p-3 focus:bg-purple-50 group">
+                <Link href="/ground-water-investigation/joint-inspection" className="flex items-center gap-3 w-full">
                   <div className="p-2 bg-purple-50 rounded-lg group-hover:scale-110 transition-transform"><Users className="size-4 text-purple-600" /></div>
                   <span className="font-bold text-xs uppercase text-slate-700">Joint Inspection</span>
                 </div>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleNewTechnicalEntry("nhp")} className="rounded-xl cursor-pointer p-3 focus:bg-cyan-50 group">
-                <div className="flex items-center gap-3 w-full">
+              <DropdownMenuItem asChild className="rounded-xl cursor-pointer p-3 focus:bg-cyan-50 group">
+                <Link href="/ground-water-investigation/nhp-data" className="flex items-center gap-3 w-full">
                   <div className="p-2 bg-cyan-50 rounded-lg group-hover:scale-110 transition-transform"><Database className="size-4 text-cyan-600" /></div>
                   <span className="font-bold text-xs uppercase text-slate-700">NHP Data</span>
-                </div>
+                </Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -303,9 +278,13 @@ export default function GroundWaterInvestigationPage() {
                     const hasOpenwellFeasibility = recType === 'openwell';
                     const hasFeasibility = hasBorewellFeasibility || hasOpenwellFeasibility;
                     
-                    const isOwner = user?.uid === r.uploadedBy || user?.email?.toLowerCase() === r.uploadedBy?.toLowerCase();
+                    const isOwner = 
+                      (user?.uid && r.uploadedBy && user.uid.trim() === r.uploadedBy.trim()) || 
+                      (user?.email && r.uploadedBy && user.email.toLowerCase().trim() === r.uploadedBy.toLowerCase().trim());
+                    
                     const canModifyRecord = isAdmin || ((isEngineer || isScientist) && isOwner);
-                    const ownerName = userMap.get(r.uploadedBy) || userMap.get(r.uploadedBy?.toLowerCase()?.trim()) || userMap.get(r.uploadedBy?.trim()) || 'District Officer';
+                    const ownerLookup = r.uploadedBy?.toLowerCase().trim();
+                    const ownerName = userMap.get(ownerLookup) || 'District Officer';
 
                     return (
                       <TableRow key={r.id} className="h-20 border-slate-50 hover:bg-slate-50/80 transition-colors group">

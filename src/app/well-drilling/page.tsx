@@ -87,18 +87,13 @@ export default function WellDrillingLedgerPage() {
   
   const isAdmin = useMemo(() => {
     if (isUserLoading || isProfileLoading) return false;
-    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
-    return userProfile?.role?.toLowerCase() === 'admin';
+    const email = user?.email?.toLowerCase().trim();
+    if (email === MASTER_ADMIN_EMAIL) return true;
+    return userProfile?.role?.toLowerCase().trim() === 'admin';
   }, [user, userProfile, isUserLoading, isProfileLoading]);
 
-  const isEngineer = useMemo(() => userProfile?.role?.toLowerCase() === 'engineer', [userProfile]);
-  const isScientist = useMemo(() => userProfile?.role?.toLowerCase() === 'scientist', [userProfile]);
-
-  const isAllowedToAdd = useMemo(() => {
-    if (isUserLoading || isProfileLoading) return false;
-    if (isAdmin) return true;
-    return (isEngineer || isScientist) && userProfile?.isApproved !== false;
-  }, [isAdmin, isEngineer, isScientist, userProfile, isUserLoading, isProfileLoading]);
+  const isEngineer = useMemo(() => userProfile?.role?.toLowerCase().trim() === 'engineer', [userProfile]);
+  const isScientist = useMemo(() => userProfile?.role?.toLowerCase().trim() === 'scientist', [userProfile]);
 
   const reportsQuery = useMemoFirebase(() => {
     if (!firestore || isUserLoading || !user) return null;
@@ -120,7 +115,7 @@ export default function WellDrillingLedgerPage() {
     if (systemUsers) {
       systemUsers.forEach(u => {
         const name = u.displayName || u.email || 'Technical Officer';
-        if (u.uid) map.set(u.uid, name);
+        if (u.uid) map.set(u.uid.toLowerCase().trim(), name);
         if (u.email) map.set(u.email.toLowerCase().trim(), name);
       });
     }
@@ -183,7 +178,7 @@ export default function WellDrillingLedgerPage() {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button disabled={!isAllowedToAdd} size="lg" className="h-14 px-8 rounded-2xl bg-[#1e3a8a] hover:bg-blue-900 shadow-xl shadow-blue-900/20 font-black uppercase tracking-widest text-[11px] gap-3">
+            <Button disabled={!(isAdmin || isEngineer || isScientist)} size="lg" className="h-14 px-8 rounded-2xl bg-[#1e3a8a] hover:bg-blue-900 shadow-xl shadow-blue-900/20 font-black uppercase tracking-widest text-[11px] gap-3">
               <PlusCircle className="size-5" />
               NEW DRILLING ENTRY
               <ChevronDown className="size-4 opacity-50" />
@@ -248,9 +243,13 @@ export default function WellDrillingLedgerPage() {
                     const editUrl = r.workType === 'FLUSHING' ? `/well-drilling/flushing-entry?id=${r.id}` : `/well-drilling/drilling-entry?id=${r.id}`;
                     const viewUrl = r.workType === 'FLUSHING' ? `/well-drilling/private/drinking/flushing-report?id=${r.id}` : `/well-drilling/private/drinking/completion-report?id=${r.id}`;
                     
-                    const isOwner = user?.uid === r.uploadedBy || user?.email?.toLowerCase() === r.uploadedBy?.toLowerCase();
+                    const isOwner = 
+                      (user?.uid && r.uploadedBy && user.uid.trim() === r.uploadedBy.trim()) || 
+                      (user?.email && r.uploadedBy && user.email.toLowerCase().trim() === r.uploadedBy.toLowerCase().trim());
+                    
                     const canModifyRecord = isAdmin || ((isEngineer || isScientist) && isOwner);
-                    const ownerName = userMap.get(r.uploadedBy) || userMap.get(r.uploadedBy?.toLowerCase()?.trim()) || userMap.get(r.uploadedBy?.trim()) || 'District Officer';
+                    const ownerLookup = r.uploadedBy?.toLowerCase().trim();
+                    const ownerName = userMap.get(ownerLookup) || 'District Officer';
 
                     return (
                       <TableRow key={r.id} className="h-20 border-slate-50 hover:bg-slate-50/50 transition-colors group">

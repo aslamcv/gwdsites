@@ -92,12 +92,13 @@ export default function SupervisionLedgerPage() {
   
   const isAdmin = useMemo(() => {
     if (isUserLoading || isProfileLoading) return false;
-    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
-    return userProfile?.role?.toLowerCase() === 'admin';
+    const email = user?.email?.toLowerCase().trim();
+    if (email === MASTER_ADMIN_EMAIL) return true;
+    return userProfile?.role?.toLowerCase().trim() === 'admin';
   }, [user, userProfile, isUserLoading, isProfileLoading]);
 
-  const isEngineer = useMemo(() => userProfile?.role?.toLowerCase() === 'engineer', [userProfile]);
-  const isScientist = useMemo(() => userProfile?.role?.toLowerCase() === 'scientist', [userProfile]);
+  const isEngineer = useMemo(() => userProfile?.role?.toLowerCase().trim() === 'engineer', [userProfile]);
+  const isScientist = useMemo(() => userProfile?.role?.toLowerCase().trim() === 'scientist', [userProfile]);
 
   const isAllowedToAdd = useMemo(() => {
     if (isUserLoading || isProfileLoading) return false;
@@ -125,7 +126,7 @@ export default function SupervisionLedgerPage() {
     if (systemUsers) {
       systemUsers.forEach(u => {
         const name = u.displayName || u.email || 'Technical Officer';
-        if (u.uid) map.set(u.uid, name);
+        if (u.uid) map.set(u.uid.toLowerCase().trim(), name);
         if (u.email) map.set(u.email.toLowerCase().trim(), name);
       });
     }
@@ -322,9 +323,13 @@ export default function SupervisionLedgerPage() {
                 ) : paginatedRecords.length > 0 ? (
                   paginatedRecords.map((r) => {
                     const category = getSupervisionCategory(r);
-                    const isOwner = user?.uid === r.uploadedBy || user?.email?.toLowerCase() === r.uploadedBy?.toLowerCase();
+                    const isOwner = 
+                      (user?.uid && r.uploadedBy && user.uid.trim() === r.uploadedBy.trim()) || 
+                      (user?.email && r.uploadedBy && user.email.toLowerCase().trim() === r.uploadedBy.toLowerCase().trim());
+                    
                     const canModifyRecord = isAdmin || ((isEngineer || isScientist) && isOwner);
-                    const ownerName = userMap.get(r.uploadedBy) || userMap.get(r.uploadedBy?.toLowerCase()?.trim()) || userMap.get(r.uploadedBy?.trim()) || 'District Officer';
+                    const ownerLookup = r.uploadedBy?.toLowerCase().trim();
+                    const ownerName = userMap.get(ownerLookup) || 'District Officer';
 
                     return (
                       <TableRow key={r.id} className="h-20 border-slate-50 hover:bg-slate-50/50 transition-colors group">
@@ -346,7 +351,9 @@ export default function SupervisionLedgerPage() {
                         <TableCell className="text-right pr-8">
                           <div className="flex items-center justify-end gap-1.5">
                              <Button variant="ghost" size="icon" onClick={() => setViewingReport(r)} className="size-8 rounded-lg bg-white ring-1 ring-slate-100 shadow-sm" title="View Saved Data"><Eye className="size-3.5 text-slate-400 hover:text-primary" /></Button>
-                             <Button variant="ghost" size="icon" asChild disabled={!canModifyRecord} className="size-8 rounded-lg bg-white ring-1 ring-slate-100 shadow-sm" title={canModifyRecord ? 'Edit Record' : 'Access Restricted'}><Link href={canModifyRecord ? getEditUrl(r) : '#'} className={!canModifyRecord ? "pointer-events-none opacity-50" : ""}><Edit3 className={cn("size-3.5", canModifyRecord ? "text-slate-400 hover:text-emerald-600" : "opacity-30")} /></Link></Button>
+                             <Button variant="ghost" size="icon" asChild disabled={!canModifyRecord} className="size-8 rounded-lg bg-white ring-1 ring-slate-100 shadow-sm" title={canModifyRecord ? 'Edit Record' : 'Access Restricted'}>
+                                <Link href={canModifyRecord ? getEditUrl(r) : '#'} className={!canModifyRecord ? "pointer-events-none opacity-50" : ""}><Edit3 className={cn("size-3.5", canModifyRecord ? "text-slate-400 hover:text-emerald-600" : "opacity-30")} /></Link>
+                             </Button>
                              <Button variant="ghost" size="icon" onClick={() => canModifyRecord && setReportToDelete(r)} disabled={!canModifyRecord} className={cn("size-8 rounded-lg transition-colors bg-white ring-1 ring-slate-100", canModifyRecord ? "text-rose-400 hover:text-rose-600 hover:bg-rose-50" : "opacity-20")} title={canModifyRecord ? 'Delete' : 'Access Restricted'}><Trash2 className="size-3.5" /></Button>
                           </div>
                         </TableCell>
