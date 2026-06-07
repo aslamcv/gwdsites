@@ -82,7 +82,7 @@ export default function SupervisionLedgerPage() {
   const itemsPerPage = 10;
 
   const firestore = useFirestore();
-  const { user, isUserLoading: isAuthLoading } = useUser();
+  const { user, isUserLoading } = useUser();
 
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user?.email) return null;
@@ -91,43 +91,39 @@ export default function SupervisionLedgerPage() {
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
   
   const isAdmin = useMemo(() => {
-    if (isAuthLoading || isProfileLoading) return false;
+    if (isUserLoading || isProfileLoading) return false;
     const email = user?.email?.toLowerCase().trim();
     const role = (userProfile?.role || '').toLowerCase().trim();
     return email === MASTER_ADMIN_EMAIL || role === 'admin';
-  }, [user, userProfile, isAuthLoading, isProfileLoading]);
+  }, [user, userProfile, isUserLoading, isProfileLoading]);
 
   const isEngineer = useMemo(() => (userProfile?.role || '').toLowerCase().trim() === 'engineer', [userProfile]);
   const isScientist = useMemo(() => (userProfile?.role || '').toLowerCase().trim() === 'scientist', [userProfile]);
 
-  const isAllowedToAdd = useMemo(() => {
-    if (isAuthLoading || isProfileLoading) return false;
-    if (isAdmin) return true;
-    return (isEngineer || isScientist) && userProfile?.isApproved !== false;
-  }, [isAdmin, isEngineer, isScientist, userProfile, isAuthLoading, isProfileLoading]);
-
   const reportsQuery = useMemoFirebase(() => {
-    if (!firestore || isAuthLoading || !user) return null;
+    if (!firestore || isUserLoading || !user) return null;
     return query(collection(firestore, 'groundwaterReports'));
-  }, [firestore, user, isAuthLoading]);
+  }, [firestore, user, isUserLoading]);
 
   const { data: reports, isLoading } = useCollection<GroundwaterReport>(reportsQuery);
 
   const usersQuery = useMemoFirebase(() => {
-    if (!firestore || isAuthLoading || !user) return null;
+    if (!firestore || isUserLoading || !user) return null;
     return query(collection(firestore, 'users'));
-  }, [firestore, user, isAuthLoading]);
+  }, [firestore, user, isUserLoading]);
   const { data: systemUsers, isLoading: isUsersLoading } = useCollection(usersQuery);
 
   const userMap = useMemo(() => {
     const map = new Map();
-    map.set(MASTER_ADMIN_EMAIL.toLowerCase().trim(), 'District Officer');
+    map.set(MASTER_ADMIN_EMAIL.toLowerCase(), 'District Officer');
     
     if (systemUsers) {
       systemUsers.forEach(u => {
         const name = u.displayName || u.email || 'Technical Officer';
-        if (u.uid) map.set(u.uid.trim(), name);
-        if (u.email) map.set(u.email.toLowerCase().trim(), name);
+        const uid = (u.uid || '').trim();
+        const email = (u.email || '').toLowerCase().trim();
+        if (uid) map.set(uid, name);
+        if (email) map.set(email, name);
       });
     }
     return map;
@@ -328,13 +324,11 @@ export default function SupervisionLedgerPage() {
                   paginatedRecords.map((r) => {
                     const category = getSupervisionCategory(r);
                     
-                    const isOwner = 
-                      (user?.uid && r.uploadedBy && user.uid.toLowerCase().trim() === r.uploadedBy.toLowerCase().trim()) || 
-                      (user?.email && r.uploadedBy && user.email.toLowerCase().trim() === r.uploadedBy.toLowerCase().trim());
+                    const creatorId = (r.uploadedBy || '').trim();
+                    const isOwner = (user?.uid && creatorId === user.uid) || (user?.email && creatorId === user.email.toLowerCase().trim());
                     
                     const canModifyRecord = isAdmin || ((isEngineer || isScientist) && isOwner);
-                    const ownerLookup = r.uploadedBy?.toLowerCase().trim();
-                    const ownerName = userMap.get(ownerLookup) || userMap.get(r.uploadedBy) || 'District Officer';
+                    const ownerName = userMap.get(creatorId.toLowerCase()) || userMap.get(creatorId) || 'District Officer';
 
                     return (
                       <TableRow key={r.id} className="h-20 border-slate-50 hover:bg-slate-50/50 transition-colors group">

@@ -36,7 +36,7 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useUser, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useUser, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, doc, setDoc, updateDoc } from 'firebase/firestore';
 import type { GroundwaterReport, Employee } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
@@ -74,7 +74,7 @@ function UnifiedHPSSupervisionContent() {
   const searchParams = useSearchParams();
   const { lsgs, lsgMappings } = useLsgdData();
   const firestore = useFirestore();
-  const { user, isUserLoading } = useUser();
+  const { user, isUserLoading: isAuthLoading } = useUser();
   const [isPending, startTransition] = useTransition();
 
   const id = searchParams.get('id');
@@ -86,12 +86,12 @@ function UnifiedHPSSupervisionContent() {
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
   
   const isAllowed = useMemo(() => {
-    if (isUserLoading || isProfileLoading) return false;
+    if (isAuthLoading || isProfileLoading) return false;
     const role = (userProfile?.role || '').toLowerCase();
     const isApproved = userProfile?.isApproved !== false;
     if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL || role === 'admin') return true;
     return (role === 'admin' || role === 'engineer') && isApproved;
-  }, [user, userProfile, isUserLoading, isProfileLoading]);
+  }, [user, userProfile, isAuthLoading, isProfileLoading]);
 
   const employeesRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -108,7 +108,8 @@ function UnifiedHPSSupervisionContent() {
 
   const isOwner = useMemo(() => {
     if (!cloudReport || !user) return false;
-    return cloudReport.uploadedBy === user.uid;
+    const creator = (cloudReport.uploadedBy || '').trim();
+    return creator === user.uid || creator === user.email?.toLowerCase().trim();
   }, [cloudReport, user]);
 
   const canModify = isAllowed && (
@@ -215,14 +216,18 @@ function UnifiedHPSSupervisionContent() {
         }
       };
 
-      if (isUpdate) {
-        updateDocumentNonBlocking(reportDocRef, reportData);
-      } else {
-        setDocumentNonBlocking(reportDocRef, reportData, { merge: true });
-      }
+      const operation = isUpdate ? updateDoc(reportDocRef, reportData) : setDoc(reportDocRef, reportData);
 
-      toast({ title: isUpdate ? 'Record Updated' : 'Record Saved', description: 'HPS technical record synchronized.' });
-      router.push('/supervision');
+      operation.then(() => {
+        toast({ title: isUpdate ? 'Record Updated' : 'Record Saved', description: 'HPS technical record synchronized.' });
+        router.push('/supervision');
+      }).catch(async (error) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ 
+          path: reportDocRef.path, 
+          operation: isUpdate ? 'update' : 'create', 
+          requestResourceData: reportData 
+        }));
+      });
     });
   };
 
@@ -240,7 +245,7 @@ function UnifiedHPSSupervisionContent() {
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">Technical Oversight | District Office, Malappuram</p>
           </div>
           
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 text-left">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
             <div className="flex items-center gap-5">
               <Button variant="ghost" size="icon" asChild className="rounded-full h-12 w-12 border border-slate-200 text-slate-600 hover:bg-slate-50">
                 <Link href="/supervision"><ArrowLeft className="size-5" /></Link>
@@ -331,11 +336,11 @@ function UnifiedHPSSupervisionContent() {
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Static Water Level (m)</Label>
-              <Input disabled={!canModify} type="number" value={formData.staticWaterLevel} onChange={(e) => updateField('staticWaterLevel', e.target.value)} className="h-11 border-slate-200 font-bold text-blue-600" />
+              <Input disabled={!canModify} type="text" value={formData.staticWaterLevel} onChange={(e) => updateField('staticWaterLevel', e.target.value)} className="h-11 border-slate-200 font-bold text-blue-600" />
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Depth of Pump Installed (m)</Label>
-              <Input disabled={!canModify} type="number" value={formData.depthOfPumpInstalled} onChange={(e) => updateField('depthOfPumpInstalled', e.target.value)} className="h-11 border-slate-200 font-black text-primary" />
+              <Input disabled={!canModify} type="text" value={formData.depthOfPumpInstalled} onChange={(e) => updateField('depthOfPumpInstalled', e.target.value)} className="h-11 border-slate-200 font-black text-primary" />
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Size of Platform Constructed</Label>
@@ -362,7 +367,7 @@ function UnifiedHPSSupervisionContent() {
 
       <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
-          <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3">
+          <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3 text-left">
              <Users className="size-4" /> 4. STAFF DETAILS (TEAM ASSIGNMENT)
           </CardTitle>
         </CardHeader>

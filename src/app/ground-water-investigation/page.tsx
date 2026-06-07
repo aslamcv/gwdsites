@@ -123,8 +123,10 @@ export default function GroundWaterInvestigationPage() {
     if (systemUsers) {
       systemUsers.forEach(u => {
         const name = u.displayName || u.email || 'Technical Officer';
-        if (u.uid) map.set(u.uid.toLowerCase().trim(), name);
-        if (u.email) map.set(u.email.toLowerCase().trim(), name);
+        const uid = (u.uid || '').trim();
+        const email = (u.email || '').toLowerCase().trim();
+        if (uid) map.set(uid, name);
+        if (email) map.set(email, name);
       });
     }
     return map;
@@ -225,7 +227,7 @@ export default function GroundWaterInvestigationPage() {
                 <Link href="/ground-water-investigation/joint-inspection" className="flex items-center gap-3 w-full">
                   <div className="p-2 bg-purple-50 rounded-lg group-hover:scale-110 transition-transform"><Users className="size-4 text-purple-600" /></div>
                   <span className="font-bold text-xs uppercase text-slate-700">Joint Inspection</span>
-                </div>
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild className="rounded-xl cursor-pointer p-3 focus:bg-cyan-50 group">
                 <Link href="/ground-water-investigation/nhp-data" className="flex items-center gap-3 w-full">
@@ -248,6 +250,10 @@ export default function GroundWaterInvestigationPage() {
       </Card>
 
       <Card className="border-none shadow-xl shadow-slate-200/50 rounded-[32px] overflow-hidden ring-1 ring-slate-200 bg-white">
+        <CardHeader className="bg-slate-50/50 border-b py-5 px-10 flex flex-row items-center justify-between space-y-0">
+          <CardTitle className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">DISTRICT INVESTIGATION REPOSITORY</CardTitle>
+          <Badge variant="outline" className="bg-white border-slate-200 text-slate-600 text-[8px] font-black uppercase tracking-widest px-3 h-6 rounded-full">{allRecords.length} TOTAL ENTRIES</Badge>
+        </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
@@ -273,18 +279,16 @@ export default function GroundWaterInvestigationPage() {
                     const isVes = !!r.vesData || (r.category || '').toLowerCase().includes('geophysical');
                     const isGeological = !isVes && ((r.purpose || '').toLowerCase().includes('geological') || (r.category || '').toLowerCase().includes('geological') || (r.purpose || '').toLowerCase().includes('investigation') || !!r.hydrogeology);
                     
-                    const recType = r.recommendationType?.toLowerCase();
+                    const recType = (r.recommendationType || '').toLowerCase();
                     const hasBorewellFeasibility = recType === 'borewell' || recType === 'tubewell' || recType === 'filterpoint';
                     const hasOpenwellFeasibility = recType === 'openwell';
                     const hasFeasibility = hasBorewellFeasibility || hasOpenwellFeasibility;
                     
-                    const isOwner = 
-                      (user?.uid && r.uploadedBy && user.uid.trim() === r.uploadedBy.trim()) || 
-                      (user?.email && r.uploadedBy && user.email.toLowerCase().trim() === r.uploadedBy.toLowerCase().trim());
+                    const creatorId = (r.uploadedBy || '').trim();
+                    const isOwner = (user?.uid && creatorId === user.uid) || (user?.email && creatorId === user.email.toLowerCase().trim());
                     
                     const canModifyRecord = isAdmin || ((isEngineer || isScientist) && isOwner);
-                    const ownerLookup = r.uploadedBy?.toLowerCase().trim();
-                    const ownerName = userMap.get(ownerLookup) || 'District Officer';
+                    const ownerName = userMap.get(creatorId.toLowerCase()) || userMap.get(creatorId) || 'District Officer';
 
                     return (
                       <TableRow key={r.id} className="h-20 border-slate-50 hover:bg-slate-50/80 transition-colors group">
@@ -315,7 +319,7 @@ export default function GroundWaterInvestigationPage() {
                                 <Link href={`/report/${r.id}/${hasOpenwellFeasibility ? 'feasibility-open-well' : 'feasibility-bore-well'}`} target="_blank">
                                   <Badge className="bg-emerald-100 text-emerald-800 border-none hover:bg-emerald-200 cursor-pointer text-[9px] font-black uppercase h-7 px-3 flex items-center gap-1.5 transition-all">
                                     <FileCheck className="size-3" />
-                                    {hasOpenwellFeasibility ? 'FEASIBILITY REPORT - OPEN WELL' : 'FEASIBILITY REPORT - BORE WELL'}
+                                    {hasOpenwellFeasibility ? 'FEASIBILITY - OPEN WELL' : 'FEASIBILITY - BORE WELL'}
                                   </Badge>
                                 </Link>
                               )}
@@ -331,7 +335,7 @@ export default function GroundWaterInvestigationPage() {
                            </div>
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center justify-center gap-2">
                             <div className={cn("size-2 rounded-full", isVes ? "bg-purple-600" : "bg-blue-600")} />
                             <span className="text-[10px] font-black text-slate-700 uppercase tracking-tight">{r.category?.split(' / ')[0] || 'Survey'}</span>
                           </div>
@@ -391,20 +395,6 @@ export default function GroundWaterInvestigationPage() {
           <DialogFooter className="border-t bg-slate-50/50 p-4 justify-end"><Button onClick={() => setViewingReport(null)} className="h-10 rounded-xl px-8 font-bold">Close Window</Button></DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <AlertDialog open={!!reportToDelete} onOpenChange={(open) => !open && setReportToDelete(null)}>
-        <AlertDialogContent className="rounded-3xl p-8">
-            <AlertDialogHeader className="flex flex-col items-center text-center">
-                <div className="size-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-4"><Trash2 className="size-8" /></div>
-                <AlertDialogTitle className="text-2xl font-black text-slate-800 uppercase tracking-tight">Delete Technical Record?</AlertDialogTitle>
-                <AlertDialogDescription className="text-slate-500 text-lg mt-2">You are about to permanently delete the record for <strong>{reportToDelete?.fileNo || reportToDelete?.id}</strong>. This action cannot be reversed.</AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter className="mt-8 flex gap-3 sm:justify-center">
-                <AlertDialogCancel onClick={() => setReportToDelete(null)} className="rounded-2xl h-12 px-8 border-slate-200">Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDeleteReport} className="bg-red-600 hover:bg-red-700 rounded-2xl h-12 px-8 text-white font-bold shadow-lg shadow-red-200">Confirm Deletion</AlertDialogAction>
-            </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       <ConsolidatedFeasibilityDialog 
         isOpen={isConsolidatedDialogOpen} 

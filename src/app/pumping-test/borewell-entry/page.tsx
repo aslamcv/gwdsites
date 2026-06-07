@@ -258,7 +258,7 @@ function UnifiedBorewellPumpingEntryContent() {
     <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black text-left">
       
       <div className="bg-white border border-slate-200 p-8 rounded-[32px] shadow-sm ring-1 ring-slate-200/50 text-left">
-        <div className="flex flex-col space-y-8">
+        <div className="flex flex-col space-y-8 text-left">
           <div className="text-center">
             <h1 className="text-[26px] font-black text-slate-900 uppercase tracking-tighter leading-none">Borewell Pumping Test (SDT)</h1>
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">Technical Operations | District Office, Malappuram</p>
