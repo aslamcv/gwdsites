@@ -100,6 +100,11 @@ export default function GroundWaterInvestigationPage() {
     return userProfile?.role?.toLowerCase().trim() === 'admin';
   }, [user, userProfile, isUserLoading, isProfileLoading]);
 
+  const isApproved = useMemo(() => {
+    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
+    return userProfile?.isApproved === true;
+  }, [user, userProfile]);
+
   const isEngineer = useMemo(() => userProfile?.role?.toLowerCase().trim() === 'engineer', [userProfile]);
   const isScientist = useMemo(() => userProfile?.role?.toLowerCase().trim() === 'scientist', [userProfile]);
 
@@ -284,11 +289,14 @@ export default function GroundWaterInvestigationPage() {
                     const hasOpenwellFeasibility = recType === 'openwell';
                     const hasFeasibility = hasBorewellFeasibility || hasOpenwellFeasibility;
                     
-                    const creatorId = (r.uploadedBy || '').trim();
-                    const isOwner = (user?.uid && creatorId === user.uid) || (user?.email && creatorId === user.email.toLowerCase().trim());
+                    const creatorId = (r.uploadedBy || '').trim().toLowerCase();
+                    const userUid = (user?.uid || '').trim().toLowerCase();
+                    const userEmail = (user?.email || '').trim().toLowerCase();
                     
-                    const canModifyRecord = isAdmin || ((isEngineer || isScientist) && isOwner);
-                    const ownerName = userMap.get(creatorId.toLowerCase()) || userMap.get(creatorId) || 'District Officer';
+                    const isOwner = (userUid && creatorId === userUid) || (userEmail && creatorId === userEmail);
+                    
+                    const canModifyRecord = isAdmin || (isApproved && (isEngineer || isScientist) && isOwner);
+                    const ownerName = userMap.get(creatorId) || 'District Officer';
 
                     return (
                       <TableRow key={r.id} className="h-20 border-slate-50 hover:bg-slate-50/80 transition-colors group">
