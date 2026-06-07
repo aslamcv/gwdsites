@@ -22,7 +22,10 @@ import {
   Lock,
   Droplets,
   Calculator,
-  Settings
+  Settings,
+  Calendar as CalendarIcon,
+  Truck,
+  Building2 as Building
 } from 'lucide-react';
 import { 
   Table, 
@@ -237,11 +240,7 @@ function UnifiedBorewellPumpingEntryContent() {
         toast({ title: isUpdate ? 'Record Updated' : 'Record Saved', description: 'Borewell pumping test record synchronized.' });
         router.push('/pumping-test');
       }).catch(async (error) => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({ 
-          path: reportDocRef.path, 
-          operation: isUpdate ? 'update' : 'create', 
-          requestResourceData: reportData 
-        }));
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: reportDocRef.path, operation: isUpdate ? 'update' : 'create', requestResourceData: reportData }));
       });
     });
   };
@@ -261,7 +260,7 @@ function UnifiedBorewellPumpingEntryContent() {
           </div>
           
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 text-left">
-            <div className="flex items-center gap-5">
+            <div className="flex items-center gap-5 text-left">
               <Button variant="ghost" size="icon" asChild className="rounded-full h-12 w-12 border border-slate-200 text-slate-600 hover:bg-slate-50">
                 <Link href="/pumping-test"><ArrowLeft className="size-5" /></Link>
               </Button>
@@ -369,7 +368,7 @@ function UnifiedBorewellPumpingEntryContent() {
           <div className="h-[500px] w-full text-left">
             <Table>
                 <TableHeader className="bg-slate-100/50 sticky top-0 z-20">
-                  <TableRow className="h-10 text-left">
+                  <TableRow className="h-10 text-left text-left">
                     <TableHead className="w-24 text-center border-r">Time (min)</TableHead>
                     <TableHead colSpan={2} className="text-center border-r bg-blue-50/20">STEP-1</TableHead>
                     <TableHead colSpan={2} className="text-center border-r bg-emerald-50/20">STEP-2</TableHead>
@@ -416,7 +415,7 @@ function UnifiedBorewellPumpingEntryContent() {
         </CardContent>
       </Card>
 
-      <div className="flex justify-end pt-12 pb-24 text-left">
+      <div className="flex justify-end pt-12 pb-24 text-left text-left">
         <Button onClick={handleSave} disabled={isPending || !isAllowed || !canModify} className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/30 gap-3 hover:bg-blue-900 transition-all hover:scale-[1.02] active:scale-95"
         >
           {isPending ? <Loader2 className="size-5 animate-spin" /> : <Save className="size-5" />} 

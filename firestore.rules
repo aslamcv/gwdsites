@@ -46,7 +46,6 @@ service cloud.firestore {
 
     function isOwner() {
       // Robust ownership check for both existing resources and new requests
-      // Standardizes comparison by checking both UID and Email
       let creatorId = resource != null ? resource.data.get('uploadedBy', '') : request.resource.data.get('uploadedBy', '');
       return isAuthenticated() && (
         request.auth.uid == creatorId || 

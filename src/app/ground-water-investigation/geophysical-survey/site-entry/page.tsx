@@ -363,14 +363,14 @@ function UnifiedGeophysicalSurveyContent() {
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">Technical Operations | District Office, Malappuram</p>
           </div>
           
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 text-left">
-            <div className="flex items-center gap-5">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 text-left text-left">
+            <div className="flex items-center gap-5 text-left text-left">
               <Button variant="ghost" size="icon" asChild className="rounded-full h-12 w-12 border border-slate-200 text-slate-600 hover:bg-slate-50">
                 <Link href="/ground-water-investigation"><ArrowLeft className="size-5" /></Link>
               </Button>
             </div>
             
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 w-full lg:w-auto text-left">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 w-full lg:w-auto text-left text-left">
               <div className="space-y-1">
                 <Label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter flex items-center gap-1">
                   <CalendarIcon className="size-3 pointer-events-none" /> Start Date
@@ -411,19 +411,19 @@ function UnifiedGeophysicalSurveyContent() {
         </div>
       </div>
 
-      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
+      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
-          <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-600 flex items-center gap-3 text-left">
+          <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-600 flex items-center gap-3 text-left text-left">
              <MapPin className="size-4" /> BASIC SITE DETAILS
           </CardTitle>
         </CardHeader>
         <CardContent className="p-10 space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="space-y-2 text-left">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 text-left text-left text-left">
+            <div className="space-y-2 text-left text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">File No</Label>
               <Input disabled={!canModify} value={formData.fileNo || ''} onChange={(e) => updateField('fileNo', e.target.value)} className="h-11 border-slate-200 font-black text-primary focus:bg-white" placeholder="MPM/GWD/..." />
             </div>
-            <div className="space-y-2 lg:col-span-1 text-left">
+            <div className="space-y-2 lg:col-span-1 text-left text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Location (Site Name)</Label>
               <Input disabled={!canModify} value={formData.location || ''} onChange={(e) => updateField('location', e.target.value)} className="h-11 border-slate-200 uppercase font-bold text-primary" placeholder="LOCATION NAME" />
             </div>
@@ -436,12 +436,12 @@ function UnifiedGeophysicalSurveyContent() {
               <Input disabled={!canModify} value={formData.longitude || ''} onChange={(e) => updateField('longitude', e.target.value)} className="h-11 border-slate-200 font-mono" placeholder={`00°00'00" E`} />
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 text-left text-left text-left text-left">
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">LSGD (Panchayath)</Label>
               <Select disabled={!canModify} onValueChange={(v) => updateField('lsgd', v)} value={formData.lsgd || ''}>
                 <SelectTrigger className="h-11 border-slate-200 font-bold"><SelectValue placeholder="Select LSGD" /></SelectTrigger>
-                <SelectContent className="max-h-[400px] rounded-2xl">{lsgs.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
+                <SelectContent className="max-h-[400px] rounded-2xl text-left">{lsgs.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
@@ -460,19 +460,19 @@ function UnifiedGeophysicalSurveyContent() {
         </CardContent>
       </Card>
 
-      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
+      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
-          <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center justify-between text-left">
-             <div className="flex items-center gap-3 text-left"><Calculator className="size-4" /> VES MEASUREMENT DATA (Auto-Calculating)</div>
+          <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center justify-between text-left text-left">
+             <div className="flex items-center gap-3 text-left text-left text-left"><Calculator className="size-4" /> VES MEASUREMENT DATA (Auto-Calculating)</div>
              <Badge className="bg-slate-900 text-[8px] font-black h-5 uppercase tracking-tighter">Schlumberger Configuration</Badge>
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-0 overflow-x-auto text-left">
-          <ScrollArea className="h-[600px] w-full text-left">
+        <CardContent className="p-0 overflow-x-auto text-left text-left">
+          <ScrollArea className="h-[600px] w-full text-left text-left">
             <Table>
                 <TableHeader className="bg-slate-100/50 sticky top-0 z-20">
-                  <TableRow className="h-10 text-left">
-                    <TableHead className="w-24 text-center border-r" rowSpan={2}>Sl No</TableHead>
+                  <TableRow className="h-10 text-left text-left">
+                    <TableHead className="w-24 text-center border-r">Sl No</TableHead>
                     <TableHead className="text-center border-r" colSpan={3}>Measuring Point / Spreading Direction</TableHead>
                     <TableHead className="text-center" colSpan={2}>VES Data</TableHead>
                   </TableRow>
@@ -487,7 +487,7 @@ function UnifiedGeophysicalSurveyContent() {
                 <TableBody>
                   {formData.vesData.map((row: any, i: number) => (
                     <TableRow key={`ves-row-${row.sNo}-${i}`} className={cn("h-11 border-slate-100 transition-colors", i % 2 === 0 ? "bg-white" : "bg-slate-50/30")}>
-                      <TableCell className="text-center font-bold text-slate-300 text-[10px] border-r">{row.sNo}</TableCell>
+                      <TableCell className="text-center font-bold text-slate-300 text-[10px] border-r text-left">{row.sNo}</TableCell>
                       <TableCell className="text-center border-r text-xs font-bold bg-slate-50/20">{row.ab2}</TableCell>
                       <TableCell className="text-center border-r text-xs font-bold bg-slate-50/20">{row.mn2}</TableCell>
                       <TableCell className="text-center border-r text-xs font-mono text-primary bg-primary/5">{row.k}</TableCell>
@@ -515,11 +515,11 @@ function UnifiedGeophysicalSurveyContent() {
         </CardContent>
       </Card>
 
-      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
+      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
-          <CardTitle className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">4. REPORT & RECOMMENDATION</CardTitle>
+          <CardTitle className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 text-left text-left">4. REPORT & RECOMMENDATION</CardTitle>
         </CardHeader>
-        <CardContent className="p-10 space-y-10">
+        <CardContent className="p-10 space-y-10 text-left text-left">
           <div className="space-y-4">
             <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Technical Assessment & Recommendation</Label>
             <Textarea 
@@ -531,11 +531,11 @@ function UnifiedGeophysicalSurveyContent() {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start text-left">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start text-left text-left">
             <div className="space-y-4">
-              <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block ml-1">Structure Recommendation Type</Label>
+              <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block ml-1 text-left">Structure Recommendation Type</Label>
               <Select disabled={!canModify} onValueChange={(val) => {updateField('recommendationType', val); setIsRecommendationDialogOpen(true);}} value={formData.recommendationType}>
-                <SelectTrigger className="h-14 border-slate-200 rounded-2xl font-black uppercase text-xs tracking-widest shadow-sm">
+                <SelectTrigger className="h-14 border-slate-200 rounded-2xl font-black uppercase text-xs tracking-widest shadow-sm text-left">
                   <SelectValue placeholder="ENTER THE DETAILS" />
                 </SelectTrigger>
                 <SelectContent className="rounded-2xl border-slate-200 shadow-2xl">
@@ -549,10 +549,10 @@ function UnifiedGeophysicalSurveyContent() {
             </div>
             
             <div className="space-y-4">
-               <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block ml-1">Nearby groundwater structures</Label>
-               <div className="flex flex-col gap-6">
+               <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block ml-1 text-left">Nearby groundwater structures</Label>
+               <div className="flex flex-col gap-6 text-left">
                   <div className="space-y-2">
-                    <Label className="text-[9px] font-black uppercase text-slate-400 tracking-widest ml-1">Borewell Status</Label>
+                    <Label className="text-[9px] font-black uppercase text-slate-400 tracking-widest ml-1 text-left">Borewell Status</Label>
                     <div className="flex flex-wrap gap-2 p-1 bg-slate-100 rounded-2xl w-fit">
                       {['borewell1', 'borewell2', 'borewell3'].map((val, idx) => (
                         <Button 
@@ -579,7 +579,7 @@ function UnifiedGeophysicalSurveyContent() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-[9px] font-black uppercase text-slate-400 tracking-widest ml-1">Openwell Status</Label>
+                    <Label className="text-[9px] font-black uppercase text-slate-400 tracking-widest ml-1 text-left">Openwell Status</Label>
                     <div className="flex flex-wrap gap-2 p-1 bg-slate-100 rounded-2xl w-fit">
                       {['openwell1', 'openwell2', 'openwell3'].map((val, idx) => (
                         <Button 
@@ -610,13 +610,13 @@ function UnifiedGeophysicalSurveyContent() {
         </CardContent>
       </Card>
       
-      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
+      <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
-          <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3 text-left">
+          <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3 text-left text-left">
              <Users className="size-4" /> 5. STAFF DETAILS (TEAM ASSIGNMENT)
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <CardContent className="p-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 text-left text-left">
            <StaffMultiSelect label="Geophysicist" options={filteredStaff.hg} selected={formData.staffAssignment.geophysicist} onChange={(names) => updateStaff('geophysicist', names)} max={1} disabled={!isAllowed} />
            <StaffMultiSelect label="Junior Geophysicist" options={filteredStaff.jhg} selected={formData.staffAssignment.juniorGeophysicist} onChange={(names) => updateStaff('juniorGeophysicist', names)} max={1} disabled={!isAllowed} />
            <StaffMultiSelect label="Geophysical Assistant" options={filteredStaff.ga} selected={formData.staffAssignment.geophysicalAssistant} onChange={(names) => updateStaff('geophysicalAssistant', names)} max={2} disabled={!isAllowed} />
@@ -624,7 +624,7 @@ function UnifiedGeophysicalSurveyContent() {
         </CardContent>
       </Card>
 
-      <div className="flex justify-end pt-12 pb-24 text-left">
+      <div className="flex justify-end pt-12 pb-24 text-left text-left">
         <Button 
           type="button"
           onClick={handleSave} 
@@ -699,7 +699,7 @@ const RecommendationDialog = ({isOpen, onOpenChange, formData, updateField}: any
         </div>
       )}
       {(!formData.recommendationType || formData.recommendationType === 'not_feasible') && (
-        <div className="py-12 text-center opacity-30 uppercase font-black tracking-widest">
+        <div className="py-12 text-center opacity-30 uppercase font-black tracking-widest text-left">
            No specific parameters required.
         </div>
       )}
@@ -714,23 +714,23 @@ const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, formData, u
   
   return (
   <Dialog open={isOpen} onOpenChange={onOpenChange}>
-    <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl text-left">
-      <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight">DETAILS FOR {structureType?.toUpperCase()}</DialogTitle></DialogHeader>
+    <DialogContent className="sm:max-w-[425px] rounded-[32px] p-8 border-none shadow-2xl text-left text-left">
+      <DialogHeader><DialogTitle className="uppercase font-black text-primary tracking-tight text-left">DETAILS FOR {structureType?.toUpperCase()}</DialogTitle></DialogHeader>
       {isBorewell ? (
-        <div className="space-y-6 py-4 text-left">
+        <div className="space-y-6 py-4 text-left text-left">
           <FormFieldItem label="Total Depth (m)" id={`nbd${index}`}><Input value={formData[`nearbyBorewell${index}Depth`]} onChange={e=>updateField(`nearbyBorewell${index}Depth`, e.target.value)} /></FormFieldItem>
           <FormFieldItem label="Diameter" id={`nbd_dia${index}`}><Input value={formData[`nearbyBorewell${index}Diameter`]} onChange={e=>updateField(`nearbyBorewell${index}Diameter`, e.target.value)} /></FormFieldItem>
           <FormFieldItem label="Fracture Zones" id={`nbd_zones${index}`}><Input value={formData[`nearbyBorewell${index}Zones`]} onChange={e=>updateField(`nearbyBorewell${index}Zones`, e.target.value)} /></FormFieldItem>
         </div>
       ) : (
-         <div className="space-y-6 py-4 text-left">
+         <div className="space-y-6 py-4 text-left text-left">
           <FormFieldItem label="Total Depth (m)" id={`nod${index}`}><Input value={formData[`nearbyOpenwell${index}Depth`]} onChange={e=>updateField(`nearbyOpenwell${index}Depth`, e.target.value)} /></FormFieldItem>
           <FormFieldItem label="Water Level (m)" id={`nod_wl${index}`}><Input value={formData[`nearbyOpenwell${index}WaterLevel`]} onChange={e=>updateField(`nearbyOpenwell${index}WaterLevel`, e.target.value)} /></FormFieldItem>
           <FormFieldItem label="Parapet (m)" id={`nod_ph${index}`}><Input value={formData[`nearbyOpenwell${index}ParapetHeight`]} onChange={e=>updateField(`nearbyOpenwell${index}ParapetHeight`, e.target.value)} /></FormFieldItem>
           <FormFieldItem label="Type" id={`nod_type${index}`}>
             <Select onValueChange={v=>updateField(`nearbyOpenwell${index}Type`, v)} value={formData[`nearbyOpenwell${index}Type`]}>
                 <SelectTrigger className="h-10 text-xs bg-slate-50/50 border-slate-200"><SelectValue placeholder="SELECT" /></SelectTrigger>
-                <SelectContent className="rounded-xl border-slate-200">
+                <SelectContent className="rounded-xl border-slate-200 text-left">
                     <SelectItem value="Perennial" className="text-xs font-bold uppercase">Perennial</SelectItem>
                     <SelectItem value="Seasonal" className="text-xs font-bold uppercase">Seasonal</SelectItem>
                 </SelectContent>

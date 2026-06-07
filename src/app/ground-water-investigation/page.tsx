@@ -276,7 +276,7 @@ export default function GroundWaterInvestigationPage() {
                 <TableRow className="border-slate-100">
                   <TableHead className="pl-8 text-[10px] font-black uppercase tracking-widest text-slate-400">Log Date</TableHead>
                   <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Site / Applicant</TableHead>
-                  <TableHead className="text-center text-[10px] font-black uppercase tracking-widest text-slate-400">Technical Reports</TableHead>
+                  <TableHead className="text-center text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Technical Reports</TableHead>
                   <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Category</TableHead>
                   <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">User</TableHead>
                   <TableHead className="text-right pr-8 text-[10px] font-black uppercase tracking-widest text-slate-400">Actions</TableHead>
@@ -302,12 +302,12 @@ export default function GroundWaterInvestigationPage() {
                     const creatorId = (r.uploadedBy || '').trim();
                     const userUid = (user?.uid || '').trim();
                     const userEmail = (user?.email || '').toLowerCase().trim();
-                    const creatorLower = creatorId.toLowerCase();
                     
-                    const isOwner = (userUid && creatorId === userUid) || (userEmail && creatorLower === userEmail);
+                    // CASE-SENSITIVE UID check, CASE-INSENSITIVE Email check
+                    const isOwner = (userUid && creatorId === userUid) || (userEmail && creatorId.toLowerCase() === userEmail);
                     
                     const canModifyRecord = isAdmin || (isApproved && (isEngineer || isScientist) && isOwner);
-                    const ownerName = userMap.get(creatorId) || userMap.get(creatorLower) || 'District Officer';
+                    const ownerName = userMap.get(creatorId) || userMap.get(creatorId.toLowerCase()) || 'District Officer';
 
                     return (
                       <TableRow key={r.id} className="h-20 border-slate-50 hover:bg-slate-50/80 transition-colors group">
@@ -394,7 +394,7 @@ export default function GroundWaterInvestigationPage() {
       </Card>
       
       <Dialog open={!!viewingReport} onOpenChange={(open) => !open && setViewingReport(null)}>
-        <DialogContent className="max-w-3xl rounded-[32px] overflow-hidden p-0 border-none shadow-2xl bg-white text-left">
+        <DialogContent className="max-w-3xl rounded-[32px] overflow-hidden p-0 border-none shadow-2xl bg-white text-left text-left">
           <DialogHeader className="p-8 bg-slate-50/50 border-b text-left">
             <DialogTitle className="text-xl font-black uppercase text-slate-900">Technical Record: {viewingReport?.fileNo || 'Preview'}</DialogTitle>
             <DialogDescription className="text-sm font-medium text-slate-500">Viewing all saved parameters for site: {viewingReport?.nameOfSite || viewingReport?.applicantName || viewingReport?.location}</DialogDescription>
