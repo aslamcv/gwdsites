@@ -24,7 +24,7 @@ import {
   User as UserIcon
 } from 'lucide-react';
 import Link from 'next/link';
-import { useCollection, useFirestore, useUser, useMemoFirebase, FirestorePermissionError, errorEmitter } from '@/firebase';
+import { useCollection, useFirestore, useUser, useMemoFirebase, useDoc, FirestorePermissionError, errorEmitter } from '@/firebase';
 import { collection, query, doc, deleteDoc } from 'firebase/firestore';
 import type { GroundwaterReport } from '@/lib/types';
 import { 

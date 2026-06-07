@@ -20,8 +20,8 @@ import {
   User as UserIcon
 } from 'lucide-react';
 import Link from 'next/link';
-import { useCollection, useFirestore, useUser, useMemoFirebase, deleteDocumentNonBlocking, useDoc, updateDocumentNonBlocking } from '@/firebase';
-import { collection, query, doc } from 'firebase/firestore';
+import { useCollection, useFirestore, useUser, useMemoFirebase, useDoc, FirestorePermissionError, errorEmitter } from '@/firebase';
+import { collection, query, doc, deleteDoc } from 'firebase/firestore';
 import type { GroundwaterReport } from '@/lib/types';
 import { 
   Table, 
@@ -80,7 +80,7 @@ export default function EstimateMeasurementLedgerPage() {
   const itemsPerPage = 10;
 
   const firestore = useFirestore();
-  const { user, isUserLoading } = useUser();
+  const { user, isUserLoading: isAuthLoading } = useUser();
 
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user?.email) return null;
@@ -89,30 +89,37 @@ export default function EstimateMeasurementLedgerPage() {
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
   
   const isAdmin = useMemo(() => {
-    if (isUserLoading || isProfileLoading) return false;
-    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
-    return userProfile?.role?.toLowerCase() === 'admin';
-  }, [user, userProfile, isUserLoading, isProfileLoading]);
+    if (isAuthLoading || isProfileLoading) return false;
+    const email = user?.email?.toLowerCase().trim();
+    const role = (userProfile?.role || '').toLowerCase().trim();
+    if (email === MASTER_ADMIN_EMAIL || role === 'admin') return true;
+    return false;
+  }, [user, userProfile, isAuthLoading, isProfileLoading]);
 
-  const isEngineer = useMemo(() => userProfile?.role?.toLowerCase() === 'engineer', [userProfile]);
+  const isApproved = useMemo(() => {
+    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
+    return userProfile?.isApproved === true;
+  }, [user, userProfile]);
+
+  const isEngineer = useMemo(() => (userProfile?.role || '').toLowerCase().trim() === 'engineer', [userProfile]);
 
   const isAllowedToAdd = useMemo(() => {
-    if (isUserLoading || isProfileLoading) return false;
+    if (isAuthLoading || isProfileLoading) return false;
     if (isAdmin) return true;
-    return isEngineer && userProfile?.isApproved !== false;
-  }, [isAdmin, isEngineer, userProfile, isUserLoading, isProfileLoading]);
+    return isEngineer && isApproved;
+  }, [isAdmin, isEngineer, isApproved, isAuthLoading, isProfileLoading]);
 
   const reportsQuery = useMemoFirebase(() => {
-    if (!firestore || isUserLoading || !user) return null;
+    if (!firestore || isAuthLoading || !user) return null;
     return query(collection(firestore, 'groundwaterReports'));
-  }, [firestore, user, isUserLoading]);
+  }, [firestore, user, isAuthLoading]);
 
   const { data: reports, isLoading } = useCollection<GroundwaterReport>(reportsQuery);
 
   const usersQuery = useMemoFirebase(() => {
-    if (!firestore || isUserLoading || !user) return null;
+    if (!firestore || isAuthLoading || !user) return null;
     return query(collection(firestore, 'users'));
-  }, [firestore, user, isUserLoading]);
+  }, [firestore, user, isAuthLoading]);
   const { data: systemUsers, isLoading: isUsersLoading } = useCollection(usersQuery);
 
   const userMap = useMemo(() => {
@@ -122,8 +129,10 @@ export default function EstimateMeasurementLedgerPage() {
     if (systemUsers) {
       systemUsers.forEach(u => {
         const name = u.displayName || u.email || 'Technical Officer';
-        if (u.uid) map.set(u.uid, name);
-        if (u.email) map.set(u.email.toLowerCase().trim(), name);
+        const uid = (u.uid || '').trim();
+        const email = (u.email || '').toLowerCase().trim();
+        if (uid) map.set(uid, name);
+        if (email) map.set(email, name);
       });
     }
     return map;
@@ -164,8 +173,18 @@ export default function EstimateMeasurementLedgerPage() {
   const handleDeleteReport = () => {
     if (!firestore || !reportToDelete) return;
     const docRef = doc(firestore, 'groundwaterReports', reportToDelete.id);
-    deleteDocumentNonBlocking(docRef);
-    toast({ title: "Record Deleted", variant: "destructive" });
+    
+    deleteDoc(docRef)
+      .then(() => {
+        toast({ title: "Record Deleted", variant: "destructive" });
+      })
+      .catch(async (error) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: docRef.path,
+          operation: 'delete',
+        }));
+      });
+      
     setReportToDelete(null);
   };
 
@@ -237,9 +256,15 @@ export default function EstimateMeasurementLedgerPage() {
                   ))
                 ) : paginatedRecords.length > 0 ? (
                   paginatedRecords.map((r) => {
-                    const isOwner = user?.uid === r.uploadedBy || user?.email?.toLowerCase() === r.uploadedBy?.toLowerCase();
-                    const canModifyRecord = isAdmin || (isEngineer && isOwner);
-                    const ownerName = userMap.get(r.uploadedBy) || userMap.get(r.uploadedBy?.toLowerCase()?.trim()) || userMap.get(r.uploadedBy?.trim()) || 'District Officer';
+                    const creatorId = (r.uploadedBy || '').trim();
+                    const userUid = (user?.uid || '').trim();
+                    const userEmail = (user?.email || '').toLowerCase().trim();
+                    const creatorLower = creatorId.toLowerCase();
+                    
+                    const isOwner = (userUid && creatorId === userUid) || (userEmail && creatorLower === userEmail);
+                    
+                    const canModifyRecord = isAdmin || (isApproved && isEngineer && isOwner);
+                    const ownerName = userMap.get(creatorId) || userMap.get(creatorLower) || 'District Officer';
 
                     return (
                       <TableRow key={r.id} className="h-20 border-slate-50 hover:bg-slate-50/50 transition-colors group">
@@ -295,7 +320,6 @@ export default function EstimateMeasurementLedgerPage() {
       
       <ReportDialog report={selectedEmReport} isOpen={isEmModalOpen} onOpenChange={setIsEmModalOpen} />
       
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!reportToDelete} onOpenChange={(open) => !open && setReportToDelete(null)}>
         <AlertDialogContent className="rounded-3xl p-8">
             <AlertDialogHeader className="flex flex-col items-center text-center">
@@ -310,7 +334,6 @@ export default function EstimateMeasurementLedgerPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Data Viewer Dialog */}
       <Dialog open={!!viewingReport} onOpenChange={(open) => !open && setViewingReport(null)}>
         <DialogContent className="max-w-3xl rounded-[32px] overflow-hidden p-0 border-none shadow-2xl bg-white text-left">
           <DialogHeader className="p-8 bg-slate-50/50 border-b text-left">
