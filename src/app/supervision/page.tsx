@@ -82,7 +82,7 @@ export default function SupervisionLedgerPage() {
   const itemsPerPage = 10;
 
   const firestore = useFirestore();
-  const { user, isUserLoading } = useUser();
+  const { user, isUserLoading: isAuthLoading } = useUser();
 
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user?.email) return null;
@@ -91,26 +91,37 @@ export default function SupervisionLedgerPage() {
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
   
   const isAdmin = useMemo(() => {
-    if (isUserLoading || isProfileLoading) return false;
+    if (isAuthLoading || isProfileLoading) return false;
     const email = user?.email?.toLowerCase().trim();
     const role = (userProfile?.role || '').toLowerCase().trim();
     return email === MASTER_ADMIN_EMAIL || role === 'admin';
-  }, [user, userProfile, isUserLoading, isProfileLoading]);
+  }, [user, userProfile, isAuthLoading, isProfileLoading]);
+
+  const isApproved = useMemo(() => {
+    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
+    return userProfile?.isApproved === true;
+  }, [user, userProfile]);
 
   const isEngineer = useMemo(() => (userProfile?.role || '').toLowerCase().trim() === 'engineer', [userProfile]);
   const isScientist = useMemo(() => (userProfile?.role || '').toLowerCase().trim() === 'scientist', [userProfile]);
 
+  const isAllowedToAdd = useMemo(() => {
+    if (isAuthLoading || isProfileLoading) return false;
+    if (isAdmin) return true;
+    return (isEngineer || isScientist) && isApproved;
+  }, [isAdmin, isEngineer, isScientist, isApproved, isAuthLoading, isProfileLoading]);
+
   const reportsQuery = useMemoFirebase(() => {
-    if (!firestore || isUserLoading || !user) return null;
+    if (!firestore || isAuthLoading || !user) return null;
     return query(collection(firestore, 'groundwaterReports'));
-  }, [firestore, user, isUserLoading]);
+  }, [firestore, user, isAuthLoading]);
 
   const { data: reports, isLoading } = useCollection<GroundwaterReport>(reportsQuery);
 
   const usersQuery = useMemoFirebase(() => {
-    if (!firestore || isUserLoading || !user) return null;
+    if (!firestore || isAuthLoading || !user) return null;
     return query(collection(firestore, 'users'));
-  }, [firestore, user, isUserLoading]);
+  }, [firestore, user, isAuthLoading]);
   const { data: systemUsers, isLoading: isUsersLoading } = useCollection(usersQuery);
 
   const userMap = useMemo(() => {
@@ -120,7 +131,7 @@ export default function SupervisionLedgerPage() {
     if (systemUsers) {
       systemUsers.forEach(u => {
         const name = u.displayName || u.email || 'Technical Officer';
-        const uid = (u.uid || '').trim();
+        const uid = (u.uid || '').trim().toLowerCase();
         const email = (u.email || '').toLowerCase().trim();
         if (uid) map.set(uid, name);
         if (email) map.set(email, name);
@@ -216,8 +227,8 @@ export default function SupervisionLedgerPage() {
     <div className="p-4 sm:p-6 lg:p-8 space-y-8 animate-in fade-in duration-700 text-left">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 text-left">
         <div>
-          <h1 className="text-3xl font-black tracking-tight text-slate-900 uppercase">Supervision Ledger</h1>
-          <p className="text-slate-500 font-bold text-[10px] uppercase tracking-widest mt-2">Technical Oversight & Completion Records</p>
+          <h1 className="text-3xl font-black tracking-tight text-slate-900 uppercase text-left">Supervision Ledger</h1>
+          <p className="text-slate-500 font-bold text-[10px] uppercase tracking-widest mt-2 text-left">Technical Oversight & Completion Records</p>
         </div>
 
         <DropdownMenu>
@@ -285,25 +296,25 @@ export default function SupervisionLedgerPage() {
         </DropdownMenu>
       </div>
 
-      <Card className="border-none shadow-sm ring-1 ring-slate-200 rounded-[24px] overflow-hidden bg-white/80 backdrop-blur-md p-4">
-        <CardContent className="p-0">
-          <div className="relative">
+      <Card className="border-none shadow-sm ring-1 ring-slate-200 rounded-[24px] overflow-hidden bg-white/80 backdrop-blur-md p-4 text-left">
+        <CardContent className="p-0 text-left">
+          <div className="relative text-left">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
-            <Input placeholder="Search Site, File No or Beneficiary..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="h-12 pl-12 bg-slate-50 border-none rounded-xl text-sm font-medium focus:ring-primary/20" />
+            <Input placeholder="Search Site, File No or Beneficiary..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="h-12 pl-12 bg-slate-50 border-none rounded-xl text-sm font-medium focus:ring-primary/20 text-left" />
           </div>
         </CardContent>
       </Card>
 
-      <Card className="border-none shadow-xl shadow-slate-200/50 rounded-[32px] overflow-hidden ring-1 ring-slate-200 bg-white">
-        <CardHeader className="bg-slate-50/50 border-b py-5 px-10 flex flex-row items-center justify-between space-y-0">
-          <CardTitle className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">DISTRICT SUPERVISION REPOSITORY</CardTitle>
-          <Badge variant="outline" className="bg-white border-slate-200 text-slate-600 text-[8px] font-black uppercase tracking-widest px-3 h-6 rounded-full">{allRecords.length} TOTAL ENTRIES</Badge>
+      <Card className="border-none shadow-xl shadow-slate-200/50 rounded-[32px] overflow-hidden ring-1 ring-slate-200 bg-white text-left">
+        <CardHeader className="bg-slate-50/50 border-b py-5 px-10 flex flex-row items-center justify-between space-y-0 text-left">
+          <CardTitle className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 text-left">DISTRICT SUPERVISION REPOSITORY</CardTitle>
+          <Badge variant="outline" className="bg-white border-slate-200 text-slate-600 text-[8px] font-black uppercase tracking-widest px-3 h-6 rounded-full text-left">{allRecords.length} TOTAL ENTRIES</Badge>
         </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
+        <CardContent className="p-0 text-left">
+          <div className="overflow-x-auto text-left">
             <Table>
               <TableHeader className="bg-slate-50/80 h-14">
-                <TableRow className="border-slate-100">
+                <TableRow className="border-slate-100 text-left">
                   <TableHead className="pl-8 text-[10px] font-black uppercase tracking-widest text-slate-400">Log Date</TableHead>
                   <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Site / Reference</TableHead>
                   <TableHead className="text-center text-[10px] font-black uppercase tracking-widest text-slate-400">Completion Report</TableHead>
@@ -313,30 +324,33 @@ export default function SupervisionLedgerPage() {
                   <TableHead className="text-right pr-8 text-[10px] font-black uppercase tracking-widest text-slate-400">Actions</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
+              <TableBody className="text-left">
                 {isLoading || isUsersLoading ? (
                   Array.from({ length: 5 }).map((_, i) => (
-                    <TableRow key={i} className="h-20 border-slate-50">
-                      <TableCell colSpan={7} className="px-8"><Skeleton className="h-10 w-full rounded-xl" /></TableCell>
+                    <TableRow key={i} className="h-20 border-slate-50 text-left">
+                      <TableCell colSpan={7} className="px-8 text-left"><Skeleton className="h-10 w-full rounded-xl text-left" /></TableCell>
                     </TableRow>
                   ))
                 ) : paginatedRecords.length > 0 ? (
                   paginatedRecords.map((r) => {
                     const category = getSupervisionCategory(r);
                     
-                    const creatorId = (r.uploadedBy || '').trim();
-                    const isOwner = (user?.uid && creatorId === user.uid) || (user?.email && creatorId === user.email.toLowerCase().trim());
+                    const creatorId = (r.uploadedBy || '').trim().toLowerCase();
+                    const userUid = (user?.uid || '').trim().toLowerCase();
+                    const userEmail = (user?.email || '').trim().toLowerCase();
                     
-                    const canModifyRecord = isAdmin || ((isEngineer || isScientist) && isOwner);
-                    const ownerName = userMap.get(creatorId.toLowerCase()) || userMap.get(creatorId) || 'District Officer';
+                    const isOwner = (userUid && creatorId === userUid) || (userEmail && creatorId === userEmail);
+                    
+                    const canModifyRecord = isAdmin || (isApproved && (isEngineer || isScientist) && isOwner);
+                    const ownerName = userMap.get(creatorId) || 'District Officer';
 
                     return (
-                      <TableRow key={r.id} className="h-20 border-slate-50 hover:bg-slate-50/50 transition-colors group">
-                        <TableCell className="pl-8 font-bold text-xs text-slate-700">{r.reportDate || '---'}</TableCell>
-                        <TableCell>
+                      <TableRow key={r.id} className="h-20 border-slate-50 hover:bg-slate-50/50 transition-colors group text-left">
+                        <TableCell className="pl-8 font-bold text-xs text-slate-700 text-left">{r.reportDate || '---'}</TableCell>
+                        <TableCell className="text-left">
                           <div className="flex flex-col text-left">
-                            <span className="font-black text-xs text-slate-900 uppercase tracking-tight">{r.nameOfSite || 'Unnamed Site'}</span>
-                            <span className="text-[9px] font-bold text-slate-400 uppercase">{r.fileNo || '---'}</span>
+                            <span className="font-black text-xs text-slate-900 uppercase tracking-tight text-left">{r.nameOfSite || 'Unnamed Site'}</span>
+                            <span className="text-[9px] font-bold text-slate-400 uppercase text-left">{r.fileNo || '---'}</span>
                           </div>
                         </TableCell>
                         <TableCell className="text-center">
@@ -345,10 +359,10 @@ export default function SupervisionLedgerPage() {
                         <TableCell className="text-center"><Badge variant="secondary" className="text-[9px] font-black bg-slate-100 text-slate-500 uppercase tracking-tighter">{category}</Badge></TableCell>
                         <TableCell><Badge variant={r.status === 'Published' ? 'default' : 'secondary'} className={cn('text-[9px] font-black uppercase', r.status === 'Published' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800')}>{r.status || 'Draft'}</Badge></TableCell>
                         <TableCell>
-                          <span className="text-[10px] font-bold text-slate-500 uppercase truncate max-w-[120px] block">{ownerName}</span>
+                          <span className="text-[10px] font-bold text-slate-500 uppercase truncate max-w-[120px] block text-left">{ownerName}</span>
                         </TableCell>
-                        <TableCell className="text-right pr-8">
-                          <div className="flex items-center justify-end gap-1.5">
+                        <TableCell className="text-right pr-8 text-left">
+                          <div className="flex items-center justify-end gap-1.5 text-left">
                              <Button variant="ghost" size="icon" onClick={() => setViewingReport(r)} className="size-8 rounded-lg bg-white ring-1 ring-slate-100 shadow-sm" title="View Saved Data"><Eye className="size-3.5 text-slate-400 hover:text-primary" /></Button>
                              <Button variant="ghost" size="icon" asChild disabled={!canModifyRecord} className="size-8 rounded-lg bg-white ring-1 ring-slate-100 shadow-sm" title={canModifyRecord ? 'Edit Record' : 'Access Restricted'}>
                                 <Link href={canModifyRecord ? getEditUrl(r) : '#'} className={!canModifyRecord ? "pointer-events-none opacity-50" : ""}><Edit3 className={cn("size-3.5", canModifyRecord ? "text-slate-400 hover:text-emerald-600" : "opacity-30")} /></Link>
@@ -367,7 +381,7 @@ export default function SupervisionLedgerPage() {
           </div>
         </CardContent>
         <CardFooter className="bg-slate-50/50 border-t py-4 px-8 flex justify-between items-center text-left">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Showing {paginatedRecords.length} of {allRecords.length} District Supervision Logs</p>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-left">Showing {paginatedRecords.length} of {allRecords.length} District Supervision Logs</p>
             {totalPages > 1 && (
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} className="h-8 rounded-lg font-bold text-[10px] uppercase border-slate-200 bg-white">Previous</Button>

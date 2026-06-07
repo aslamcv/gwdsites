@@ -51,13 +51,12 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase, useCollection } from '@/firebase';
+import { collection, doc, setDoc, updateDoc } from 'firebase/firestore';
 import type { GroundwaterReport, Employee, VesRow } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
 import { StaffMultiSelect } from '@/components/investigation/staff-multi-select';
 import { cn } from '@/lib/utils';
-import { Logo } from '@/components/logo';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 const MASTER_ADMIN_EMAIL = 'gwdmpm@gmail.com';
@@ -70,7 +69,7 @@ const sectorOptions = [
 ];
 
 const categoryMappings: Record<string, string[]> = {
-  private: ["Domestic", "Irrigation", "Industrial", "Infrastructure", "Institutional"],
+  private: ["Domestic", "Irrigation", "Industrial", "Infrastructure", "Others"],
   government: ["Institutional", "Infrastructure", "Industrial", "Others"],
   local_bodies: ["Scheme", "Institutional"],
   others: ["Miscellaneous", "Emergency Work", "Special Survey"]
@@ -142,7 +141,7 @@ function UnifiedGeophysicalSurveyContent() {
   const searchParams = useSearchParams();
   const { lsgs, lsgMappings } = useLsgdData();
   const firestore = useFirestore();
-  const { user, isUserLoading } = useUser();
+  const { user, isUserLoading: isAuthLoading } = useUser();
   const [isPending, startTransition] = useTransition();
 
   const id = searchParams.get('id');
@@ -158,10 +157,12 @@ function UnifiedGeophysicalSurveyContent() {
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
   
   const isAllowed = useMemo(() => {
-    if (isUserLoading || isProfileLoading) return false;
-    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
-    return (userProfile?.role === 'admin' || userProfile?.role === 'scientist') && userProfile?.isApproved === true;
-  }, [user, userProfile, isUserLoading, isProfileLoading]);
+    if (isAuthLoading || isProfileLoading) return false;
+    const role = (userProfile?.role || '').toLowerCase().trim();
+    const isApproved = userProfile?.isApproved !== false;
+    if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL || role === 'admin') return true;
+    return (role === 'admin' || role === 'scientist') && isApproved;
+  }, [user, userProfile, isAuthLoading, isProfileLoading]);
 
   const employeesRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -175,6 +176,14 @@ function UnifiedGeophysicalSurveyContent() {
   }, [firestore, id]);
 
   const { data: cloudReport, isLoading: isReportLoading } = useDoc<GroundwaterReport>(reportRef);
+
+  const isOwner = useMemo(() => {
+    if (!cloudReport || !user) return false;
+    const creator = (cloudReport.uploadedBy || '').trim();
+    return creator === user.uid || creator === user.email?.toLowerCase().trim();
+  }, [cloudReport, user]);
+
+  const canModify = isAllowed && (!id || isOwner || user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL || userProfile?.role?.toLowerCase() === 'admin');
 
   const [formData, setFormData] = useState<any>({
     startDate: new Date().toISOString().split('T')[0],
@@ -280,7 +289,7 @@ function UnifiedGeophysicalSurveyContent() {
   }, [formData.lsgd, lsgMappings]);
 
   const handleSave = () => {
-    if (!user || !firestore || !isAllowed) return;
+    if (!user || !firestore || !isAllowed || !canModify) return;
 
     startTransition(() => {
       const isUpdate = !!id;
@@ -299,6 +308,7 @@ function UnifiedGeophysicalSurveyContent() {
         category: "Geophysical Survey",
         dateOfInvestigation,
         updatedAt: new Date().toISOString(),
+        uploadedBy: cloudReport?.uploadedBy || user.uid,
         assembly: detectedLac,
         staffAssignment: {
             geophysicist: formData.staffAssignment.geophysicist.join(', '),
@@ -308,13 +318,17 @@ function UnifiedGeophysicalSurveyContent() {
         }
       };
 
-      const operation = isUpdate ? updateDocumentNonBlocking(reportDocRef, reportData) : setDocumentNonBlocking(reportDocRef, reportData, { merge: true });
+      const operation = isUpdate ? updateDoc(reportDocRef, reportData) : setDoc(reportDocRef, reportData);
 
       operation.then(() => {
         toast({ title: isUpdate ? 'Record Updated' : 'Record Saved', description: 'VES technical record synchronized.' });
         router.push('/ground-water-investigation');
       }).catch(async (error) => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: reportDocRef.path, operation: isUpdate ? 'update' : 'create', requestResourceData: reportData }));
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ 
+          path: reportDocRef.path, 
+          operation: isUpdate ? 'update' : 'create', 
+          requestResourceData: reportData 
+        }));
       });
     });
   };
@@ -399,33 +413,33 @@ function UnifiedGeophysicalSurveyContent() {
 
       <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
-          <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-600 flex items-center gap-3">
+          <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-600 flex items-center gap-3 text-left">
              <MapPin className="size-4" /> BASIC SITE DETAILS
           </CardTitle>
         </CardHeader>
         <CardContent className="p-10 space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="space-y-2">
+            <div className="space-y-2 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">File No</Label>
-              <Input disabled={!isAllowed} value={formData.fileNo || ''} onChange={(e) => updateField('fileNo', e.target.value)} className="h-11 border-slate-200 font-black text-primary focus:bg-white" placeholder="MPM/GWD/..." />
+              <Input disabled={!canModify} value={formData.fileNo || ''} onChange={(e) => updateField('fileNo', e.target.value)} className="h-11 border-slate-200 font-black text-primary focus:bg-white" placeholder="MPM/GWD/..." />
             </div>
-            <div className="space-y-2 lg:col-span-1">
+            <div className="space-y-2 lg:col-span-1 text-left">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Location (Site Name)</Label>
-              <Input disabled={!isAllowed} value={formData.location || ''} onChange={(e) => updateField('location', e.target.value)} className="h-11 border-slate-200 uppercase font-bold text-primary" placeholder="LOCATION NAME" />
+              <Input disabled={!canModify} value={formData.location || ''} onChange={(e) => updateField('location', e.target.value)} className="h-11 border-slate-200 uppercase font-bold text-primary" placeholder="LOCATION NAME" />
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Latitude</Label>
-              <Input disabled={!isAllowed} value={formData.latitude || ''} onChange={(e) => updateField('latitude', e.target.value)} className="h-11 border-slate-200 font-mono" placeholder={`00°00'00" N`} />
+              <Input disabled={!canModify} value={formData.latitude || ''} onChange={(e) => updateField('latitude', e.target.value)} className="h-11 border-slate-200 font-mono" placeholder={`00°00'00" N`} />
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Longitude</Label>
-              <Input disabled={!isAllowed} value={formData.longitude || ''} onChange={(e) => updateField('longitude', e.target.value)} className="h-11 border-slate-200 font-mono" placeholder={`00°00'00" E`} />
+              <Input disabled={!canModify} value={formData.longitude || ''} onChange={(e) => updateField('longitude', e.target.value)} className="h-11 border-slate-200 font-mono" placeholder={`00°00'00" E`} />
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">LSGD (Panchayath)</Label>
-              <Select disabled={!isAllowed} onValueChange={(v) => updateField('lsgd', v)} value={formData.lsgd || ''}>
+              <Select disabled={!canModify} onValueChange={(v) => updateField('lsgd', v)} value={formData.lsgd || ''}>
                 <SelectTrigger className="h-11 border-slate-200 font-bold"><SelectValue placeholder="Select LSGD" /></SelectTrigger>
                 <SelectContent className="max-h-[400px] rounded-2xl">{lsgs.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
               </Select>
@@ -436,11 +450,11 @@ function UnifiedGeophysicalSurveyContent() {
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Site Orientation</Label>
-              <Input disabled={!isAllowed} value={formData.spreadingDirection || ''} onChange={(e) => updateField('spreadingDirection', e.target.value)} className="h-11 border-slate-200 uppercase font-black" placeholder="e.g. NE-SW" />
+              <Input disabled={!canModify} value={formData.spreadingDirection || ''} onChange={(e) => updateField('spreadingDirection', e.target.value)} className="h-11 border-slate-200 uppercase font-black" placeholder="e.g. NE-SW" />
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Site Details</Label>
-              <Input disabled={!isAllowed} value={formData.vesArea || ''} onChange={(e) => updateField('vesArea', e.target.value)} className="h-11 border-slate-200 italic" placeholder="e.g. 6M towards East" />
+              <Input disabled={!canModify} value={formData.vesArea || ''} onChange={(e) => updateField('vesArea', e.target.value)} className="h-11 border-slate-200 italic" placeholder="e.g. 6M towards East" />
             </div>
           </div>
         </CardContent>
@@ -449,7 +463,7 @@ function UnifiedGeophysicalSurveyContent() {
       <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
           <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center justify-between text-left">
-             <div className="flex items-center gap-3"><Calculator className="size-4" /> VES MEASUREMENT DATA (Auto-Calculating)</div>
+             <div className="flex items-center gap-3 text-left"><Calculator className="size-4" /> VES MEASUREMENT DATA (Auto-Calculating)</div>
              <Badge className="bg-slate-900 text-[8px] font-black h-5 uppercase tracking-tighter">Schlumberger Configuration</Badge>
           </CardTitle>
         </CardHeader>
@@ -457,7 +471,7 @@ function UnifiedGeophysicalSurveyContent() {
           <ScrollArea className="h-[600px] w-full text-left">
             <Table>
                 <TableHeader className="bg-slate-100/50 sticky top-0 z-20">
-                  <TableRow className="h-10">
+                  <TableRow className="h-10 text-left">
                     <TableHead className="w-24 text-center border-r" rowSpan={2}>Sl No</TableHead>
                     <TableHead className="text-center border-r" colSpan={3}>Measuring Point / Spreading Direction</TableHead>
                     <TableHead className="text-center" colSpan={2}>VES Data</TableHead>
@@ -479,7 +493,7 @@ function UnifiedGeophysicalSurveyContent() {
                       <TableCell className="text-center border-r text-xs font-mono text-primary bg-primary/5">{row.k}</TableCell>
                       <TableCell className="border-r p-1">
                         <Input 
-                          disabled={!isAllowed}
+                          disabled={!canModify}
                           value={row.ves1_r || ''} 
                           onChange={(e) => updateVesRow(i, 'ves1_r', e.target.value)} 
                           className="h-8 text-center text-xs border-transparent bg-transparent focus:bg-white shadow-none font-bold" 
@@ -509,7 +523,7 @@ function UnifiedGeophysicalSurveyContent() {
           <div className="space-y-4">
             <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Technical Assessment & Recommendation</Label>
             <Textarea 
-              disabled={!isAllowed}
+              disabled={!canModify}
               value={formData.vesRecommendation || ''} 
               onChange={(e) => updateField('vesRecommendation', e.target.value)} 
               rows={4}
@@ -520,7 +534,7 @@ function UnifiedGeophysicalSurveyContent() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start text-left">
             <div className="space-y-4">
               <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block ml-1">Structure Recommendation Type</Label>
-              <Select disabled={!isAllowed} onValueChange={(val) => {updateField('recommendationType', val); setIsRecommendationDialogOpen(true);}} value={formData.recommendationType}>
+              <Select disabled={!canModify} onValueChange={(val) => {updateField('recommendationType', val); setIsRecommendationDialogOpen(true);}} value={formData.recommendationType}>
                 <SelectTrigger className="h-14 border-slate-200 rounded-2xl font-black uppercase text-xs tracking-widest shadow-sm">
                   <SelectValue placeholder="ENTER THE DETAILS" />
                 </SelectTrigger>
@@ -547,7 +561,7 @@ function UnifiedGeophysicalSurveyContent() {
                           variant={formData[`nearbyBorewell${idx+1}Depth`] && !formData.noNearbyBorewells ? 'default' : 'ghost'}
                           className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", formData[`nearbyBorewell${idx+1}Depth`] && !formData.noNearbyBorewells ? "bg-[#1e3a8a] text-white shadow-md" : "text-slate-500")}
                           onClick={() => handleNearbyTypeSelect('borewell', val)}
-                          disabled={!isAllowed}
+                          disabled={!canModify}
                         >
                           BW-{idx + 1}
                         </Button>
@@ -557,7 +571,7 @@ function UnifiedGeophysicalSurveyContent() {
                         variant={formData.noNearbyBorewells ? 'destructive' : 'ghost'}
                         className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", formData.noNearbyBorewells ? "bg-rose-600 text-white shadow-md" : "text-slate-500")}
                         onClick={() => handleNearbyTypeSelect('borewell', 'none')}
-                        disabled={!isAllowed}
+                        disabled={!canModify}
                       >
                         NO BOREWELL
                       </Button>
@@ -574,7 +588,7 @@ function UnifiedGeophysicalSurveyContent() {
                           variant={formData[`nearbyOpenwell${idx+1}Depth`] && !formData.noNearbyOpenwells ? 'default' : 'ghost'}
                           className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", formData[`nearbyOpenwell${idx+1}Depth`] && !formData.noNearbyOpenwells ? "bg-emerald-600 text-white shadow-md" : "text-slate-500")}
                           onClick={() => handleNearbyTypeSelect('openwell', val)}
-                          disabled={!isAllowed}
+                          disabled={!canModify}
                         >
                           OW-{idx + 1}
                         </Button>
@@ -584,7 +598,7 @@ function UnifiedGeophysicalSurveyContent() {
                         variant={formData.noNearbyOpenwells ? 'destructive' : 'ghost'}
                         className={cn("h-10 px-6 rounded-xl font-black text-[10px] uppercase transition-all", formData.noNearbyOpenwells ? "bg-rose-600 text-white shadow-md" : "text-slate-500")}
                         onClick={() => handleNearbyTypeSelect('openwell', 'none')}
-                        disabled={!isAllowed}
+                        disabled={!canModify}
                       >
                         NO OPENWELL
                       </Button>
@@ -598,7 +612,7 @@ function UnifiedGeophysicalSurveyContent() {
       
       <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
-          <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3">
+          <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3 text-left">
              <Users className="size-4" /> 5. STAFF DETAILS (TEAM ASSIGNMENT)
           </CardTitle>
         </CardHeader>
@@ -610,15 +624,15 @@ function UnifiedGeophysicalSurveyContent() {
         </CardContent>
       </Card>
 
-      <div className="flex justify-end pt-12 pb-24">
+      <div className="flex justify-end pt-12 pb-24 text-left">
         <Button 
           type="button"
           onClick={handleSave} 
-          disabled={isPending || !isAllowed} 
+          disabled={isPending || !canModify} 
           className="h-16 px-16 rounded-[24px] bg-[#1e3a8a] text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-blue-900/30 gap-3 hover:bg-blue-900 transition-all hover:scale-[1.02] active:scale-95"
         >
           {isPending ? <Loader2 className="size-5 animate-spin" /> : <Save className="size-5" />} 
-          {isAllowed ? (id ? 'UPDATE SURVEY RECORD' : 'SAVE SURVEY RECORD') : 'ACCESS RESTRICTED'}
+          {canModify ? (id ? 'UPDATE SURVEY RECORD' : 'SAVE SURVEY RECORD') : 'ACCESS RESTRICTED'}
         </Button>
       </div>
 
@@ -715,7 +729,7 @@ const NearbyStructureDialog = ({isOpen, onOpenChange, structureType, formData, u
           <FormFieldItem label="Parapet (m)" id={`nod_ph${index}`}><Input value={formData[`nearbyOpenwell${index}ParapetHeight`]} onChange={e=>updateField(`nearbyOpenwell${index}ParapetHeight`, e.target.value)} /></FormFieldItem>
           <FormFieldItem label="Type" id={`nod_type${index}`}>
             <Select onValueChange={v=>updateField(`nearbyOpenwell${index}Type`, v)} value={formData[`nearbyOpenwell${index}Type`]}>
-                <SelectTrigger className="h-10 text-xs bg-slate-50/50 border-slate-200"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-10 text-xs bg-slate-50/50 border-slate-200"><SelectValue placeholder="SELECT" /></SelectTrigger>
                 <SelectContent className="rounded-xl border-slate-200">
                     <SelectItem value="Perennial" className="text-xs font-bold uppercase">Perennial</SelectItem>
                     <SelectItem value="Seasonal" className="text-xs font-bold uppercase">Seasonal</SelectItem>

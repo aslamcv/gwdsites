@@ -93,7 +93,7 @@ function UnifiedOpenWellPumpingEntryContent() {
     const role = (userProfile?.role || '').toLowerCase().trim();
     const isApproved = userProfile?.isApproved !== false;
     if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL || role === 'admin') return true;
-    return (role === 'engineer' || role === 'scientist') && isApproved;
+    return (role === 'admin' || role === 'engineer' || role === 'scientist') && isApproved;
   }, [user, userProfile, isAuthLoading, isProfileLoading]);
 
   const employeesRef = useMemoFirebase(() => {
@@ -115,13 +115,7 @@ function UnifiedOpenWellPumpingEntryContent() {
     return creator === user.uid || creator === user.email?.toLowerCase().trim();
   }, [cloudReport, user]);
 
-  const canModify = isAllowed && (!id || isOwner || isAdminUser(user?.email, userProfile?.role));
-
-  function isAdminUser(email?: string | null, role?: string) {
-      if (!email) return false;
-      if (email.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
-      return (role || '').toLowerCase().trim() === 'admin';
-  }
+  const canModify = isAllowed && (!id || isOwner || user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL || userProfile?.role?.toLowerCase() === 'admin');
 
   const [formData, setFormData] = useState<any>({
     reportDate: new Date().toISOString().split('T')[0],
@@ -206,7 +200,7 @@ function UnifiedOpenWellPumpingEntryContent() {
   }, [formData.lsgd, lsgMappings]);
 
   const handleSave = () => {
-    if (!user || !firestore || !canModify) return;
+    if (!user || !firestore || !isAllowed || !canModify) return;
 
     startTransition(() => {
       const isUpdate = !!id;
@@ -254,14 +248,14 @@ function UnifiedOpenWellPumpingEntryContent() {
     <div className="p-4 sm:p-8 space-y-8 bg-background min-h-screen pb-40 font-sans text-black text-left">
       
       <div className="bg-white border border-slate-200 p-8 rounded-[32px] shadow-sm ring-1 ring-slate-200/50 text-left">
-        <div className="flex flex-col space-y-8">
+        <div className="flex flex-col space-y-8 text-left">
           <div className="text-center">
             <h1 className="text-[26px] font-black text-slate-900 uppercase tracking-tighter leading-none">Open Well/Pond Pumping Test</h1>
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">Yield Analysis | District Office, Malappuram</p>
           </div>
           
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 text-left">
-            <div className="flex items-center gap-5">
+            <div className="flex items-center gap-5 text-left">
               <Button variant="ghost" size="icon" asChild className="rounded-full h-12 w-12 border border-slate-200 text-slate-600 hover:bg-slate-50">
                 <Link href="/pumping-test"><ArrowLeft className="size-5" /></Link>
               </Button>
@@ -361,7 +355,7 @@ function UnifiedOpenWellPumpingEntryContent() {
       <Card className="rounded-[40px] border-none shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white text-left">
         <CardHeader className="bg-slate-50/50 border-b py-5 px-10">
           <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center justify-between text-left">
-             <div className="flex items-center gap-3 text-left"><Calculator className="size-4" /> PUMPING & RECOVERY DATA</div>
+             <div className="flex items-center gap-3 text-left text-left"><Calculator className="size-4" /> PUMPING & RECOVERY DATA</div>
              <Badge className="bg-slate-900 text-[8px] font-black h-5 uppercase tracking-tighter">PYT/WPT TECHNICAL LOG</Badge>
           </CardTitle>
         </CardHeader>

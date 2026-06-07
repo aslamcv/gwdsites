@@ -85,7 +85,7 @@ export default function GroundWaterInvestigationPage() {
   const itemsPerPage = 10;
 
   const firestore = useFirestore();
-  const { user, isUserLoading } = useUser();
+  const { user, isUserLoading: isAuthLoading } = useUser();
 
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user?.email) return null;
@@ -94,31 +94,31 @@ export default function GroundWaterInvestigationPage() {
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
 
   const isAdmin = useMemo(() => {
-    if (isUserLoading || isProfileLoading) return false;
+    if (isAuthLoading || isProfileLoading) return false;
     const email = user?.email?.toLowerCase().trim();
     if (email === MASTER_ADMIN_EMAIL) return true;
     return userProfile?.role?.toLowerCase().trim() === 'admin';
-  }, [user, userProfile, isUserLoading, isProfileLoading]);
+  }, [user, userProfile, isAuthLoading, isProfileLoading]);
 
   const isApproved = useMemo(() => {
     if (user?.email?.toLowerCase() === MASTER_ADMIN_EMAIL) return true;
     return userProfile?.isApproved === true;
   }, [user, userProfile]);
 
-  const isEngineer = useMemo(() => userProfile?.role?.toLowerCase().trim() === 'engineer', [userProfile]);
-  const isScientist = useMemo(() => userProfile?.role?.toLowerCase().trim() === 'scientist', [userProfile]);
+  const isEngineer = useMemo(() => (userProfile?.role || '').toLowerCase().trim() === 'engineer', [userProfile]);
+  const isScientist = useMemo(() => (userProfile?.role || '').toLowerCase().trim() === 'scientist', [userProfile]);
 
   const reportsQuery = useMemoFirebase(() => {
-    if (!firestore || isUserLoading || !user) return null;
+    if (!firestore || isAuthLoading || !user) return null;
     return query(collection(firestore, 'groundwaterReports'));
-  }, [firestore, user, isUserLoading]);
+  }, [firestore, user, isAuthLoading]);
 
   const { data: reports, isLoading } = useCollection<GroundwaterReport>(reportsQuery);
 
   const usersQuery = useMemoFirebase(() => {
-    if (!firestore || isUserLoading || !user) return null;
+    if (!firestore || isAuthLoading || !user) return null;
     return query(collection(firestore, 'users'));
-  }, [firestore, user, isUserLoading]);
+  }, [firestore, user, isAuthLoading]);
   const { data: systemUsers, isLoading: isUsersLoading } = useCollection(usersQuery);
 
   const userMap = useMemo(() => {
@@ -128,7 +128,7 @@ export default function GroundWaterInvestigationPage() {
     if (systemUsers) {
       systemUsers.forEach(u => {
         const name = u.displayName || u.email || 'Technical Officer';
-        const uid = (u.uid || '').trim();
+        const uid = (u.uid || '').trim().toLowerCase();
         const email = (u.email || '').toLowerCase().trim();
         if (uid) map.set(uid, name);
         if (email) map.set(email, name);
@@ -201,7 +201,7 @@ export default function GroundWaterInvestigationPage() {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button disabled={!(isAdmin || isEngineer || isScientist)} size="lg" className="h-14 px-8 rounded-2xl bg-[#1e3a8a] hover:bg-blue-900 shadow-xl shadow-blue-900/20 font-black uppercase tracking-widest text-[11px] gap-3">
+              <Button disabled={!(isAdmin || isScientist)} size="lg" className="h-14 px-8 rounded-2xl bg-[#1e3a8a] hover:bg-blue-900 shadow-xl shadow-blue-900/20 font-black uppercase tracking-widest text-[11px] gap-3">
                 <PlusCircle className="size-5" />
                 NEW TECHNICAL ENTRY
                 <ChevronDown className="size-4 opacity-50" />
