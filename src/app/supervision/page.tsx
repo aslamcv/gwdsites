@@ -299,6 +299,10 @@ export default function SupervisionLedgerPage() {
       </Card>
 
       <Card className="border-none shadow-xl shadow-slate-200/50 rounded-[32px] overflow-hidden ring-1 ring-slate-200 bg-white">
+        <CardHeader className="bg-slate-50/50 border-b py-5 px-10 flex flex-row items-center justify-between space-y-0">
+          <CardTitle className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">DISTRICT SUPERVISION REPOSITORY</CardTitle>
+          <Badge variant="outline" className="bg-white border-slate-200 text-slate-600 text-[8px] font-black uppercase tracking-widest px-3 h-6 rounded-full">{allRecords.length} TOTAL ENTRIES</Badge>
+        </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
@@ -379,8 +383,9 @@ export default function SupervisionLedgerPage() {
         </CardFooter>
       </Card>
       
+      {/* Data Viewer Dialog */}
       <Dialog open={!!viewingReport} onOpenChange={(open) => !open && setViewingReport(null)}>
-        <DialogContent className="max-w-3xl rounded-[32px] overflow-hidden p-0 border-none shadow-2xl bg-white text-left">
+        <DialogContent className="max-w-3xl rounded-[32px] overflow-hidden p-0 border-none shadow-2xl bg-white text-left text-left">
           <DialogHeader className="p-8 bg-slate-50/50 border-b text-left">
             <DialogTitle className="text-xl font-black uppercase text-slate-900">Technical Record: {viewingReport?.fileNo || 'Preview'}</DialogTitle>
             <DialogDescription className="text-sm font-medium text-slate-500">Viewing all saved parameters for site: {viewingReport?.nameOfSite || viewingReport?.applicantName || viewingReport?.location}</DialogDescription>

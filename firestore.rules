@@ -45,9 +45,11 @@ service cloud.firestore {
     }
 
     function isOwner() {
+      // Robust ownership check for both existing resources and new requests
+      let ownerId = resource != null ? resource.data.get('uploadedBy', '') : request.resource.data.get('uploadedBy', '');
       return isAuthenticated() && (
-        request.auth.uid == resource.data.get('uploadedBy', '') || 
-        getUserEmail() == resource.data.get('uploadedBy', '')
+        request.auth.uid == ownerId || 
+        getUserEmail() == ownerId.lower()
       );
     }
 
@@ -57,14 +59,11 @@ service cloud.firestore {
       // Admins and approved technical staff can read
       allow read: if isAdmin() || isApproved();
       
-      // Approved staff can create technical records
+      // Approved staff can create technical records based on their role
       allow create: if isApproved() && (isAdmin() || isScientist() || isEngineer());
       
       // Only Admins or the original creator can modify/delete
-      allow update, delete: if isAdmin() || (isApproved() && (
-        request.auth.uid == resource.data.get('uploadedBy', '') || 
-        getUserEmail() == resource.data.get('uploadedBy', '')
-      ));
+      allow update, delete: if isAdmin() || (isApproved() && isOwner());
     }
 
     match /appSettings/{document=**} {
